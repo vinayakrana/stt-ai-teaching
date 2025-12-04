@@ -68,12 +68,16 @@ quarto render data-collection-labeling.qmd --to pdf
 
 ### GitHub Actions (Automatic)
 
-HTML and PDF files are built locally and committed. GitHub Actions automatically deploys them to GitHub Pages on every push to master/main branch.
+GitHub Actions automatically builds and deploys on every push.
 
 **Workflow:**
-1. Local: `make all` (builds HTML, PDF, and index page)
-2. Git: `git add -A && git commit && git push`
-3. GitHub Actions: Deploys to Pages automatically
+1. Edit `.qmd` files
+2. Build PDFs locally: `make pdf` (optional, for local preview)
+3. Commit and push: `git add *.qmd *.pdf && git commit && git push`
+4. GitHub Actions: Builds HTML and deploys to Pages automatically
+
+**What's committed:** Only source files (`.qmd`) and PDFs
+**What's generated:** HTML files are built by GitHub Actions
 
 ## Editing Slides
 

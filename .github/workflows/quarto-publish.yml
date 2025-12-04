@@ -15,17 +15,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify files exist
-        run: |
-          echo "Checking for HTML and PDF files..."
-          ls -lh *.html *.pdf 2>/dev/null || echo "Note: Build files locally with 'make all' before pushing"
+      - name: Setup Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Render Quarto site
+        run: quarto render
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
