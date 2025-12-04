@@ -1,6 +1,6 @@
 #import "@preview/touying:0.5.5": *
 #import themes.metropolis: *
-#import "slides.typ": columns-layout, tip-box, warning-box, info-box, card
+#import "slides.typ": columns-layout, tip-box, warning-box, info-box, card, title-slide
 
 #show: metropolis-theme.with(
   aspect-ratio: "16-9",
@@ -8,23 +8,13 @@
 
 #set text(size: 17pt)
 
-// Title slide
-#slide[
-  #align(center + horizon)[
-    #text(size: 36pt, weight: "bold")[
-      Data Collection and Labeling
-    ]
-    #v(0.5em)
-    #text(size: 22pt)[
-      CS 203: Software Tools and Techniques for AI
-    ]
-    #v(1em)
-    #text(size: 18pt)[
-      Prof. Nipun Batra \
-      IIT Gandhinagar
-    ]
-  ]
-]
+// Title slide with white background and line
+#title-slide(
+  "Data Collection and Labeling",
+  subtitle: "CS 203: Software Tools and Techniques for AI",
+  author: "Prof. Nipun Batra",
+  institution: "IIT Gandhinagar"
+)
 
 // Section slide: Module Overview
 #slide[
