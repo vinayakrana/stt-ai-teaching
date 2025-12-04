@@ -1,21 +1,21 @@
-.PHONY: all clean help pdf list light dark
+.PHONY: all clean help pdf list light dark both
 
 # Find all .typ files (excluding slides.typ and other partials)
 SLIDES := $(filter-out slides.typ, $(wildcard *.typ))
 PDF_LIGHT := $(SLIDES:.typ=-light.pdf)
 PDF_DARK := $(SLIDES:.typ=-dark.pdf)
 
-# Default target - build light version
+# Default target - build light PDF
 all: light
 	@echo "✓ All slides built successfully"
 
-# Build light (white background) PDFs
+# Build light (regular) PDFs
 light: $(PDF_LIGHT)
 	@echo "✓ Light theme PDFs built"
 
-# Build dark PDFs
-dark: $(PDF_DARK)
-	@echo "✓ Dark theme PDFs built"
+# Build dark PDFs (inverted colors from light PDFs)
+dark: light $(PDF_DARK)
+	@echo "✓ Dark theme PDFs created"
 
 # Build both versions
 both: light dark
@@ -23,18 +23,20 @@ both: light dark
 
 # Pattern rule for light PDF
 %-light.pdf: %.typ slides.typ
-	@echo "Compiling $< -> $@ (light theme)"
-	@typst compile $< $@ --input dark-mode=false
-
-# Pattern rule for dark PDF
-%-dark.pdf: %.typ slides.typ
-	@echo "Compiling $< -> $@ (dark theme)"
-	@typst compile $< $@ --input dark-mode=true
-
-# For compatibility: build main PDF as light version
-%.pdf: %.typ slides.typ
 	@echo "Compiling $< -> $@"
-	@typst compile $< $@ --input dark-mode=false
+	@typst compile $< $@
+
+# Pattern rule for dark PDF (color inversion with ghostscript)
+%-dark.pdf: %-light.pdf
+	@echo "Creating dark version: $< -> $@"
+	@if command -v gs >/dev/null 2>&1; then \
+		gs -o $@ -sDEVICE=pdfwrite \
+		   -c "{1 exch sub}{1 exch sub}{1 exch sub}{1 exch sub} setcolortransfer" \
+		   -f $< 2>&1 | grep -v "GPL Ghostscript" | grep -v "Copyright" | grep -v "Processing pages" | grep -v "Page [0-9]" | grep -v "reserved for an Annotation" || true; \
+	else \
+		echo "Warning: ghostscript (gs) not found. Copying original."; \
+		cp $< $@; \
+	fi
 
 # List available slides
 list:
@@ -44,9 +46,9 @@ list:
 	done
 	@echo ""
 	@echo "Build commands:"
-	@echo "  make light     # Build light theme PDFs (white background)"
-	@echo "  make dark      # Build dark theme PDFs (dark background)"
-	@echo "  make both      # Build both themes"
+	@echo "  make light     # Build light theme PDFs (default)"
+	@echo "  make dark      # Build dark theme PDFs (inverted colors)"
+	@echo "  make both      # Build both light and dark PDFs"
 
 # Clean generated files
 clean:
@@ -57,7 +59,7 @@ clean:
 help:
 	@echo "Available targets:"
 	@echo "  make light     # Build light theme PDFs (default)"
-	@echo "  make dark      # Build dark theme PDFs"
-	@echo "  make both      # Build both light and dark themes"
+	@echo "  make dark      # Build dark theme PDFs (inverted colors)"
+	@echo "  make both      # Build both light and dark PDFs"
 	@echo "  make list      # List available slides"
 	@echo "  make clean     # Remove all generated PDFs"

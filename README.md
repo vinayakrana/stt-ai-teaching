@@ -43,7 +43,7 @@ cargo install --git https://github.com/typst/typst typst-cli
 # Build light theme PDFs (white background, default)
 make light
 
-# Build dark theme PDFs (dark background)
+# Build dark theme PDFs (inverted colors)
 make dark
 
 # Build both themes
@@ -58,19 +58,21 @@ make clean
 
 ### Manual Build
 
-**Compile Typst to PDF (light theme):**
+**Compile Typst to PDF:**
 ```bash
-typst compile data-collection-labeling.typ --input dark-mode=false
+typst compile data-collection-labeling.typ data-collection-labeling-light.pdf
 ```
 
-**Compile Typst to PDF (dark theme):**
+**Create dark version (requires ghostscript):**
 ```bash
-typst compile data-collection-labeling.typ data-collection-labeling-dark.pdf --input dark-mode=true
+gs -o data-collection-labeling-dark.pdf -sDEVICE=pdfwrite \
+   -c "{1 exch sub}{1 exch sub}{1 exch sub}{1 exch sub} setcolortransfer" \
+   -f data-collection-labeling-light.pdf
 ```
 
 **Watch mode (auto-rebuild):**
 ```bash
-typst watch data-collection-labeling.typ
+typst watch data-collection-labeling.typ data-collection-labeling-light.pdf
 ```
 
 ## Editing Slides
@@ -79,25 +81,42 @@ Edit the `.typ` file directly. Typst has clean syntax for slides.
 
 **Basic structure:**
 ```typst
-#import "slides.typ": *
+#import "@preview/touying:0.5.5": *
+#import themes.metropolis: *
+#import "slides.typ": columns-layout, tip-box, warning-box, info-box, card
 
-#show: course-theme(
-  title: "Your Title",
-  subtitle: "Course Name",
-  author: "Your Name",
+#show: metropolis-theme.with(
+  aspect-ratio: "16-9",
 )
 
-#title-slide("Your Title", subtitle: "Course Name")
+#set text(size: 17pt)
 
-#section-slide[Section Name]
+// Title slide
+#slide[
+  #align(center + horizon)[
+    #text(size: 36pt, weight: "bold")[Your Title]
+    #v(0.5em)
+    #text(size: 22pt)[Course Name]
+  ]
+]
 
+// Section divider
+#slide[
+  #align(center + horizon)[
+    #text(size: 40pt, weight: "bold", fill: rgb("#2563eb"))[Section Name]
+  ]
+]
+
+// Content slide
+#slide[
 = Slide Title
 
 Content here...
+]
 ```
 
 **Features:**
-- `#section-slide[Title]` - Section dividers
+- `#slide[...]` - Wraps each slide
 - `#columns-layout(left, right)` - Two-column layout
 - `#card[...]` - Highlighted card
 - `#tip-box[...]`, `#info-box[...]`, `#warning-box[...]` - Callout boxes

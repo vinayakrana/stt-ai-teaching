@@ -1,23 +1,41 @@
-#import "slides.typ": *
+#import "@preview/touying:0.5.5": *
+#import themes.metropolis: *
+#import "slides.typ": columns-layout, tip-box, warning-box, info-box, card
 
-// Allow dark-mode to be set via CLI: --input dark-mode=true/false
-#let dark-mode = if "dark-mode" in sys.inputs {
-  sys.inputs.at("dark-mode") == "true"
-} else {
-  false  // Default to light mode
-}
-
-#show: course-theme(
-  title: "Data Collection and Labeling",
-  subtitle: "CS 203: Software Tools and Techniques for AI",
-  author: "Prof. Nipun Batra",
-  dark-mode: dark-mode,
+#show: metropolis-theme.with(
+  aspect-ratio: "16-9",
 )
 
-#title-slide("Data Collection and Labeling", subtitle: "CS 203: Software Tools and Techniques for AI", dark-mode: dark-mode)
+#set text(size: 17pt)
 
-#section-slide[Module Overview]
+// Title slide
+#slide[
+  #align(center + horizon)[
+    #text(size: 36pt, weight: "bold")[
+      Data Collection and Labeling
+    ]
+    #v(0.5em)
+    #text(size: 22pt)[
+      CS 203: Software Tools and Techniques for AI
+    ]
+    #v(1em)
+    #text(size: 18pt)[
+      Prof. Nipun Batra \
+      IIT Gandhinagar
+    ]
+  ]
+]
 
+// Section slide: Module Overview
+#slide[
+  #align(center + horizon)[
+    #text(size: 40pt, weight: "bold", fill: rgb("#2563eb"))[
+      Module Overview
+    ]
+  ]
+]
+
+#slide[
 = What We'll Learn Today
 
 1. *Data Collection* — Where does AI data come from?
@@ -31,6 +49,9 @@
   *Key Idea:* 80% of AI work is data! Good data = Good models
 ]
 
+]
+
+#slide[
 = Why Does Data Matter?
 
 #card[
@@ -47,9 +68,18 @@
 
 *Your model is only as good as your data!*
 
-#pagebreak()
-#section-slide[Part 1: Data Collection]
+]
 
+// Section slide: Part 1: Data Collection
+#slide[
+  #align(center + horizon)[
+    #text(size: 40pt, weight: "bold", fill: rgb("#2563eb"))[
+      Part 1: Data Collection
+    ]
+  ]
+]
+
+#slide[
 = Real-World Example: Building a Chatbot
 
 #columns-layout(
@@ -71,6 +101,9 @@
   ]
 )
 
+]
+
+#slide[
 = Python Logging: Your First Tool
 
 ```python
@@ -95,6 +128,9 @@ def handle_message(user_id, message):
 handle_message("user123", "What's the weather?")
 ```
 
+]
+
+#slide[
 = Exercise: Add Logging to Your Code
 
 ```python
@@ -114,6 +150,9 @@ def calculate_score(answers):
     return score
 ```
 
+]
+
+#slide[
 = Structured Logging with JSON
 
 ```python
@@ -145,6 +184,9 @@ log_event("video_complete", "user456", {
   *Why JSON?* Easy to parse later with `json.loads()` for analysis!
 ]
 
+]
+
+#slide[
 = Web Analytics: Google Analytics Example
 
 ```html
@@ -166,6 +208,9 @@ log_event("video_complete", "user456", {
 
 *Track:* Page views, clicks, time on page, user flows
 
+]
+
+#slide[
 = Web Scraping: Collecting Public Data
 
 ```python
@@ -192,6 +237,9 @@ for author in authors[:3]:
   Always check `robots.txt` and respect rate limits!
 ]
 
+]
+
+#slide[
 = Exercise: Scrape a Simple Website
 
 ```python
@@ -218,6 +266,9 @@ def scrape_books():
     return books
 ```
 
+]
+
+#slide[
 = API Data Collection
 
 ```python
@@ -246,6 +297,9 @@ def collect_repo_stats(repo_name):
         }
 ```
 
+]
+
+#slide[
 = Database Logging Example
 
 ```python
@@ -278,6 +332,9 @@ def log_to_db(user_id, event_type, details):
 log_to_db("user789", "login", "successful")
 ```
 
+]
+
+#slide[
 = Sampling Strategies
 
 #columns-layout(
@@ -315,9 +372,18 @@ log_to_db("user789", "login", "successful")
   ]
 )
 
-#pagebreak()
-#section-slide[Part 2: Data Validation]
+]
 
+// Section slide: Part 2: Data Validation
+#slide[
+  #align(center + horizon)[
+    #text(size: 40pt, weight: "bold", fill: rgb("#2563eb"))[
+      Part 2: Data Validation
+    ]
+  ]
+]
+
+#slide[
 = Why Validate Data?
 
 #card[
@@ -331,6 +397,9 @@ log_to_db("user789", "login", "successful")
   Bad data → Bad predictions → Real harm!
 ]
 
+]
+
+#slide[
 = Common Data Problems
 
 ```python
@@ -350,6 +419,9 @@ dates = ["2024-01-15", "15/01/2024", "Jan 15, 2024"]
 users = ["alice", "bob", "alice"]  # alice appears twice!
 ```
 
+]
+
+#slide[
 = Data Validation with Python
 
 ```python
@@ -372,6 +444,9 @@ except Exception as e:
     print(f"Validation error: {e}")
 ```
 
+]
+
+#slide[
 = Pydantic: Automatic Validation
 
 ```python
@@ -405,6 +480,9 @@ except Exception as e:
     print("Validation failed:", e)
 ```
 
+]
+
+#slide[
 = Exercise: Create Your Own Validator
 
 ```python
@@ -424,6 +502,9 @@ class Student(BaseModel):
 # Hint: Use @validator decorator
 ```
 
+]
+
+#slide[
 = Pandas Data Validation
 
 ```python
@@ -451,6 +532,9 @@ outliers = df[abs(df['score'] - mean) > 3 * std]
 print(f"Found {len(outliers)} outliers")
 ```
 
+]
+
+#slide[
 = Handling Missing Data
 
 ```python
@@ -480,6 +564,9 @@ df_ffill = df.fillna(method='ffill')
 print(df_filled)
 ```
 
+]
+
+#slide[
 = Data Type Conversion
 
 ```python
@@ -502,9 +589,18 @@ def safe_convert(value):
 df['score'] = df['score'].apply(safe_convert)
 ```
 
-#pagebreak()
-#section-slide[Part 3: Data Labeling]
+]
 
+// Section slide: Part 3: Data Labeling
+#slide[
+  #align(center + horizon)[
+    #text(size: 40pt, weight: "bold", fill: rgb("#2563eb"))[
+      Part 3: Data Labeling
+    ]
+  ]
+]
+
+#slide[
 = What is Data Labeling?
 
 #columns-layout(
@@ -528,6 +624,9 @@ df['score'] = df['score'].apply(safe_convert)
   Labels are the "answers" we want our AI to learn!
 ]
 
+]
+
+#slide[
 = Image Classification: Labeling Cats vs Dogs
 
 ```python
@@ -560,6 +659,9 @@ def label_images(image_folder):
 label_images('animal_images/')
 ```
 
+]
+
+#slide[
 = Text Classification Example
 
 ```python
@@ -589,6 +691,9 @@ df.to_csv('sentiment_labels.csv', index=False)
 print(df)
 ```
 
+]
+
+#slide[
 = Label Studio: Professional Tool
 
 #card[
@@ -610,6 +715,9 @@ print(df)
   - Team collaboration
 ]
 
+]
+
+#slide[
 = Inter-Annotator Agreement
 
 ```python
@@ -634,6 +742,9 @@ print(f"Cohen's Kappa: {kappa:.3f}")
 # 0.81-1.00: Excellent
 ```
 
+]
+
+#slide[
 = Active Learning: Smart Labeling
 
 ```python
@@ -666,6 +777,9 @@ print(f"Label these {len(samples_to_label)} samples next!")
   Active learning can reduce labeling effort by 50-90%!
 ]
 
+]
+
+#slide[
 = Weak Supervision Example
 
 ```python
@@ -692,9 +806,18 @@ review = "This product is amazing and excellent!"
 print(label_review(review))  # Output: positive
 ```
 
-#pagebreak()
-#section-slide[Part 4: Data Augmentation]
+]
 
+// Section slide: Part 4: Data Augmentation
+#slide[
+  #align(center + horizon)[
+    #text(size: 40pt, weight: "bold", fill: rgb("#2563eb"))[
+      Part 4: Data Augmentation
+    ]
+  ]
+]
+
+#slide[
 = Why Augment Data?
 
 #card[
@@ -713,6 +836,9 @@ print(label_review(review))  # Output: positive
   More data → Better models (usually!)
 ]
 
+]
+
+#slide[
 = Image Augmentation with PIL
 
 ```python
@@ -744,6 +870,9 @@ def augment_image(img_path, output_folder):
 # Now you have 5x more images!
 ```
 
+]
+
+#slide[
 = Image Augmentation with OpenCV
 
 ```python
@@ -776,6 +905,9 @@ for name, aug_img in augment_opencv('cat.jpg'):
     cv2.imwrite(f'cat_{name}.jpg', aug_img)
 ```
 
+]
+
+#slide[
 = Text Augmentation: Synonym Replacement
 
 ```python
@@ -812,6 +944,9 @@ for aug in augment_text(text):
 # This is a wonderful product
 ```
 
+]
+
+#slide[
 = Text Augmentation: Back Translation
 
 ```python
@@ -838,6 +973,9 @@ print(f"Augmented: {augmented}")
 # Might get: "Machine learning is captivating"
 ```
 
+]
+
+#slide[
 = Tabular Data: SMOTE
 
 ```python
@@ -863,6 +1001,9 @@ print(f"Class 0: {sum(y_resampled == 0)}, Class 1: {sum(y_resampled == 1)}")
   SMOTE creates synthetic samples between existing minority class samples
 ]
 
+]
+
+#slide[
 = Exercise: Create Your Augmentation Pipeline
 
 ```python
@@ -883,9 +1024,18 @@ def augmentation_pipeline(input_folder, output_folder):
 augmentation_pipeline('original_images/', 'augmented_images/')
 ```
 
-#pagebreak()
-#section-slide[Summary & Best Practices]
+]
 
+// Section slide: Summary & Best Practices
+#slide[
+  #align(center + horizon)[
+    #text(size: 40pt, weight: "bold", fill: rgb("#2563eb"))[
+      Summary & Best Practices
+    ]
+  ]
+]
+
+#slide[
 = Key Takeaways
 
 1. *Data Collection*
@@ -908,6 +1058,9 @@ augmentation_pipeline('original_images/', 'augmented_images/')
    - Don't overaugment (keep it realistic)
    - Test if augmentation helps your model
 
+]
+
+#slide[
 = Tools Summary
 
 ```python
@@ -930,6 +1083,9 @@ import cv2                      # Computer vision
 from imblearn.over_sampling import SMOTE  # Tabular data
 ```
 
+]
+
+#slide[
 = Common Pitfalls to Avoid
 
 #warning-box[
@@ -940,6 +1096,9 @@ from imblearn.over_sampling import SMOTE  # Tabular data
   5. *Not versioning datasets* → Can't reproduce results
 ]
 
+]
+
+#slide[
 = Your Assignment
 
 Build a complete pipeline:
@@ -955,6 +1114,9 @@ Build a complete pipeline:
 - Labeled dataset
 - Documentation
 
+]
+
+#slide[
 = Resources for Further Learning
 
 *Documentation:*
@@ -972,8 +1134,18 @@ Build a complete pipeline:
 - Try web scraping on practice sites
 - Experiment with augmentation libraries
 
-#section-slide[Questions?]
+]
 
+// Section slide: Questions?
+#slide[
+  #align(center + horizon)[
+    #text(size: 40pt, weight: "bold", fill: rgb("#2563eb"))[
+      Questions?
+    ]
+  ]
+]
+
+#slide[
 = Thank You!
 
 *Remember:*
@@ -989,10 +1161,12 @@ Build a complete pipeline:
 
 *Office Hours:* Mon/Wed 2-3 PM
 
-*Email:* nipun.batra@iitgn.ac.in
+*Email:* nipun.batra\@iitgn.ac.in
 
 #align(center)[
   #text(size: 20pt)[
     *Next Class:* Model Training & Evaluation
   ]
+]
+
 ]
