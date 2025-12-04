@@ -1,78 +1,39 @@
-.PHONY: all clean help html pdf handout list site
+.PHONY: all clean help pdf list
 
-# Find all .qmd files (excluding index.qmd)
-SLIDES := $(filter-out index.qmd, $(wildcard *.qmd))
-HTML_FILES := $(SLIDES:.qmd=.html)
-PDF_FILES := $(SLIDES:.qmd=.pdf)
-HANDOUT_FILES := $(SLIDES:.qmd=-handout.pdf)
+# Find all .typ files (excluding slides.typ and other partials)
+SLIDES := $(filter-out slides.typ, $(wildcard *.typ))
+PDF_FILES := $(SLIDES:.typ=.pdf)
 
 # Default target
-all: site pdf handout
+all: pdf
 	@echo "✓ All slides built successfully"
 
-# Build entire Quarto site (including index)
-site:
-	@echo "Building Quarto site..."
-	@quarto render
-
-# Build all HTML slides individually
-html: $(HTML_FILES)
-	@echo "✓ HTML slides built"
-
-# Build all PDF slides (requires HTML first)
-pdf: html $(PDF_FILES)
+# Build all PDF slides
+pdf: $(PDF_FILES)
 	@echo "✓ PDF slides built"
 
-# Build all handout PDFs
-handout: $(HANDOUT_FILES)
-	@echo "✓ Handout PDFs built"
+# Pattern rule for PDF slides
+%.pdf: %.typ slides.typ
+	@echo "Compiling $< -> $@"
+	@typst compile $< $@
 
-# Pattern rule for HTML
-%.html: %.qmd
-	@echo "Building $< -> $@"
-	@quarto render $< --to revealjs
-
-# Pattern rule for PDF slides (from RevealJS HTML using decktape)
-%.pdf: %.html
-	@echo "Converting $< -> $@"
-	@npx --yes decktape reveal $< $@ --chrome-arg=--no-sandbox
-
-# Pattern rule for handout PDF (using Beamer)
-%-handout.pdf: %.qmd
-	@echo "Building handout $< -> $@"
-	@quarto render $< --to beamer --output $@
-
-# Build specific slide by name (without extension) - all three formats
-%: %.qmd
-	@echo "Building $< (all formats)"
-	@quarto render $< --to revealjs
-	@npx --yes decktape reveal $*.html $*.pdf --chrome-arg=--no-sandbox
-	@quarto render $< --to beamer --output $*-handout.pdf
-	@echo "✓ Built $< (HTML + PDF slides + PDF handout)"
-
-# List all available slides
+# List available slides
 list:
 	@echo "Available slides:"
 	@for file in $(SLIDES); do \
-		echo "  - $${file%.qmd}"; \
+		echo "  - $${file%.typ}"; \
 	done
-	@echo ""
-	@echo "Usage:"
-	@echo "  make all                  # Build all formats (HTML + PDF slides + PDF handouts)"
-	@echo "  make html                 # Build all HTML slides"
-	@echo "  make pdf                  # Build all PDF slides (decktape)"
-	@echo "  make handout              # Build all PDF handouts (beamer)"
-	@echo "  make <name>               # Build specific slide in all formats"
-	@echo "  make clean                # Remove generated files"
 
 # Clean generated files
 clean:
 	@echo "Cleaning generated files..."
-	@rm -f $(HTML_FILES) $(PDF_FILES) $(HANDOUT_FILES) index.html
-	@rm -rf *_files/
-	@rm -f *.tex *.log *.aux
-	@rm -rf .quarto/
+	@rm -f $(PDF_FILES)
 	@echo "✓ Clean complete"
 
-# Help
-help: list
+help:
+	@echo "Usage:"
+	@echo "  make all       # Build all PDF slides"
+	@echo "  make pdf       # Build all PDF slides"
+	@echo "  make <name>    # Build specific slide (e.g., make data-collection-labeling.pdf)"
+	@echo "  make list      # List available slides"
+	@echo "  make clean     # Clean all artifacts"
