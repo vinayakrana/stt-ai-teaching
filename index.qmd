@@ -8,14 +8,25 @@ title: "CS 203: Software Tools and Techniques for AI"
 
 ---
 
-## Lecture Slides
+## Week 1: Web Scraping & Data Collection
 
-### Data Collection and Labeling
+**Topics**: Chrome DevTools, Requests + BeautifulSoup, Playwright, pandas visualization
 
-Topics: Data collection, validation, labeling, augmentation
+### Lecture (1.5 hours)
+- [PDF](week1-lecture.pdf) | [HTML](week1-lecture.html) | [Source](https://github.com/nipunbatra/stt-ai-teaching/blob/master/week1-lecture.md)
+- Content: DevTools deep dive, HTTP requests, HTML parsing, browser automation
 
-- [PDF (Light)](data-collection-labeling-marp.pdf)
-- [PDF (Dark)](data-collection-labeling-marp-dark.pdf)
-- [HTML](data-collection-labeling-marp.html)
-- [Source](https://github.com/nipunbatra/stt-ai-teaching/blob/master/data-collection-labeling.md)
+### Lab (3 hours)
+- [PDF](week1-lab.pdf) | [HTML](week1-lab.html) | [Source](https://github.com/nipunbatra/stt-ai-teaching/blob/master/week1-lab.md)
+- Exercises: DevTools practice, quote scraper, news aggregator, Playwright automation
+- Case studies: Price tracking, research monitoring, social media analysis
+
+---
+
+## Reference Materials
+
+### Data Collection and Labeling (Full Course Content)
+
+- [PDF (Light)](data-collection-labeling-marp.pdf) | [PDF (Dark)](data-collection-labeling-marp-dark.pdf)
+- [HTML](data-collection-labeling-marp.html) | [Source](https://github.com/nipunbatra/stt-ai-teaching/blob/master/data-collection-labeling.md)
 - [View other themes](themes.html)
