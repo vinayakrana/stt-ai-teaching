@@ -81,3 +81,12 @@ If you find an issue with the slides (typos, code errors, outdated content), ple
 ## License
 
 Course materials by Prof. Nipun Batra, IIT Gandhinagar.
+
+## Mermaid Diagrams
+
+Mermaid diagrams are supported in **HTML output only**. They are rendered using mermaid.js via a custom Marp engine.
+
+- **HTML slides**: Mermaid diagrams render correctly
+- **PDF slides**: Mermaid blocks appear as code (limitation of PDF format)
+
+To view slides with diagrams, use the HTML version or present directly from HTML.

@@ -1,0 +1,26 @@
+{
+  "name": "stt-ai-teaching",
+  "version": "1.0.0",
+  "description": "**Instructor:** Prof. Nipun Batra, IIT Gandhinagar   **Course Website:** [nipunbatra.github.io/stt-ai-26](https://nipunbatra.github.io/stt-ai-26/)   **Slides & Labs:** [nipunbatra.github.io/stt-ai-teaching](https://nipunbatra.github.io/stt-ai-teaching/)",
+  "main": "engine.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nipunbatra/stt-ai-teaching.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nipunbatra/stt-ai-teaching/issues"
+  },
+  "homepage": "https://github.com/nipunbatra/stt-ai-teaching#readme",
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.2.3",
+    "@marp-team/marp-core": "^4.2.0",
+    "puppeteer": "^24.32.1"
+  }
+}
