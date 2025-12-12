@@ -1,15 +1,15 @@
 ---
 marp: true
 theme: default
+class: lead
 paginate: true
-style: @import "custom.css";
-  section { justify-content: flex-start; }
+backgroundColor: #fff
+style: |
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap');
+  @import 'custom.css';
 ---
 
-<!-- _class: lead -->
-<!-- _paginate: false -->
-
-# Week 2 Lab: Data Validation & Labeling
+# Week 2 Lab: Data Validation
 
 **CS 203: Software Tools and Techniques for AI**
 
@@ -20,1154 +20,1008 @@ Prof. Nipun Batra & Teaching Assistants
 
 # Lab Overview
 
-## Today's Goals
+**Goal**: Validate and clean the movie dataset from Week 1
 
-By the end of this lab, you will:
-- Master command-line tools for data inspection
-- Validate data with Pydantic models
-- Set up and use Label Studio
-- Calculate inter-annotator agreement
-- Build a complete validation pipeline
+**What you'll do**:
+- Inspect data with command-line tools (jq, csvkit)
+- Define validation schemas with Pydantic
+- Clean data with pandas
+- Build automated validation pipeline
 
-## Structure
-- **Part 1**: Command-line tools (45 min)
-- **Part 2**: Python validation with Pydantic (60 min)
-- **Part 3**: Label Studio annotation (60 min)
-- **Part 4**: Complete pipeline (15 min)
+**Skills practiced**:
+- Command-line data analysis
+- Schema-based validation
+- Data cleaning techniques
+- Building reproducible pipelines
 
 ---
 
-# Setup Check (10 minutes)
+# Setup Check
 
-## Install Required Tools
+Verify your environment:
 
 ```bash
-# macOS command-line tools
-brew install jq
+# Install jq (JSON processor)
+brew install jq  # Mac
+sudo apt-get install jq  # Linux
 
-# Linux command-line tools
-sudo apt-get install jq
-
-# Python packages
-pip install pydantic label-studio csvkit pandas scikit-learn statsmodels
+# Install Python packages
+pip install csvkit pydantic pandas
 
 # Verify installations
 jq --version
 csvstat --version
-python -c "import pydantic; print(pydantic.__version__)"
-
-# Start Label Studio (in separate terminal)
-label-studio start
+python -c "import pydantic, pandas; print('Ready!')"
 ```
 
-## Get Sample Data
+---
 
+# Part 1: Command-Line Inspection
+
+Using jq and csvkit to explore data quality
+
+---
+
+# Exercise 1.1: Inspect JSON with jq
+
+**Task**: Explore your `movies_raw.json` from Week 1
+
+**Step 1**: Pretty-print the JSON
 ```bash
-# Use your Week 1 scraped data, or download sample
-curl -O https://example.com/sample_data.json
+cat movies_raw.json | jq '.' | head -50
 ```
 
----
-
-# Part 1: Command-Line Data Inspection
-
-## Exercise 1.1: jq Basics (15 min)
-
-**Task**: Explore and validate JSON data
-
-Create sample file `users.json`:
-```json
-[
-  {"name": "Alice", "age": 25, "email": "alice@example.com", "city": "Ahmedabad"},
-  {"name": "Bob", "age": "thirty", "email": "bob@invalid", "city": "Gandhinagar"},
-  {"name": null, "age": 35, "email": "charlie@example.com"},
-  {"name": "Diana", "age": -5, "email": "diana@example.com", "city": "Surat"}
-]
-```
-
-**Tasks**:
-1. Pretty print the JSON
-2. Extract all names
-3. Find users with missing names
-4. Find users with invalid ages
-5. Count users per city
-
----
-
-## Exercise 1.1: Solution
-
+**Step 2**: Count total movies
 ```bash
-# 1. Pretty print
-jq '.' users.json
-
-# 2. Extract all names
-jq '.[].name' users.json
-
-# 3. Find users with missing names
-jq '.[] | select(.name == null or .name == "")' users.json
-
-# 4. Find users with invalid ages (not a number or < 0)
-jq '.[] | select((.age | type) != "number" or .age < 0)' users.json
-
-# Output:
-# {"name":"Bob","age":"thirty",...}  # age is string
-# {"name":"Diana","age":-5,...}      # age is negative
-
-# 5. Count users per city
-jq '[.[].city] | group_by(.) | map({city: .[0], count: length})' users.json
-
-# Or simpler (if you just want counts):
-jq -r '.[].city' users.json | sort | uniq -c
+cat movies_raw.json | jq 'length'
 ```
 
----
-
-## Exercise 1.2: jq Advanced Filtering (15 min)
-
-**Task**: Validate scraped article data
-
-Sample `articles.json`:
-```json
-[
-  {"title": "Article 1", "url": "https://example.com/1", "views": 100, "rating": 4.5},
-  {"title": "", "url": "not-a-url", "views": -10, "rating": 4.5},
-  {"title": "Article 3", "url": "https://example.com/3", "views": 50, "rating": 6.0}
-]
-```
-
-**Requirements**:
-1. Find articles with empty titles
-2. Find articles with invalid URLs (no http/https)
-3. Find articles with negative views
-4. Find articles with rating > 5
-5. Create a clean dataset with only valid articles
-
-**Bonus**: Calculate average views for valid articles
-
----
-
-## Exercise 1.2: Solution
-
+**Step 3**: Get first movie's title and rating
 ```bash
-# 1. Empty titles
-jq '.[] | select(.title == "")' articles.json
-
-# 2. Invalid URLs (not starting with http)
-jq '.[] | select(.url | startswith("http") | not)' articles.json
-
-# 3. Negative views
-jq '.[] | select(.views < 0)' articles.json
-
-# 4. Rating > 5
-jq '.[] | select(.rating > 5)' articles.json
-
-# 5. Clean dataset (all validations)
-jq '
-  map(select(
-    .title != "" and
-    (.url | startswith("http")) and
-    .views >= 0 and
-    .rating >= 0 and .rating <= 5
-  ))
-' articles.json > clean_articles.json
-
-# Bonus: Average views
-jq '[.[].views] | add / length' clean_articles.json
+cat movies_raw.json | jq '.[0] | {title: .Title, rating: .imdbRating}'
 ```
 
 ---
 
-## Exercise 1.3: csvkit Practice (15 min)
+# Exercise 1.1: Solution Discussion
 
-**Task**: Analyze CSV data
+**What did you find?**
+- How many movies in your dataset?
+- What fields does each movie have?
+- Are all fields present in every movie?
 
-Create `products.csv`:
-```csv
-name,price,category,stock,rating
-Laptop,999.99,Electronics,10,4.5
-Mouse,25.50,Electronics,50,4.2
-Book,15.00,Books,100,4.8
-Keyboard,invalid,Electronics,20,4.1
-Chair,150.00,Furniture,5,3.9
-"",99.99,Electronics,15,4.0
-```
-
-**Tasks**:
-1. Get summary statistics for all columns
-2. Clean the file and identify errors
-3. Count products per category
-4. Find average price by category
-5. Extract only Electronics products
+**Common observations**:
+- Some movies have `"N/A"` values
+- Ratings are strings, not numbers
+- Runtime includes "min" suffix
 
 ---
 
-## Exercise 1.3: Solution
+# Exercise 1.2: Find Missing Data with jq
 
+**Task**: Identify data quality issues
+
+**Find movies with missing box office**:
 ```bash
-# 1. Summary statistics
-csvstat products.csv
+cat movies_raw.json | jq '.[] | select(.BoxOffice == "N/A") | .Title'
+```
 
-# 2. Clean and find errors
-csvclean products.csv
-# Creates products_out.csv and products_err.csv
+**Count how many**:
+```bash
+cat movies_raw.json | jq '[.[] | select(.BoxOffice == "N/A")] | length'
+```
 
-cat products_err.csv
-# Shows: line 4 (Keyboard with invalid price)
-#        line 6 (empty name)
-
-# 3. Count per category
-csvstat -c category products.csv
-# Or using csvcut and sort:
-csvcut -c category products.csv | tail -n +2 | sort | uniq -c
-
-# 4. Average price by category
-csvsql --query "
-  SELECT category, AVG(CAST(price AS REAL)) as avg_price
-  FROM products
-  WHERE price != 'invalid'
-  GROUP BY category
-" products.csv
-
-# 5. Extract Electronics only
-csvgrep -c category -m Electronics products.csv > electronics.csv
+**Find movies with missing Metascore**:
+```bash
+cat movies_raw.json | jq '.[] | select(.Metascore == "N/A") | .Title'
 ```
 
 ---
 
-## Part 1 Checkpoint
+# Exercise 1.2: Your Turn
 
-### What You've Learned
+Try these on your own:
 
-- jq for JSON validation and filtering
-- csvkit for CSV analysis and cleaning
-- Unix tools for quick data inspection
-- Finding data quality issues
+1. Find all movies from the 2010s
+2. Find movies with rating above 8.5
+3. Count movies by genre (first genre only)
+4. Calculate average rating
 
-### Common Issues Found
+**Hint**: Use `jq` filters like `select()`, `tonumber`, `contains()`, and aggregation functions
 
-- Missing values (null, empty strings)
-- Wrong types (string instead of number)
-- Invalid ranges (negative values, ratings > 5)
-- Malformed data (invalid URLs, emails)
+---
 
-**Share your findings**: What data issues did you discover?
+# Exercise 1.3: CSV Analysis with csvkit
+
+**Task**: Analyze your `movies.csv` file
+
+**View the data**:
+```bash
+csvlook movies.csv | head -30
+```
+
+**Get column names**:
+```bash
+csvcut -n movies.csv
+```
+
+**Get summary statistics**:
+```bash
+csvstat movies.csv
+```
+
+---
+
+# Exercise 1.3: Understanding csvstat Output
+
+The output shows for each column:
+- **Type of data**: Text, Number, Date
+- **Contains null values**: True/False
+- **Unique values**: How many distinct values
+- **Min, Max, Mean**: For numeric columns
+- **Most common values**: Top values
+
+**Question**: Which columns have the most missing values in your dataset?
+
+---
+
+# Exercise 1.4: Filter and Sort CSV
+
+**Get only high-rated movies** (rating > 8.5):
+```bash
+csvgrep -c rating -r "^[89]\." movies.csv
+```
+
+**Sort by rating** (highest first):
+```bash
+csvsort -c rating -r movies.csv | csvlook | head -20
+```
+
+**Extract specific columns**:
+```bash
+csvcut -c title,year,rating,genre movies.csv | csvlook
+```
+
+---
+
+# Exercise 1.4: Your Challenge
+
+Create a filtered dataset of movies:
+- From years 2010-2020
+- Rating above 8.0
+- Save to new CSV file
+
+**Steps**:
+1. Filter by year range
+2. Filter by rating
+3. Save output
+
+**Hint**: Pipe multiple commands together!
+
+---
+
+# Part 1 Checkpoint
+
+**What you've learned**:
+- Using jq to inspect JSON and find issues
+- Using csvkit tools to analyze CSV files
+- Identifying missing data and quality problems
+- Basic filtering and statistics
+
+**Data quality issues found**:
+- Missing values ("N/A")
+- String numbers that should be numeric
+- Inconsistent formatting
 
 ---
 
 # Part 2: Python Validation with Pydantic
 
-## Exercise 2.1: Basic Pydantic Model (20 min)
+Building type-safe data models
 
-**Task**: Create a validation model for user data
+---
+
+# Exercise 2.1: Define a Movie Schema
+
+**Task**: Create a Pydantic model for movies
+
+Create file: `models.py`
 
 ```python
-from pydantic import BaseModel, ValidationError
-import json
+from pydantic import BaseModel, Field
+from typing import Optional
 
-# TODO: Define a User model with:
-# - name: required string, min length 1
-# - age: required int, between 0 and 120
-# - email: required string (bonus: use EmailStr)
-# - city: required string
+class Movie(BaseModel):
+    Title: str
+    Year: str
+    imdbRating: str
+    Genre: str
+    Director: str
+    Runtime: Optional[str] = None
+    BoxOffice: Optional[str] = None
 
-# Test data
-test_data = [
-    {"name": "Alice", "age": 25, "email": "alice@example.com", "city": "Ahmedabad"},
-    {"name": "", "age": 25, "email": "bob@example.com", "city": "Surat"},
-    {"name": "Charlie", "age": -5, "email": "charlie@example.com", "city": "Mumbai"},
-    {"name": "Diana", "age": "thirty", "email": "invalid", "city": "Pune"}
-]
+# Test it
+movie_data = {
+    "Title": "Inception",
+    "Year": "2010",
+    "imdbRating": "8.8",
+    "Genre": "Action, Sci-Fi",
+    "Director": "Christopher Nolan"
+}
 
-# TODO: Validate each record and count valid/invalid
+movie = Movie(**movie_data)
+print(movie.Title)
 ```
 
 ---
 
-## Exercise 2.1: Solution
+# Exercise 2.1: Run It
+
+```bash
+python models.py
+```
+
+**Expected output**:
+```
+Inception
+```
+
+**What happened?**
+- Pydantic validated the data structure
+- All required fields present
+- Types match expectations
+
+---
+
+# Exercise 2.2: Add Type Conversion
+
+**Task**: Convert string fields to proper types
+
+Update `models.py`:
 
 ```python
-from pydantic import BaseModel, Field, field_validator, EmailStr
-from typing import List
-import json
+from pydantic import BaseModel, Field, validator
+from typing import Optional
 
-class User(BaseModel):
-    name: str = Field(..., min_length=1)
-    age: int = Field(..., ge=0, le=120)
-    email: EmailStr  # Validates email format
-    city: str
+class Movie(BaseModel):
+    Title: str
+    Year: int  # Changed to int
+    imdbRating: float  # Changed to float
+    Genre: str
+    Director: str
+    Runtime: Optional[str] = None
+    BoxOffice: Optional[str] = None
 
-test_data = [
-    {"name": "Alice", "age": 25, "email": "alice@example.com", "city": "Ahmedabad"},
-    {"name": "", "age": 25, "email": "bob@example.com", "city": "Surat"},
-    {"name": "Charlie", "age": -5, "email": "charlie@example.com", "city": "Mumbai"},
-    {"name": "Diana", "age": "thirty", "email": "invalid", "city": "Pune"}
-]
+    @validator('Year', pre=True)
+    def parse_year(cls, v):
+        return int(v)
 
-valid_users = []
-errors = []
-
-for i, data in enumerate(test_data):
-    try:
-        user = User(**data)
-        valid_users.append(user.model_dump())
-    except ValidationError as e:
-        errors.append({
-            'index': i,
-            'data': data,
-            'errors': e.errors()
-        })
-
-print(f"Valid: {len(valid_users)}")
-print(f"Errors: {len(errors)}")
-
-# Print error details
-for err in errors:
-    print(f"\nRecord {err['index']}: {err['data']}")
-    print(f"Errors: {err['errors']}")
+    @validator('imdbRating', pre=True)
+    def parse_rating(cls, v):
+        return float(v)
 ```
 
 ---
 
-## Exercise 2.2: Validating Scraped Data (25 min)
-
-**Task**: Create a comprehensive model for your Week 1 scraped data
+# Exercise 2.2: Test Conversion
 
 ```python
-from pydantic import BaseModel, HttpUrl, Field, field_validator
-from typing import Optional, List
-from datetime import datetime
-
-# TODO: Define model based on YOUR scraped data structure
-# Example for articles:
-
-class Article(BaseModel):
-    title: str = Field(..., min_length=1, max_length=500)
-    url: HttpUrl
-    author: str
-    published_date: Optional[datetime] = None
-    views: int = Field(..., ge=0)
-    rating: float = Field(..., ge=0, le=5)
-    tags: List[str] = []
-
-    @field_validator('tags')
-    @classmethod
-    def clean_tags(cls, v):
-        # Clean and normalize tags
-        return [tag.strip().lower() for tag in v if tag.strip()]
-
-# TODO:
-# 1. Load your scraped JSON data
-# 2. Validate each record
-# 3. Save valid records to clean_data.json
-# 4. Save errors to validation_errors.json
-# 5. Generate statistics report
+# Same data, but types converted
+movie = Movie(**movie_data)
+print(type(movie.Year))       # <class 'int'>
+print(type(movie.imdbRating)) # <class 'float'>
+print(movie.Year + 5)         # 2015 (math works!)
 ```
+
+**Pydantic automatically converts compatible types!**
 
 ---
 
-## Exercise 2.2: Solution Template
+# Exercise 2.3: Add Validation Rules
+
+**Task**: Add constraints to ensure data quality
 
 ```python
-import json
-from pydantic import BaseModel, ValidationError, HttpUrl, Field
-from typing import List, Optional
-from datetime import datetime
-import pandas as pd
+class Movie(BaseModel):
+    Title: str
+    Year: int = Field(ge=1888, le=2030)  # Valid year range
+    imdbRating: float = Field(ge=0, le=10)  # Valid rating
+    Genre: str
+    Director: str
+    Runtime: Optional[str] = None
+    BoxOffice: Optional[str] = None
 
-# Define your model (customize for your data)
-class ScrapedItem(BaseModel):
-    # Add your fields here
-    pass
-
-# Load data
-with open('week1_scraped_data.json') as f:
-    raw_data = json.load(f)
-
-# Validate
-valid_data = []
-error_log = []
-
-for i, item in enumerate(raw_data):
-    try:
-        validated = ScrapedItem(**item)
-        valid_data.append(validated.model_dump())
-    except ValidationError as e:
-        error_log.append({
-            'record_number': i,
-            'data': item,
-            'errors': [
-                {
-                    'field': err['loc'][0],
-                    'error': err['msg'],
-                    'value': err.get('input')
-                }
-                for err in e.errors()
-            ]
-        })
-
-# Save results
-with open('clean_data.json', 'w') as f:
-    json.dump(valid_data, f, indent=2)
-
-with open('validation_errors.json', 'w') as f:
-    json.dump(error_log, f, indent=2)
-
-# Generate report
-total = len(raw_data)
-valid = len(valid_data)
-invalid = len(error_log)
-
-print("=" * 50)
-print("VALIDATION REPORT")
-print("=" * 50)
-print(f"Total records: {total}")
-print(f"Valid records: {valid} ({valid/total*100:.1f}%)")
-print(f"Invalid records: {invalid} ({invalid/total*100:.1f}%)")
-print()
-
-# Error analysis
-if error_log:
-    error_fields = {}
-    for log in error_log:
-        for err in log['errors']:
-            field = err['field']
-            error_fields[field] = error_fields.get(field, 0) + 1
-
-    print("Errors by field:")
-    for field, count in sorted(error_fields.items(), key=lambda x: x[1], reverse=True):
-        print(f"  {field}: {count}")
-```
-
----
-
-## Exercise 2.3: Custom Validators (15 min)
-
-**Task**: Add complex validation logic
-
-```python
-from pydantic import BaseModel, field_validator, model_validator
-import re
-
-class Product(BaseModel):
-    name: str
-    sku: str  # Format: XXX-NNNN (3 letters, dash, 4 numbers)
-    price: float
-    discount_price: Optional[float] = None
-
-    @field_validator('sku')
-    @classmethod
-    def validate_sku(cls, v):
-        # TODO: Validate SKU format
-        pattern = r'^[A-Z]{3}-\d{4}$'
-        if not re.match(pattern, v):
-            raise ValueError(f'SKU must match format XXX-NNNN: {v}')
+    @validator('Title')
+    def title_not_empty(cls, v):
+        if not v or v.strip() == '':
+            raise ValueError('Title cannot be empty')
         return v
 
-    @model_validator(mode='after')
-    def validate_discount(self):
-        # TODO: Ensure discount_price < price
-        if self.discount_price is not None:
-            if self.discount_price >= self.price:
-                raise ValueError('Discount price must be less than regular price')
-        return self
-
-# Test
-products = [
-    {"name": "Laptop", "sku": "ELC-1001", "price": 999.99, "discount_price": 899.99},
-    {"name": "Mouse", "sku": "ELC1001", "price": 25.99},  # Invalid SKU
-    {"name": "Keyboard", "sku": "ELC-2001", "price": 50.00, "discount_price": 60.00},  # Invalid discount
-]
-
-# TODO: Validate and categorize
+    @validator('Genre')
+    def genre_not_empty(cls, v):
+        if not v or v.strip() == '':
+            raise ValueError('Genre cannot be empty')
+        return v
 ```
 
 ---
 
-## Part 2 Checkpoint
+# Exercise 2.3: Test Validation
 
-### What You've Built
+Try these invalid movies:
 
-- Pydantic models for data validation
-- Custom validators for complex rules
-- Error handling and logging
-- Validation reports
+```python
+# Invalid year
+bad_movie = {
+    "Title": "Future Movie",
+    "Year": "2050",  # Too far in future!
+    "imdbRating": "8.0",
+    "Genre": "Sci-Fi",
+    "Director": "Someone"
+}
 
-### Key Takeaways
+try:
+    Movie(**bad_movie)
+except ValidationError as e:
+    print(e)
+```
 
-- Type hints provide automatic validation
-- Field constraints enforce data quality
-- Custom validators handle complex logic
-- Structured error messages aid debugging
+**What error do you get?**
 
 ---
 
-# Part 3: Label Studio Annotation
+# Exercise 2.4: Validate Your Dataset
 
-## Exercise 3.1: Text Classification (20 min)
+**Task**: Validate all movies from `movies_raw.json`
 
-**Task**: Set up sentiment analysis project
-
-1. Start Label Studio: `label-studio start`
-2. Create new project: "Sentiment Analysis"
-3. Import data (create `reviews.json`):
-
-```json
-[
-  {"text": "This product exceeded my expectations! Absolutely love it."},
-  {"text": "Terrible quality. Broke after one day. Do not buy."},
-  {"text": "It's okay. Nothing special but does the job."},
-  {"text": "Best purchase ever! Highly recommend to everyone."},
-  {"text": "Waste of money. Very disappointed."}
-]
-```
-
-4. Configure labeling interface (next slide)
-5. Label all reviews
-6. Export results
-
----
-
-## Text Classification Config
-
-```xml
-<View>
-  <Header value="Sentiment Analysis"/>
-
-  <Text name="review" value="$text"/>
-
-  <Choices name="sentiment" toName="review" choice="single-radio">
-    <Choice value="Positive"/>
-    <Choice value="Negative"/>
-    <Choice value="Neutral"/>
-  </Choices>
-
-  <Rating name="confidence" toName="review" maxRating="5"
-          defaultValue="3"/>
-
-  <TextArea name="notes" toName="review"
-            placeholder="Optional notes..."
-            rows="2"/>
-</View>
-```
-
-**Steps**:
-1. Project Settings → Labeling Interface
-2. Paste config above
-3. Click Save
-
----
-
-## Exercise 3.2: Named Entity Recognition (20 min)
-
-**Task**: Annotate entities in text
-
-Create `articles.json`:
-```json
-[
-  {"text": "Apple CEO Tim Cook announced new products in Cupertino on Monday."},
-  {"text": "IIT Gandhinagar welcomed 500 students from across India in August."},
-  {"text": "The meeting between PM Modi and President Biden took place in Delhi."}
-]
-```
-
-**NER Config**:
-```xml
-<View>
-  <Text name="text" value="$text"/>
-  <Labels name="label" toName="text">
-    <Label value="Person" background="red"/>
-    <Label value="Organization" background="blue"/>
-    <Label value="Location" background="green"/>
-    <Label value="Date" background="yellow"/>
-  </Labels>
-</View>
-```
-
-**Task**: Annotate all named entities
-
----
-
-## Exercise 3.3: Image Annotation (20 min)
-
-**Task**: Object detection annotation
-
-1. Collect 5-10 images (or use provided samples)
-2. Create project: "Object Detection"
-3. Use Rectangle Labels config:
-
-```xml
-<View>
-  <Image name="image" value="$image"/>
-  <RectangleLabels name="label" toName="image">
-    <Label value="Person" background="#FF0000"/>
-    <Label value="Vehicle" background="#0000FF"/>
-    <Label value="Animal" background="#00FF00"/>
-    <Label value="Building" background="#FFFF00"/>
-  </RectangleLabels>
-</View>
-```
-
-4. Draw bounding boxes around objects
-5. Export in COCO format
-
----
-
-## Export and Analysis
-
-### Export Options
-
-1. Click Export button in project
-2. Choose format:
-   - JSON: Full annotations
-   - CSV: Tabular format
-   - COCO: For object detection
-   - YOLO: For YOLO models
-
-### Load Exported Data
+Create file: `validate_movies.py`
 
 ```python
 import json
+from pydantic import ValidationError
+from models import Movie
 
-# Load Label Studio JSON export
-with open('project-1-at-2024-01-15-10-30.json') as f:
-    annotations = json.load(f)
+# Load data
+with open('movies_raw.json') as f:
+    movies_data = json.load(f)
 
-# Extract labels
-labels = []
-for item in annotations:
-    text = item['data']['text']
-    result = item['annotations'][0]['result']
+# Validate each movie
+valid_movies = []
+invalid_movies = []
 
-    for r in result:
-        if r['type'] == 'choices':
-            labels.append({
-                'text': text,
-                'label': r['value']['choices'][0]
-            })
-
-print(f"Labeled {len(labels)} items")
+for i, movie_data in enumerate(movies_data):
+    try:
+        movie = Movie(**movie_data)
+        valid_movies.append(movie.dict())
+    except ValidationError as e:
+        invalid_movies.append({
+            'index': i,
+            'title': movie_data.get('Title', 'Unknown'),
+            'errors': str(e)
+        })
 ```
 
 ---
 
-## Inter-Annotator Agreement
-
-## Exercise 3.4: Calculate Cohen's Kappa (20 min)
-
-**Scenario**: Two annotators labeled the same 20 reviews
+# Exercise 2.4: Report Results
 
 ```python
-from sklearn.metrics import cohen_kappa_score, confusion_matrix
-import pandas as pd
+# Print summary
+print(f"Valid movies: {len(valid_movies)}")
+print(f"Invalid movies: {len(invalid_movies)}")
 
-# Simulated annotations from two annotators
-annotator1 = ['pos', 'neg', 'pos', 'neu', 'pos', 'neg', 'pos', 'neu',
-              'neg', 'pos', 'pos', 'neu', 'neg', 'pos', 'pos', 'neg',
-              'neu', 'pos', 'neg', 'neu']
+# Show first few invalid
+if invalid_movies:
+    print("\nFirst 3 invalid movies:")
+    for inv in invalid_movies[:3]:
+        print(f"\n{inv['title']}:")
+        print(f"  {inv['errors'][:200]}...")
 
-annotator2 = ['pos', 'neg', 'neu', 'neu', 'pos', 'neg', 'pos', 'pos',
-              'neg', 'pos', 'neu', 'neu', 'neg', 'pos', 'pos', 'neg',
-              'neu', 'pos', 'neg', 'pos']
-
-# Calculate Cohen's Kappa
-kappa = cohen_kappa_score(annotator1, annotator2)
-print(f"Cohen's Kappa: {kappa:.3f}")
-
-# Interpretation
-if kappa < 0:
-    interpretation = "No agreement"
-elif kappa < 0.20:
-    interpretation = "Slight agreement"
-elif kappa < 0.40:
-    interpretation = "Fair agreement"
-elif kappa < 0.60:
-    interpretation = "Moderate agreement"
-elif kappa < 0.80:
-    interpretation = "Substantial agreement"
-else:
-    interpretation = "Almost perfect agreement"
-
-print(f"Interpretation: {interpretation}")
-
-# Confusion matrix
-cm = confusion_matrix(annotator1, annotator2,
-                     labels=['pos', 'neg', 'neu'])
-cm_df = pd.DataFrame(cm,
-                     index=['pos', 'neg', 'neu'],
-                     columns=['pos', 'neg', 'neu'])
-print("\nConfusion Matrix (Annotator 1 vs 2):")
-print(cm_df)
+# Save valid movies
+with open('movies_valid.json', 'w') as f:
+    json.dump(valid_movies, f, indent=2)
 ```
 
 ---
 
-## Fleiss' Kappa for Multiple Annotators
+# Exercise 2.4: Discussion
 
-```python
-import numpy as np
-from statsmodels.stats.inter_rater import fleiss_kappa
+**Questions**:
+1. How many movies passed validation?
+2. What were the most common validation errors?
+3. Should we fix the data or adjust the schema?
 
-# Example: 3 annotators, 5 items, 3 categories
-# Format: rows = items, columns = categories
-# Values = number of annotators who chose that category
-
-data = np.array([
-    [0, 0, 3],  # Item 1: all 3 chose category 3
-    [1, 2, 0],  # Item 2: 1 chose cat 1, 2 chose cat 2
-    [0, 3, 0],  # Item 3: all 3 chose category 2
-    [2, 1, 0],  # Item 4: 2 chose cat 1, 1 chose cat 2
-    [0, 0, 3],  # Item 5: all 3 chose category 3
-])
-
-kappa = fleiss_kappa(data)
-print(f"Fleiss' Kappa: {kappa:.3f}")
-
-# Real example: Load from Label Studio export
-# and convert to this format
-
-def calculate_fleiss_from_annotations(annotations, num_annotators=3):
-    """
-    Convert Label Studio annotations to Fleiss' Kappa format
-    """
-    # Group by item
-    items = {}
-    for ann in annotations:
-        item_id = ann['id']
-        label = ann['annotations'][0]['result'][0]['value']['choices'][0]
-
-        if item_id not in items:
-            items[item_id] = []
-        items[item_id].append(label)
-
-    # Convert to category counts
-    categories = ['pos', 'neg', 'neu']
-    data = []
-
-    for item_id, labels in items.items():
-        counts = [labels.count(cat) for cat in categories]
-        data.append(counts)
-
-    return fleiss_kappa(np.array(data))
-```
+**Common issues**:
+- Missing required fields
+- "N/A" values that can't convert to numbers
+- Invalid year values
 
 ---
 
-## Identify Disagreements
+# Part 2 Checkpoint
+
+**What you've learned**:
+- Defining data schemas with Pydantic
+- Type conversion and validation
+- Custom validators for business rules
+- Handling validation errors gracefully
+
+**Next**: Use pandas to clean the data before validation
+
+---
+
+# Part 3: Data Cleaning with pandas
+
+Fixing issues before validation
+
+---
+
+# Exercise 3.1: Load and Inspect
+
+**Task**: Load data into pandas DataFrame
+
+Create file: `clean_movies.py`
 
 ```python
 import pandas as pd
+import json
 
-# Find items where annotators disagree
-annotator1 = ['pos', 'neg', 'pos', 'neu', 'pos']
-annotator2 = ['pos', 'neg', 'neu', 'neu', 'neg']
-texts = [
-    "Great product!",
-    "Terrible quality.",
-    "It's okay, I guess.",
-    "Not sure about this.",
-    "Absolutely amazing!"
+# Load JSON
+with open('movies_raw.json') as f:
+    movies_data = json.load(f)
+
+df = pd.DataFrame(movies_data)
+
+# Inspect
+print(df.shape)
+print(df.columns.tolist())
+print(df.head())
+print(df.info())
+```
+
+---
+
+# Exercise 3.1: Check Data Quality
+
+```python
+# Check missing values
+print("\nMissing values:")
+print(df.isnull().sum())
+
+# Check data types
+print("\nData types:")
+print(df.dtypes)
+
+# Check for "N/A" strings
+na_columns = ['BoxOffice', 'Metascore', 'imdbRating']
+for col in na_columns:
+    if col in df.columns:
+        na_count = (df[col] == 'N/A').sum()
+        print(f"{col}: {na_count} 'N/A' values")
+```
+
+---
+
+# Exercise 3.2: Handle Missing Values
+
+**Task**: Replace "N/A" with actual null values
+
+```python
+# Replace "N/A" strings with None
+df = df.replace('N/A', None)
+
+# Check again
+print("\nAfter replacing N/A:")
+print(df.isnull().sum())
+```
+
+**Strategy**:
+- Replace "N/A" with None (pandas recognizes this)
+- Decide per column: drop or fill?
+
+---
+
+# Exercise 3.3: Convert Data Types
+
+**Task**: Convert string columns to proper types
+
+```python
+# Convert Year to int
+df['Year'] = pd.to_numeric(df['Year'], errors='coerce')
+
+# Convert imdbRating to float
+df['imdbRating'] = pd.to_numeric(df['imdbRating'], errors='coerce')
+
+# Convert imdbVotes (remove commas first)
+if 'imdbVotes' in df.columns:
+    df['imdbVotes'] = (
+        df['imdbVotes']
+        .str.replace(',', '')
+        .astype(float)
+    )
+
+# Check types
+print(df.dtypes)
+```
+
+---
+
+# Exercise 3.4: Clean Runtime
+
+**Task**: Extract numeric runtime from "148 min"
+
+```python
+# Extract just the number
+if 'Runtime' in df.columns:
+    df['runtime_minutes'] = (
+        df['Runtime']
+        .str.extract(r'(\d+)')[0]
+        .astype(float)
+    )
+
+# Show results
+print(df[['Runtime', 'runtime_minutes']].head())
+```
+
+**Before**: "148 min"
+**After**: 148.0
+
+---
+
+# Exercise 3.5: Clean Box Office
+
+**Task**: Convert "$292,587,330" to 292587330
+
+```python
+if 'BoxOffice' in df.columns:
+    df['box_office_clean'] = (
+        df['BoxOffice']
+        .str.replace('$', '', regex=False)
+        .str.replace(',', '', regex=False)
+        .astype(float)
+    )
+
+print(df[['BoxOffice', 'box_office_clean']].head())
+```
+
+---
+
+# Exercise 3.6: Remove Duplicates
+
+**Task**: Check for and remove duplicate movies
+
+```python
+# Check for duplicates by title
+duplicates = df[df.duplicated(subset=['Title'], keep=False)]
+print(f"Found {len(duplicates)} duplicate records")
+
+if len(duplicates) > 0:
+    print(duplicates[['Title', 'Year', 'imdbRating']])
+
+# Remove duplicates (keep first occurrence)
+df_clean = df.drop_duplicates(subset=['Title'], keep='first')
+print(f"After deduplication: {len(df_clean)} movies")
+```
+
+---
+
+# Exercise 3.7: Validate Value Ranges
+
+**Task**: Check for impossible values
+
+```python
+# Check rating range
+invalid_ratings = df_clean[
+    (df_clean['imdbRating'] < 0) |
+    (df_clean['imdbRating'] > 10)
 ]
+print(f"Invalid ratings: {len(invalid_ratings)}")
 
-# Create DataFrame
-df = pd.DataFrame({
-    'text': texts,
-    'annotator1': annotator1,
-    'annotator2': annotator2
-})
+# Check year range
+invalid_years = df_clean[
+    (df_clean['Year'] < 1888) |
+    (df_clean['Year'] > 2030)
+]
+print(f"Invalid years: {len(invalid_years)}")
 
-# Find disagreements
-df['disagree'] = df['annotator1'] != df['annotator2']
-disagreements = df[df['disagree']]
-
-print("Disagreements:")
-print(disagreements)
-
-# These items need review and discussion!
+# Remove invalid rows
+df_clean = df_clean[
+    (df_clean['imdbRating'] >= 0) &
+    (df_clean['imdbRating'] <= 10) &
+    (df_clean['Year'] >= 1888) &
+    (df_clean['Year'] <= 2030)
+]
 ```
-
-**Next steps**:
-1. Review disagreements
-2. Discuss edge cases
-3. Update guidelines
-4. Re-annotate or adjudicate
 
 ---
 
-## Part 3 Checkpoint
+# Exercise 3.8: Handle Missing Critical Fields
 
-### What You've Accomplished
+**Task**: Decide what to do with missing values
 
-- Set up Label Studio projects
-- Annotated text, entities, and images
-- Exported labeled data
-- Calculated inter-annotator agreement
-- Identified items needing review
+```python
+# Drop rows missing critical fields
+critical_fields = ['Title', 'Year', 'imdbRating', 'Genre']
 
-### Labeling Best Practices
+print(f"Before: {len(df_clean)} movies")
 
-- Clear, specific guidelines
-- Training and calibration
-- Regular quality checks
-- Resolve disagreements through discussion
-- Document edge cases
+df_clean = df_clean.dropna(subset=critical_fields)
+
+print(f"After: {len(df_clean)} movies")
+print(f"Dropped: {len(df) - len(df_clean)} movies")
+
+# For optional fields, keep as None
+# BoxOffice, Metascore can be missing
+```
+
+---
+
+# Exercise 3.9: Save Cleaned Data
+
+**Task**: Export cleaned dataset
+
+```python
+# Save to CSV
+df_clean.to_csv('movies_clean.csv', index=False)
+
+# Save to JSON
+df_clean.to_json('movies_clean.json', orient='records', indent=2)
+
+print(f"Saved {len(df_clean)} clean movies")
+
+# Print summary
+print("\nData Quality Summary:")
+print(f"  Total movies: {len(df_clean)}")
+print(f"  Missing values:\n{df_clean.isnull().sum()}")
+print(f"  Duplicates: {df_clean.duplicated().sum()}")
+```
+
+---
+
+# Part 3 Checkpoint
+
+**What you've learned**:
+- Loading data with pandas
+- Identifying data quality issues
+- Cleaning string data (removing prefixes, extracting numbers)
+- Type conversion
+- Handling missing values
+- Removing duplicates
+- Validating value ranges
+
+**Your cleaned dataset** is now ready for ML!
 
 ---
 
 # Part 4: Complete Validation Pipeline
 
-## Mini Project (15 minutes)
+Putting it all together
 
-**Task**: Build end-to-end pipeline
+---
+
+# Exercise 4.1: Build the Pipeline
+
+**Task**: Create automated validation script
+
+Create file: `pipeline.py`
 
 ```python
-"""
-Complete Data Validation and Labeling Pipeline
-
-1. Load scraped data (Week 1)
-2. Quick check with jq/csvkit (command line)
-3. Validate with Pydantic
-4. Save clean data
-5. Import to Label Studio
-6. Label subset (5-10 items)
-7. Export labels
-8. Calculate agreement (if multiple annotators)
-9. Generate final report
-"""
-
-# Template structure
 import json
-from pydantic import BaseModel, ValidationError
-import subprocess
-
-# Step 1: Load data
-with open('scraped_data.json') as f:
-    raw_data = json.load(f)
-
-# Step 2: Quick jq check
-result = subprocess.run(
-    ['jq', 'length', 'scraped_data.json'],
-    capture_output=True, text=True
-)
-print(f"Total records: {result.stdout.strip()}")
-
-# Step 3: Validate with Pydantic
-class DataModel(BaseModel):
-    # Define your schema
-    pass
-
-valid_data = []
-errors = []
-
-for item in raw_data:
-    try:
-        validated = DataModel(**item)
-        valid_data.append(validated.model_dump())
-    except ValidationError as e:
-        errors.append({'data': item, 'error': str(e)})
-
-# Step 4: Save clean data
-with open('clean_for_labeling.json', 'w') as f:
-    json.dump(valid_data, f, indent=2)
-
-print(f"\nValidation complete:")
-print(f"  Valid: {len(valid_data)}")
-print(f"  Errors: {len(errors)}")
-
-# Step 5-8: Manual steps in Label Studio
-print("\nNext steps:")
-print("1. Import clean_for_labeling.json to Label Studio")
-print("2. Label the data")
-print("3. Export annotations")
-print("4. Calculate agreement metrics")
-```
-
----
-
-## Project Rubric
-
-| Criteria | Points |
-|----------|--------|
-| Data validation (Pydantic) | 30% |
-| Error handling & logging | 20% |
-| Label Studio setup | 20% |
-| Annotation quality | 15% |
-| Agreement calculation | 10% |
-| Documentation | 5% |
-
-### Deliverables
-
-1. Validation script with Pydantic models
-2. Clean dataset (JSON/CSV)
-3. Validation error log
-4. Label Studio annotations (exported)
-5. Agreement metrics (if multiple annotators)
-6. Brief report (README.md)
-
----
-
-## Case Study: Research Paper Metadata
-
-### Scenario
-
-Scraped 1000 research papers from arXiv. Need to validate and label.
-
-**Validation** (Pydantic):
-```python
-from pydantic import BaseModel, HttpUrl, field_validator
-from datetime import date
-
-class Paper(BaseModel):
-    title: str = Field(..., min_length=10)
-    authors: List[str] = Field(..., min_items=1)
-    abstract: str = Field(..., min_length=100)
-    arxiv_id: str
-    pdf_url: HttpUrl
-    published: date
-    categories: List[str]
-
-    @field_validator('arxiv_id')
-    @classmethod
-    def validate_arxiv_id(cls, v):
-        # Format: YYMM.NNNNN
-        import re
-        if not re.match(r'^\d{4}\.\d{4,5}$', v):
-            raise ValueError('Invalid arXiv ID format')
-        return v
-```
-
----
-
-## Case Study: Research Paper Metadata (cont.)
-
-**Labeling** (Label Studio):
-
-```xml
-<View>
-  <Header value="Research Paper Classification"/>
-
-  <Text name="title" value="$title"/>
-  <Text name="abstract" value="$abstract"/>
-
-  <Choices name="field" toName="title" choice="multiple">
-    <Choice value="Machine Learning"/>
-    <Choice value="Computer Vision"/>
-    <Choice value="NLP"/>
-    <Choice value="Robotics"/>
-    <Choice value="Theory"/>
-  </Choices>
-
-  <Choices name="quality" toName="title" choice="single-radio">
-    <Choice value="High Impact"/>
-    <Choice value="Medium Impact"/>
-    <Choice value="Low Impact"/>
-  </Choices>
-
-  <Number name="relevance" toName="title" min="1" max="5"/>
-</View>
-```
-
-**Result**: Clean, validated, labeled dataset ready for ML
-
----
-
-## Case Study: E-commerce Products
-
-### Pipeline
-
-```python
-# 1. Validate product data
-class Product(BaseModel):
-    name: str
-    price: float = Field(..., gt=0)
-    category: str
-    rating: float = Field(..., ge=0, le=5)
-    image_url: HttpUrl
-    description: str
-
-# 2. jq check for duplicates
-# jq 'group_by(.name) | map(select(length > 1))' products.json
-
-# 3. csvstat for price ranges per category
-# csvstat -c category,price products.csv
-
-# 4. Label Studio: Categorize products
-# - Add missing categories
-# - Rate description quality
-# - Flag inappropriate content
-
-# 5. Calculate agreement on category labels
-# Multiple annotators → Fleiss' Kappa
-
-# 6. Export clean, labeled data for product search ML model
-```
-
----
-
-## Debugging Common Issues
-
-### Problem 1: Pydantic Validation Too Strict
-
-```python
-# Issue: Many valid records failing validation
-
-# Solution: Make fields optional or loosen constraints
+import pandas as pd
+from pydantic import BaseModel, Field, ValidationError
 from typing import Optional
 
-class Product(BaseModel):
-    name: str
-    price: Optional[float] = None  # Allow missing prices
-    category: Optional[str] = "Uncategorized"  # Default value
+class Movie(BaseModel):
+    Title: str
+    Year: int = Field(ge=1888, le=2030)
+    imdbRating: float = Field(ge=0, le=10)
+    Genre: str
+    Director: str
+    Runtime: Optional[str] = None
+    BoxOffice: Optional[str] = None
 
-    @field_validator('price', mode='before')
-    @classmethod
-    def handle_missing_price(cls, v):
-        if v == '' or v is None:
-            return None
-        return float(v)
+def clean_data(input_file):
+    """Clean raw movie data"""
+    # Load
+    with open(input_file) as f:
+        data = json.load(f)
+    df = pd.DataFrame(data)
 ```
 
-### Problem 2: Label Studio Import Fails
+---
+
+# Exercise 4.1: Pipeline Functions
 
 ```python
-# Issue: JSON format not recognized
+    # Clean
+    df = df.replace('N/A', None)
+    df['Year'] = pd.to_numeric(df['Year'], errors='coerce')
+    df['imdbRating'] = pd.to_numeric(df['imdbRating'],
+                                     errors='coerce')
 
-# Solution: Ensure correct format
-# Each item must be a dict with data key
-data = [
-    {"data": {"text": "Sample 1"}},
-    {"data": {"text": "Sample 2"}}
-]
+    # Drop invalid
+    df = df.dropna(subset=['Title', 'Year', 'imdbRating'])
+    df = df[(df['imdbRating'] >= 0) & (df['imdbRating'] <= 10)]
+    df = df[(df['Year'] >= 1888) & (df['Year'] <= 2030)]
 
-# Not:
-# [{"text": "Sample 1"}, {"text": "Sample 2"}]
+    # Remove duplicates
+    df = df.drop_duplicates(subset=['Title'])
+
+    return df
+
+def validate_data(df):
+    """Validate with Pydantic"""
+    valid = []
+    invalid = []
 ```
 
 ---
 
-## Best Practices Checklist
-
-### Before Validation
-- [ ] Explore data with jq/csvstat
-- [ ] Understand data distributions
-- [ ] Identify common patterns
-- [ ] Check for obvious errors
-
-### During Validation
-- [ ] Start with loose constraints
-- [ ] Gradually tighten rules
-- [ ] Log all errors with context
-- [ ] Keep valid and invalid data separate
-
-### After Validation
-- [ ] Review error patterns
-- [ ] Fix systematic issues
-- [ ] Document edge cases
-- [ ] Create validation report
-
-### Labeling
-- [ ] Write clear guidelines
-- [ ] Train annotators
-- [ ] Measure agreement
-- [ ] Review disagreements
-- [ ] Iterate on guidelines
-
----
-
-## Tools Summary
-
-| Task | Tool | Command/Code |
-|------|------|--------------|
-| JSON validation | jq | `jq '.' file.json` |
-| CSV stats | csvstat | `csvstat data.csv` |
-| CSV cleaning | csvclean | `csvclean data.csv` |
-| Python validation | Pydantic | `BaseModel` classes |
-| Annotation | Label Studio | Web interface |
-| Agreement | scikit-learn | `cohen_kappa_score()` |
-
----
-
-## Advanced Topics (Optional)
-
-### Great Expectations
+# Exercise 4.1: Validation Loop
 
 ```python
-import great_expectations as gx
+    for i, row in df.iterrows():
+        try:
+            movie = Movie(**row.to_dict())
+            valid.append(movie.dict())
+        except ValidationError as e:
+            invalid.append({
+                'title': row.get('Title', 'Unknown'),
+                'errors': str(e)
+            })
 
-# Create expectation suite
-context = gx.get_context()
+    return valid, invalid
 
-# Load data
-batch = context.sources.pandas_default.read_csv("data.csv")
+def save_results(valid, invalid, output_file):
+    """Save validated data and report"""
+    # Save valid movies
+    with open(output_file, 'w') as f:
+        json.dump(valid, f, indent=2)
 
-# Add expectations
-batch.expect_column_values_to_not_be_null("name")
-batch.expect_column_values_to_be_between("age", 0, 120)
-batch.expect_column_values_to_match_regex("email",
-    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-
-# Validate
-results = batch.validate()
-
-# Generate documentation
-context.build_data_docs()
+    # Generate report
+    report = f"""
+VALIDATION REPORT
+=================
+Total valid: {len(valid)}
+Total invalid: {len(invalid)}
+    """
+    print(report)
 ```
 
-**Benefits**:
-- Automated testing
-- Beautiful HTML reports
-- Version control for expectations
-- Integration with data pipelines
+---
+
+# Exercise 4.1: Run the Pipeline
+
+```python
+def main():
+    # Run pipeline
+    print("Step 1: Cleaning data...")
+    df = clean_data('movies_raw.json')
+    print(f"  Cleaned: {len(df)} movies")
+
+    print("\nStep 2: Validating with Pydantic...")
+    valid, invalid = validate_data(df)
+
+    print("\nStep 3: Saving results...")
+    save_results(valid, invalid, 'movies_validated.json')
+
+    if invalid:
+        print(f"\nWarning: {len(invalid)} movies failed validation")
+        for inv in invalid[:3]:
+            print(f"  - {inv['title']}")
+
+if __name__ == "__main__":
+    main()
+```
 
 ---
 
-## Homework for Next Week
+# Exercise 4.2: Run Your Pipeline
 
-### Assignments
+```bash
+python pipeline.py
+```
 
-1. **Complete your validation pipeline**
-   - Validate all Week 1 scraped data
-   - Generate comprehensive error report
-   - Document common issues
+**Expected output**:
+```
+Step 1: Cleaning data...
+  Cleaned: 48 movies
 
-2. **Label 50+ items**
-   - Use Label Studio
-   - Export in multiple formats
-   - Calculate agreement if working in pairs
+Step 2: Validating with Pydantic...
 
-3. **Read**
-   - Great Expectations documentation
-   - Pydantic advanced features
-   - Label Studio best practices
+Step 3: Saving results...
 
-4. **Install for next week** (LLM APIs):
-   ```bash
-   pip install google-generativeai openai anthropic
-   ```
+VALIDATION REPORT
+=================
+Total valid: 48
+Total invalid: 0
+```
 
 ---
 
-<!-- _class: lead -->
-<!-- _paginate: false -->
+# Exercise 4.3: Add Logging
 
-# Excellent Work Today!
+**Task**: Track what's happening
 
-## You've Learned:
-- Command-line data inspection (jq, csvkit)
-- Python validation with Pydantic
-- Data labeling with Label Studio
+```python
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+def clean_data(input_file):
+    logger.info(f"Loading data from {input_file}")
+    with open(input_file) as f:
+        data = json.load(f)
+
+    logger.info(f"Loaded {len(data)} records")
+    df = pd.DataFrame(data)
+
+    # Clean steps with logging
+    logger.info("Replacing N/A values")
+    df = df.replace('N/A', None)
+
+    logger.info("Converting data types")
+    # ... rest of cleaning
+```
+
+---
+
+# Exercise 4.4: Generate Data Quality Report
+
+**Task**: Create detailed quality report
+
+```python
+def generate_report(df_raw, df_clean, valid, invalid):
+    report = []
+
+    report.append("=" * 60)
+    report.append("DATA QUALITY REPORT")
+    report.append("=" * 60)
+    report.append("")
+
+    # Input stats
+    report.append("INPUT DATA:")
+    report.append(f"  Total records: {len(df_raw)}")
+    report.append(f"  Columns: {len(df_raw.columns)}")
+    report.append("")
+
+    # Cleaning stats
+    report.append("CLEANING RESULTS:")
+    report.append(f"  Records after cleaning: {len(df_clean)}")
+    report.append(f"  Records dropped: {len(df_raw) - len(df_clean)}")
+    report.append(f"  Drop rate: {(len(df_raw)-len(df_clean))/len(df_raw)*100:.1f}%")
+```
+
+---
+
+# Exercise 4.4: Report Details
+
+```python
+    # Missing values
+    report.append("")
+    report.append("MISSING VALUES (clean data):")
+    missing = df_clean.isnull().sum()
+    for col in missing[missing > 0].index:
+        pct = missing[col] / len(df_clean) * 100
+        report.append(f"  {col}: {missing[col]} ({pct:.1f}%)")
+
+    # Validation
+    report.append("")
+    report.append("VALIDATION RESULTS:")
+    report.append(f"  Valid movies: {len(valid)}")
+    report.append(f"  Invalid movies: {len(invalid)}")
+    report.append(f"  Validation pass rate: {len(valid)/len(df_clean)*100:.1f}%")
+
+    # Save report
+    with open('validation_report.txt', 'w') as f:
+        f.write('\n'.join(report))
+
+    print('\n'.join(report))
+```
+
+---
+
+# Exercise 4.5: Test Your Complete Pipeline
+
+Run the full pipeline on your data:
+
+```bash
+python pipeline.py
+cat validation_report.txt
+```
+
+**Verify**:
+1. All steps complete without errors
+2. Valid movies saved to JSON
+3. Report shows reasonable statistics
+4. Clean data is ready for ML
+
+---
+
+# Mini Project: Extend the Pipeline
+
+**Choose one enhancement**:
+
+**Option A**: Add more validation rules
+- Validate Genre format (comma-separated)
+- Check Director name length
+- Validate Runtime format
+
+**Option B**: Add data enrichment
+- Calculate age of movie (current year - release year)
+- Extract first genre as primary genre
+- Clean and standardize director names
+
+**Option C**: Add visualizations
+- Rating distribution
+- Movies per year
+- Genre frequency
+
+---
+
+# Lab Wrap-Up
+
+**What you've accomplished**:
+- Inspected data quality with command-line tools
+- Built type-safe validation with Pydantic
+- Cleaned messy data with pandas
+- Created automated validation pipeline
+- Generated data quality reports
+
+**Next week**: Data Labeling
+- Annotation tasks for vision and text
+- Using Label Studio
 - Inter-annotator agreement metrics
-
-## Next Week:
-LLM APIs and Multimodal AI
-
-**Questions? Office hours tomorrow 3-5 PM**
+- Building high-quality labeled datasets
 
 ---
 
-## Quick Feedback
+# Homework
 
-### What worked well today?
-### What was challenging?
-### What would you like more practice with?
+**Before next class**:
 
-**Thank you! See you next week!**
+1. **Complete your pipeline**: Validate your full movie dataset
+2. **Generate report**: Document all data quality issues found
+3. **Clean dataset**: Create final `movies_clean.csv`
+4. **Optional**: Add one enhancement from the mini project
+
+**Deliverables**:
+- `movies_clean.csv` - Your validated dataset
+- `validation_report.txt` - Quality report
+- `pipeline.py` - Your validation script
+
+---
+
+# Resources
+
+**Command-line tools**:
+- jq tutorial: https://stedolan.github.io/jq/tutorial/
+- csvkit documentation: https://csvkit.readthedocs.io/
+
+**Python libraries**:
+- Pydantic docs: https://pydantic-docs.helpmanual.io/
+- pandas user guide: https://pandas.pydata.org/docs/user_guide/
+
+**Data validation**:
+- Best practices for data quality
+- Common validation patterns
+
+---
+
+# Questions?
+
+**Remember**:
+- Start with inspection (jq, csvkit)
+- Clean before validating (pandas)
+- Use schemas for validation (Pydantic)
+- Automate everything (pipeline.py)
+- Document your findings (report)
+
+**Get help**:
+- Teaching assistants during lab
+- Discussion forum for questions
+- Office hours this week
