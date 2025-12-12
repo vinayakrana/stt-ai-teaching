@@ -3,34 +3,26 @@ section {
     background: white;
     font-family: 'Inter', sans-serif;
     font-size: 28px;
-
-    /* Align content to top-left by default */
+    
+    /* Align content to top and left */
     justify-content: flex-start;
     text-align: left;
-    padding: 70px; /* Standard Marp padding is ~70px. This ensures consistency. */
+    padding: 70px; 
 }
 
-/* Pagination (Slide Numbers) - Always visible */
+/* Pagination (Slide Numbers) */
 section::after {
     content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
     position: absolute;
     bottom: 20px;
     right: 30px;
-    font-size: 16px;
+    font-size: 18px;
     color: #64748b;
-    font-weight: 500;
 }
 
-/* Show pagination on all slides including title slides */
+/* Hide pagination on title slide */
 section:first-of-type::after {
-    display: block;
-}
-
-/* Lead slides (title slides) - show numbers but less prominent */
-section.lead::after {
-    display: block;
-    font-size: 14px;
-    color: #94a3b8;
+    display: none;
 }
 
 /* Title Styling */
@@ -49,6 +41,11 @@ h2 {
     margin: 0.5em 0;
 }
 
+/* Lists - ensure left alignment */
+ul, ol {
+    text-align: left;
+}
+
 /* Code Blocks */
 code {
     background: #f8f9fa;
@@ -62,6 +59,7 @@ pre {
     border-radius: 6px;
     padding: 1em;
     margin: 0.5em 0;
+    text-align: left; /* Ensure code is left-aligned */
 }
 
 pre code {
@@ -71,31 +69,14 @@ pre code {
     line-height: 1.5;
 }
 
-/* Title Slide Specifics (Optional class usually used in Marp) */
+/* Title Slide Specifics */
 section.lead {
     justify-content: center;
     text-align: center;
 }
 
-/* Diagram Source Attribution Styling */
-/* Styles the italic text after images that shows which Python script generated the diagram */
-section img + em {
-    display: block;
+/* Center aligned lists for title slides if needed */
+section.lead ul, section.lead ol {
     text-align: center;
-    font-size: 0.6em;
-    color: #64748b;
-    font-style: italic;
-    margin-top: 0.3em;
-    margin-bottom: 0.8em;
-}
-
-section img + em a {
-    color: #3b82f6;
-    text-decoration: none;
-    border-bottom: 1px dotted #3b82f6;
-}
-
-section img + em a:hover {
-    color: #2563eb;
-    border-bottom: 1px solid #2563eb;
+    list-style-position: inside;
 }
