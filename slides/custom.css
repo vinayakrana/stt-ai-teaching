@@ -3,9 +3,10 @@ section {
     background: white;
     font-family: 'Inter', sans-serif;
     font-size: 28px;
-    
-    /* Align content to top, but give it breathing room */
+
+    /* Align content to top-left by default */
     justify-content: flex-start;
+    text-align: left;
     padding: 70px; /* Standard Marp padding is ~70px. This ensures consistency. */
 }
 
