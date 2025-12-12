@@ -33,14 +33,8 @@ IIT Gandhinagar
 
 # The ML Pipeline
 
-```mermaid
-graph LR
-    A[Collection] --> B[Validation];
-    B --> C[Labeling];
-    C --> D[Training];
-    D --> E[Deployment];
-    style A fill:#f96,stroke:#333,stroke-width:4px
-```
+![width:900px](figures/data_pipeline_flow.png)
+*[diagram-generators/data_pipeline_flow.py](../diagram-generators/data_pipeline_flow.py)*
 
 **Garbage In, Garbage Out**:
 - 80% of ML work is data engineering.
@@ -71,16 +65,8 @@ How browsers (and scripts) talk to servers.
 
 # Client-Server Architecture
 
-```mermaid
-sequenceDiagram
-    participant C as Client (Browser/Python)
-    participant S as Server (OMDb)
-    C->>S: HTTP Request (GET /movie?t=Inception)
-    Note right of C: Headers: User-Agent, Auth
-    S->>S: Process Request (Query DB)
-    S-->>C: HTTP Response (JSON Data)
-    Note left of S: Status: 200 OK
-```
+![width:700px](figures/http_request_sequence.png)
+*[diagram-generators/http_request_sequence.py](../diagram-generators/http_request_sequence.py)*
 
 ---
 
@@ -187,20 +173,8 @@ def get_movie(title):
 **Problem**: Fetching 1,000 movies sequentially is slow.
 **Solution**: Asynchronous Requests (`aiohttp`, `httpx`).
 
-```mermaid
-gantt
-    title Sync vs Async
-    dateFormat s
-    axisFormat %s
-    section Sync
-    Req 1 :a1, 0, 2
-    Req 2 :a2, after a1, 2
-    Req 3 :a3, after a2, 2
-    section Async
-    Req 1 :b1, 0, 2
-    Req 2 :b2, 0.1, 2.1
-    Req 3 :b3, 0.2, 2.2
-```
+![width:800px](figures/sync_vs_async_timing.png)
+*[diagram-generators/sync_vs_async_timing.py](../diagram-generators/sync_vs_async_timing.py)*
 
 *We will implement Async in Week 10 (FastAPI).*
 

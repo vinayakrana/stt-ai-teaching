@@ -36,15 +36,8 @@ IIT Gandhinagar
 
 # The Validation Pipeline
 
-```mermaid
-graph LR
-    A[Raw Data] --> B[Inspection];
-    B --> C[Schema Validation];
-    C --> D[Cleaning];
-    D --> E[Drift Detection];
-    E --> F[Verified Dataset];
-    style F fill:#9f9,stroke:#333
-```
+![width:900px](figures/data_validation_pipeline.png)
+*[diagram-generators/data_validation_pipeline.py](../diagram-generators/data_validation_pipeline.py)*
 
 **Tools**:
 - **Inspect**: `jq` (JSON), `csvkit` (CSV).
