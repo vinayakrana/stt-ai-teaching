@@ -10,13 +10,13 @@ This repository contains the lecture slides, lab exercises, and course materials
 
 | Week | Topic | Key Tools |
 | :--- | :--- | :--- |
-| 1 | Web Scraping & Data Collection | Chrome DevTools, Playwright, BeautifulSoup |
-| 2 | Data Validation & Labeling | Pydantic, jq, pandas |
+| 1 | Data Collection | Chrome DevTools, Playwright, BeautifulSoup |
+| 2 | Data Validation & Quality | Pydantic, jq, pandas |
 | 3 | Data Labeling & Annotation | Label Studio, Cohen's Kappa |
 | 4 | Active Learning | modAL, Uncertainty Sampling |
 | 5 | Data Augmentation | Albumentations, nlpaug |
 | 6 | LLM APIs & Multimodal AI | Gemini API, OpenAI API |
-| 7 | Model Development & Training | Scikit-learn, AutoGluon, PyTorch |
+| 7 | Model Development & Training | Scikit-learn, AutoGluon, PyTorch, LLM Fine-tuning |
 | 8 | Reproducibility & Environments | Docker, DVC, MLflow |
 | 9 | Interactive AI Demos | Streamlit, Gradio, Hugging Face |
 | 10 | HTTP, APIs & FastAPI | FastAPI, curl, HTTP |
@@ -27,6 +27,8 @@ This repository contains the lecture slides, lab exercises, and course materials
 | 15 | Cloud Foundations & Orchestration | Docker Compose, AWS/Render |
 | 16 | Model Monitoring & Observability | Evidently AI, Data Drift |
 | 17 | LLM Agents & Tool Use | LangGraph, Tool Use |
+
+
 
 ## Building the Slides
 
