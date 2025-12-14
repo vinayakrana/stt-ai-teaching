@@ -627,6 +627,268 @@ st.text_input("Enter movie title", help="Search for any movie in our database")
 
 ---
 
+# UI/UX Design Principles for ML Apps
+
+**Progressive Disclosure**: Start simple, reveal complexity gradually.
+
+**Example**:
+```python
+# Basic mode (default)
+mode = st.radio("Mode", ["Simple", "Advanced"])
+
+if mode == "Simple":
+    prompt = st.text_input("Enter your question")
+else:
+    # Advanced options
+    prompt = st.text_area("Enter your question")
+    temperature = st.slider("Temperature", 0.0, 2.0, 0.7)
+    max_tokens = st.number_input("Max tokens", 100, 2000, 500)
+    top_p = st.slider("Top-p", 0.0, 1.0, 0.9)
+```
+
+**Benefit**: Beginners aren't overwhelmed, experts can customize.
+
+---
+
+# Latency Management: Strategies
+
+**Perceived performance matters as much as actual speed**
+
+**Three key strategies**:
+
+1. **Progress indicators**: Show that work is happening
+   - Progress bars for known-duration tasks
+   - Spinners for unknown-duration tasks
+
+2. **Streaming**: Show partial results as they arrive
+   - Essential for LLM text generation
+   - Better UX than waiting for complete response
+
+3. **Optimistic UI**: Assume success, update on completion
+   - Immediate visual feedback
+   - Async processing in background
+
+**Rule of thumb**: <100ms = instant, 1-10s = need indicator, >10s = consider background job
+
+---
+
+# Latency Management: Implementation
+
+**Progress bars**:
+```python
+progress = st.progress(0)
+for i, item in enumerate(data):
+    process(item)
+    progress.progress((i + 1) / len(data))
+```
+
+**Streaming outputs**:
+```python
+output_placeholder = st.empty()
+result = ""
+for chunk in model.stream(prompt):
+    result += chunk
+    output_placeholder.write(result)
+```
+
+**Optimistic UI**:
+```python
+st.success("Processing...")
+result = model.predict(input)  # Async in production
+st.rerun()
+```
+
+---
+
+# Error Handling Patterns for ML Apps
+
+**User-friendly error messages**:
+
+```python
+try:
+    result = model.predict(image)
+except ValueError as e:
+    if "shape" in str(e):
+        st.error("❌ Invalid image size. Please upload an image larger than 224x224 pixels.")
+    elif "format" in str(e):
+        st.error("❌ Unsupported image format. Please upload JPG or PNG.")
+    else:
+        st.error(f"❌ Processing error: {e}")
+except Exception as e:
+    st.error("❌ Unexpected error. Please try again or contact support.")
+    # Log for debugging
+    logging.error(f"Prediction error: {e}", exc_info=True)
+```
+
+**Graceful degradation**:
+```python
+if model_loaded:
+    result = model.predict(input)
+else:
+    st.warning("⚠️ Model is loading. Using cached predictions for now.")
+    result = get_cached_prediction(input)
+```
+
+---
+
+# A/B Testing ML Demos
+
+**Test different UX variants**:
+
+```python
+# Assign users to variants
+import hashlib
+
+def get_variant(user_id):
+    """Deterministic A/B split based on user ID."""
+    hash_val = int(hashlib.md5(user_id.encode()).hexdigest(), 16)
+    return "A" if hash_val % 2 == 0 else "B"
+
+# Get or create user ID
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())
+
+variant = get_variant(st.session_state.user_id)
+
+if variant == "A":
+    # Variant A: Simple interface
+    st.title("AI Assistant")
+    prompt = st.text_input("Ask a question")
+else:
+    # Variant B: Advanced interface
+    st.title("🤖 AI Assistant - Powered by GPT-4")
+    prompt = st.text_area("Ask a question", height=150)
+    st.slider("Creativity", 0.0, 1.0, 0.7)
+
+# Track metrics
+log_interaction(st.session_state.user_id, variant, prompt)
+```
+
+---
+
+# Analytics and Monitoring for Demos
+
+**Track usage patterns**:
+
+```python
+import posthog
+
+posthog.init('YOUR_API_KEY', host='https://app.posthog.com')
+
+def log_event(event_name, properties=None):
+    """Log events for analytics."""
+    posthog.capture(
+        distinct_id=st.session_state.user_id,
+        event=event_name,
+        properties=properties or {}
+    )
+
+# Track interactions
+if st.button("Generate"):
+    log_event("generate_clicked", {
+        "prompt_length": len(prompt),
+        "model": selected_model
+    })
+
+    result = model.generate(prompt)
+
+    log_event("generation_complete", {
+        "latency_ms": latency,
+        "output_length": len(result)
+    })
+```
+
+**Metrics to track**:
+- User engagement (sessions, interactions)
+- Feature usage (which features are popular?)
+- Error rates
+- Latency (p50, p95, p99)
+
+---
+
+# Scaling Demos That Go Viral
+
+**Problem**: Demo gets popular, traffic spikes.
+
+**Solutions**:
+
+**1. Rate limiting**:
+```python
+import time
+
+if 'last_request_time' not in st.session_state:
+    st.session_state.last_request_time = 0
+
+def check_rate_limit(requests_per_minute=10):
+    """Enforce rate limit."""
+    current_time = time.time()
+    time_since_last = current_time - st.session_state.last_request_time
+
+    if time_since_last < 60 / requests_per_minute:
+        wait_time = (60 / requests_per_minute) - time_since_last
+        st.warning(f"⏳ Please wait {wait_time:.1f}s before next request")
+        return False
+
+    st.session_state.last_request_time = current_time
+    return True
+```
+
+**2. Queueing**:
+- Use Redis/Celery for background jobs
+- Show position in queue
+
+**3. Auto-scaling** (production):
+- Deploy on cloud with auto-scaling (AWS/GCP)
+- Use load balancers
+
+---
+
+# Version Control for Interactive Apps
+
+**Git strategies for Streamlit apps**:
+
+```bash
+# .gitignore for Streamlit
+.streamlit/secrets.toml  # Never commit secrets!
+*.pyc
+__pycache__/
+.env
+
+# Separate config from code
+```
+
+**Config management**:
+```python
+# config.yaml
+app:
+  title: "My ML Demo"
+  version: "1.2.0"
+  models:
+    - name: "GPT-3.5"
+      endpoint: "https://api.openai.com/v1"
+    - name: "GPT-4"
+      endpoint: "https://api.openai.com/v1"
+
+# app.py
+import yaml
+
+with open("config.yaml") as f:
+    config = yaml.safe_load(f)
+
+st.title(config['app']['title'])
+st.caption(f"Version {config['app']['version']}")
+```
+
+**Feature flags**:
+```python
+ENABLE_EXPERIMENTAL_FEATURE = os.getenv("ENABLE_EXPERIMENTAL", "false") == "true"
+
+if ENABLE_EXPERIMENTAL_FEATURE:
+    st.beta_expander("🧪 Experimental: Advanced Settings")
+```
+
+---
+
 # Summary
 
 1.  **Frameworks**: Streamlit for dashboards, Gradio for quick model APIs
@@ -635,6 +897,15 @@ st.text_input("Enter movie title", help="Search for any movie in our database")
 4.  **UX**: Provide feedback, handle errors, stream when possible
 5.  **Deployment**: HF Spaces for easy, free hosting
 6.  **Best Practices**: Security, testing, accessibility
+
+**Advanced Topics**:
+- Progressive disclosure for UI design
+- Latency management (perceived performance)
+- Error handling patterns
+- A/B testing variants
+- Analytics and monitoring
+- Scaling strategies
+- Version control
 
 **Lab**: Build multiple interactive demos and deploy them.
 
@@ -650,5 +921,9 @@ st.text_input("Enter movie title", help="Search for any movie in our database")
 **Inspiration**:
 - HF Spaces gallery: https://huggingface.co/spaces
 - Streamlit gallery: https://streamlit.io/gallery
+
+**Analytics**:
+- PostHog: https://posthog.com (open-source analytics)
+- Streamlit Analytics: https://docs.streamlit.io/library/api-reference/utilities/st.experimental_get_query_params
 
 **Next week**: We'll build production APIs with FastAPI.

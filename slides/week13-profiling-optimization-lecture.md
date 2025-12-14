@@ -71,35 +71,7 @@ Prof. Nipun Batra, IIT Gandhinagar
 
 # The Optimization Loop
 
-```
-┌─────────────────┐
-│ Baseline Model  │
-└────────┬────────┘
-         │
-         ▼
-    ┌────────┐
-    │Profile │◄──────┐
-    └───┬────┘       │
-        │            │
-        ▼            │
-   ┌─────────┐       │
-   │Identify │       │
-   │Bottleneck│      │
-   └────┬────┘       │
-        │            │
-        ▼            │
-   ┌──────────┐      │
-   │Optimize  │      │
-   │Specific  │      │
-   │Component │      │
-   └────┬─────┘      │
-        │            │
-        ▼            │
-   ┌─────────┐       │
-   │Measure  │───────┘
-   │Impact   │
-   └─────────┘
-```
+![Optimization Loop](../figures/week13_optimization_loop.png)
 
 **Key principle**: Always measure before and after optimizations!
 

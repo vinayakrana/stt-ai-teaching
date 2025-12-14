@@ -821,6 +821,357 @@ app = FastAPI(
 
 ---
 
+# RESTful API Design Principles
+
+**REST (Representational State Transfer)**: Architectural style for APIs
+
+**Key principles**:
+
+**1. Resource-based URLs**:
+```
+GET    /models          # List all models
+GET    /models/{id}     # Get specific model
+POST   /models          # Create new model
+PUT    /models/{id}     # Update model
+DELETE /models/{id}     # Delete model
+```
+
+**2. HTTP methods are semantic**:
+- GET: Read (idempotent, no side effects)
+- POST: Create (not idempotent)
+- PUT: Update/replace (idempotent)
+- PATCH: Partial update
+- DELETE: Remove (idempotent)
+
+**3. Status codes matter**:
+- 200: OK
+- 201: Created
+- 400: Bad request
+- 401: Unauthorized
+- 429: Too many requests
+- 500: Server error
+
+---
+
+# API Versioning Strategies
+
+**Problem**: API changes break existing clients.
+
+**Strategy 1: URL versioning**:
+```python
+@app.post("/v1/predict")  # Old version
+async def predict_v1(data: InputV1):
+    return model_v1.predict(data)
+
+@app.post("/v2/predict")  # New version
+async def predict_v2(data: InputV2):
+    return model_v2.predict(data)
+```
+
+**Strategy 2: Header versioning**:
+```python
+from fastapi import Header
+
+@app.post("/predict")
+async def predict(data: Input, api_version: str = Header("1.0")):
+    if api_version == "1.0":
+        return model_v1.predict(data)
+    elif api_version == "2.0":
+        return model_v2.predict(data)
+```
+
+**Best practice**: URL versioning (clearer, easier to cache).
+
+---
+
+# Middleware and Dependency Injection
+
+**Middleware**: Code that runs before/after requests.
+
+```python
+@app.middleware("http")
+async def add_timing_header(request: Request, call_next):
+    """Add response time header."""
+    start_time = time.time()
+
+    response = await call_next(request)
+
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+
+    return response
+```
+
+**Dependency Injection**: Reusable components.
+```python
+from fastapi import Depends
+
+def get_current_user(token: str = Header(...)):
+    """Verify authentication token."""
+    user = verify_token(token)
+    if not user:
+        raise HTTPException(401, "Invalid token")
+    return user
+
+@app.get("/me")
+async def read_user(user: User = Depends(get_current_user)):
+    return user
+```
+
+**Benefits**: Code reuse, testing, separation of concerns.
+
+---
+
+# Caching Strategies for ML APIs
+
+**Problem**: Model inference is expensive, many duplicate requests.
+
+**Solution**: Cache predictions.
+
+**In-memory caching** (simple):
+```python
+from functools import lru_cache
+
+@lru_cache(maxsize=1000)
+def predict_cached(input_hash: str):
+    """Cache predictions by input hash."""
+    return model.predict(input_data)
+
+@app.post("/predict")
+async def predict(data: Input):
+    # Hash input for cache key
+    input_hash = hashlib.md5(str(data).encode()).hexdigest()
+
+    result = predict_cached(input_hash)
+    return {"prediction": result}
+```
+
+**Redis caching** (distributed):
+```python
+import redis
+r = redis.Redis(host='localhost', port=6379)
+
+@app.post("/predict")
+async def predict(data: Input):
+    cache_key = f"pred:{hash(str(data))}"
+
+    # Check cache
+    cached = r.get(cache_key)
+    if cached:
+        return json.loads(cached)
+
+    # Compute prediction
+    result = model.predict(data)
+
+    # Cache for 1 hour
+    r.setex(cache_key, 3600, json.dumps(result))
+
+    return result
+```
+
+---
+
+# Load Balancing and Horizontal Scaling
+
+**Problem**: Single server can't handle all traffic.
+
+**Solution**: Run multiple instances, distribute load.
+
+**Load balancer** (Nginx):
+```nginx
+upstream api_servers {
+    server 127.0.0.1:8000;
+    server 127.0.0.1:8001;
+    server 127.0.0.1:8002;
+}
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://api_servers;
+    }
+}
+```
+
+**Scaling strategies**:
+- **Vertical**: Bigger machine (limited)
+- **Horizontal**: More machines (unlimited)
+
+**Sticky sessions** (for stateful apps):
+```nginx
+upstream api_servers {
+    ip_hash;  # Route same IP to same server
+    server 127.0.0.1:8000;
+    server 127.0.0.1:8001;
+}
+```
+
+---
+
+# Rate Limiting Algorithms
+
+**Token Bucket**: Classic algorithm.
+
+**Algorithm**:
+1. Bucket starts with N tokens
+2. Each request consumes 1 token
+3. Tokens refill at rate R per second
+4. If bucket empty, reject request
+
+```python
+import time
+
+class TokenBucket:
+    def __init__(self, rate, capacity):
+        self.rate = rate  # tokens per second
+        self.capacity = capacity
+        self.tokens = capacity
+        self.last_update = time.time()
+
+    def consume(self, tokens=1):
+        """Try to consume tokens. Return True if allowed."""
+        now = time.time()
+        # Refill tokens
+        elapsed = now - self.last_update
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.rate)
+        self.last_update = now
+
+        if self.tokens >= tokens:
+            self.tokens -= tokens
+            return True
+        return False
+
+# Usage
+bucket = TokenBucket(rate=10, capacity=100)  # 10 req/s, burst 100
+
+@app.post("/predict")
+async def predict(data: Input):
+    if not bucket.consume():
+        raise HTTPException(429, "Rate limit exceeded")
+    return model.predict(data)
+```
+
+---
+
+# Authentication and Authorization
+
+**Authentication**: Who are you?
+**Authorization**: What can you do?
+
+**API Key authentication** (simple):
+```python
+API_KEYS = {"abc123": "user1", "def456": "user2"}
+
+def verify_api_key(api_key: str = Header(...)):
+    """Verify API key."""
+    if api_key not in API_KEYS:
+        raise HTTPException(401, "Invalid API key")
+    return API_KEYS[api_key]
+
+@app.post("/predict")
+async def predict(data: Input, user: str = Depends(verify_api_key)):
+    log_prediction(user, data)
+    return model.predict(data)
+```
+
+**JWT authentication** (stateless):
+```python
+from jose import JWTError, jwt
+
+SECRET_KEY = "your-secret-key"
+
+def verify_jwt(token: str = Header(...)):
+    """Verify JWT token."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return payload["sub"]  # user ID
+    except JWTError:
+        raise HTTPException(401, "Invalid token")
+```
+
+**OAuth 2.0** (for third-party apps): Most secure, most complex.
+
+---
+
+# WebSockets for Real-Time ML
+
+**Problem**: HTTP is request-response. What about streaming predictions?
+
+**Solution**: WebSockets (bidirectional, persistent connection).
+
+```python
+from fastapi import WebSocket
+
+@app.websocket("/ws/predict")
+async def websocket_predict(websocket: WebSocket):
+    """Stream predictions over WebSocket."""
+    await websocket.accept()
+
+    try:
+        while True:
+            # Receive data from client
+            data = await websocket.receive_text()
+
+            # Run inference
+            prediction = model.predict(data)
+
+            # Send result back
+            await websocket.send_json({"prediction": prediction})
+
+    except WebSocketDisconnect:
+        print("Client disconnected")
+
+# Client (JavaScript):
+# const ws = new WebSocket("ws://localhost:8000/ws/predict");
+# ws.send(JSON.stringify({features: [1, 2, 3]}));
+# ws.onmessage = (event) => console.log(event.data);
+```
+
+**Use cases**: Real-time chat, streaming inference, live dashboards.
+
+---
+
+# API Gateway Pattern
+
+**Problem**: Multiple microservices, client needs to call all of them.
+
+**Solution**: API Gateway (single entry point).
+
+**Architecture**:
+```
+Client → API Gateway → Model A
+                    → Model B
+                    → Database
+```
+
+**Benefits**:
+- Single authentication point
+- Rate limiting across services
+- Request routing and aggregation
+- Caching and compression
+
+**Implementation** (FastAPI):
+```python
+import httpx
+
+@app.post("/aggregate-predict")
+async def aggregate_predict(data: Input):
+    """Call multiple models and aggregate."""
+    async with httpx.AsyncClient() as client:
+        # Call models in parallel
+        results = await asyncio.gather(
+            client.post("http://model-a/predict", json=data.dict()),
+            client.post("http://model-b/predict", json=data.dict())
+        )
+
+    # Aggregate predictions (e.g., ensemble)
+    final_pred = (results[0].json()['pred'] + results[1].json()['pred']) / 2
+
+    return {"prediction": final_pred}
+```
+
+---
+
 # Summary
 
 **Key concepts**:
@@ -836,6 +1187,17 @@ app = FastAPI(
 - Log all predictions
 - Handle errors gracefully
 - Provide health endpoints
+
+**Advanced topics**:
+- RESTful design principles
+- API versioning strategies
+- Middleware and dependency injection
+- Caching (in-memory, Redis)
+- Load balancing and horizontal scaling
+- Rate limiting (token bucket)
+- Authentication (API keys, JWT, OAuth)
+- WebSockets for streaming
+- API gateway pattern
 
 ---
 

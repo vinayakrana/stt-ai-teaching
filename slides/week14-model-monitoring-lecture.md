@@ -580,48 +580,16 @@ if random.random() < SAMPLE_RATE:
 
 # Monitoring Architecture
 
-```
-┌─────────────────┐
-│  Prediction API │
-└────────┬────────┘
-         │
-         ▼
-    ┌─────────┐
-    │ Logger  │ (Async)
-    └────┬────┘
-         │
-         ▼
-┌──────────────────┐
-│  Object Storage  │ (S3, GCS)
-│  or Data Lake    │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  ETL Pipeline    │ (Airflow, dbt)
-│  (Daily/Hourly)  │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Drift Analysis  │ (Evidently, custom)
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Metrics Database │ (Prometheus, InfluxDB)
-└────────┬─────────┘
-         │
-         ▼
-    ┌──────────┐
-    │ Dashboard│ (Grafana, Tableau)
-    └─────┬────┘
-          │
-          ▼
-     ┌────────┐
-     │ Alerts │ (PagerDuty, Slack)
-     └────────┘
-```
+![ML Monitoring Architecture](../figures/week14_monitoring_architecture_graphviz.png)
+
+**Architecture components:**
+- **Logger**: Asynchronous logging of predictions
+- **Storage**: S3/GCS for raw data
+- **ETL**: Daily/hourly processing (Airflow, dbt)
+- **Drift Analysis**: Evidently AI or custom metrics
+- **Metrics DB**: Prometheus or InfluxDB
+- **Dashboard**: Grafana or Tableau
+- **Alerts**: PagerDuty or Slack integration
 
 ---
 

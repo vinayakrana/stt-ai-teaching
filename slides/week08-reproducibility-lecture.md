@@ -363,33 +363,54 @@ docker run --gpus all my-ml-project:v1
 
 ---
 
-# Dockerfile for ML Projects
+# Dockerfile for ML Projects: Key Structure
+
+**Essential Dockerfile components**:
+
+```dockerfile
+# 1. Base image
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+
+# 2. Working directory
+WORKDIR /app
+
+# 3. Install dependencies (cached layer)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 4. Copy application code (changes frequently)
+COPY . .
+
+# 5. Run command
+CMD ["python", "train.py"]
+```
+
+**Key insight**: Order matters for caching! Dependencies change less than code.
+
+---
+
+# Dockerfile for ML Projects: Complete Example
 
 ```dockerfile
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    wget \
+# System dependencies
+RUN apt-get update && apt-get install -y git wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
+# Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
+# Application code
 COPY . .
 
-# Create directories
+# Setup
 RUN mkdir -p /app/data /app/models /app/outputs
-
-# Set Python path
 ENV PYTHONPATH=/app
 
-# Default command
 CMD ["python", "train.py"]
 ```
 
@@ -454,36 +475,41 @@ docker-compose build
 
 ---
 
-# Multi-Stage Docker Builds
+# Multi-Stage Docker Builds: Concept
 
-**Reduce image size**
+**Problem**: Build tools bloat the final image
+
+**Solution**: Build in one stage, run in another
+
+**Benefits**:
+- Final image only contains runtime dependencies
+- Typical savings: 500MB → 200MB (60% reduction)
+- More secure (fewer tools = smaller attack surface)
+
+---
+
+# Multi-Stage Docker Builds: Implementation
 
 ```dockerfile
-# Stage 1: Build
+# Stage 1: Build (includes build tools)
 FROM python:3.10 AS builder
-
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --user -r requirements.txt
 
-# Stage 2: Runtime
+# Stage 2: Runtime (slim base, no build tools)
 FROM python:3.10-slim
-
 WORKDIR /app
 
-# Copy installed packages from builder
+# Copy ONLY the installed packages, not the build tools
 COPY --from=builder /root/.local /root/.local
-
-# Copy application
 COPY . .
 
-# Update PATH
 ENV PATH=/root/.local/bin:$PATH
-
 CMD ["python", "app.py"]
 ```
 
-**Result**: Smaller final image (no build tools)
+**Key**: `COPY --from=builder` pulls artifacts from stage 1
 
 ---
 
@@ -894,42 +920,46 @@ if epoch % 10 == 0:
 
 ---
 
-# Project Structure
+# Project Structure: Key Components
 
-**Standard ML project layout:**
+**Organize your ML project for reproducibility:**
+
+| Directory | Purpose |
+|-----------|---------|
+| `data/` | Raw, processed, and external data |
+| `models/` | Trained model checkpoints |
+| `notebooks/` | Exploratory analysis |
+| `src/` | Source code (data, models, utils) |
+| `tests/` | Unit and integration tests |
+| `configs/` | Configuration files |
+
+**Key files**: `requirements.txt`, `Dockerfile`, `README.md`, `.gitignore`
+
+**Principle**: Separate code, data, config, and outputs
+
+---
+
+# Project Structure: Full Layout
 
 ```
 ml-project/
 ├── data/
-│   ├── raw/
-│   ├── processed/
-│   └── external/
+│   ├── raw/           # Original, immutable data
+│   ├── processed/     # Cleaned, transformed data
+│   └── external/      # Data from third parties
 ├── models/
-│   └── trained/
-├── notebooks/
-│   └── exploration.ipynb
-├── src/
-│   ├── __init__.py
-│   ├── data/
-│   │   ├── __init__.py
-│   │   └── dataset.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── model.py
-│   └── utils/
-│       └── __init__.py
-├── tests/
-│   └── test_model.py
-├── configs/
-│   └── config.yaml
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-├── .env.example
-├── .gitignore
-├── .dockerignore
-├── README.md
-└── setup.py
+│   └── trained/       # Model checkpoints
+├── notebooks/         # Jupyter notebooks
+├── src/               # Source code
+│   ├── data/          # Data loading, preprocessing
+│   ├── models/        # Model definitions
+│   └── utils/         # Helper functions
+├── tests/             # pytest tests
+├── configs/           # YAML/JSON configs
+├── requirements.txt   # Python dependencies
+├── Dockerfile         # Container definition
+├── README.md          # Documentation
+└── .gitignore         # Ignore data/models in git
 ```
 
 ---
@@ -1107,6 +1137,279 @@ jobs:
 - Project structure
 - Documentation
 - Reproducibility checklist
+
+---
+
+# Deterministic Training in PyTorch
+
+**Problem**: GPUs use non-deterministic algorithms by default.
+
+**Full Determinism**:
+```python
+import torch
+import numpy as np
+import random
+
+def set_seed(seed=42):
+    """Set all random seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    # Deterministic algorithms
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    # For CUDA >= 10.2
+    torch.use_deterministic_algorithms(True)
+
+set_seed(42)
+```
+
+**Tradeoffs**:
+- **Deterministic = True**: Slower but reproducible
+- **Benchmark = True**: Faster but non-deterministic
+
+**When to use**: Research, debugging. Disable in production for speed.
+
+---
+
+# Handling Non-Deterministic Operations
+
+**Some operations are inherently non-deterministic on GPU:**
+
+**Atomic adds** (scatter, index_add):
+```python
+# Solution: Use deterministic scatter
+torch.use_deterministic_algorithms(True, warn_only=True)
+```
+
+**Data loading randomness**:
+```python
+def worker_init_fn(worker_id):
+    """Set seed per worker."""
+    np.random.seed(42 + worker_id)
+    random.seed(42 + worker_id)
+
+dataloader = DataLoader(
+    dataset,
+    batch_size=32,
+    shuffle=True,
+    worker_init_fn=worker_init_fn,
+    generator=torch.Generator().manual_seed(42)
+)
+```
+
+---
+
+# Hash-Based Reproducibility
+
+**Content-Addressed Storage**: Use hash of data/code, not timestamps.
+
+**DVC uses content addressing**:
+```bash
+# Data is identified by MD5 hash
+$ dvc add data/train.csv
+# Creates: data/train.csv.dvc with hash
+
+# Track changes
+$ git add data/train.csv.dvc
+$ git commit -m "Update training data"
+
+# Anyone can retrieve exact version
+$ dvc pull
+```
+
+**Benefits**:
+- Detect silent data changes
+- Ensure exact data version
+- Cache deduplication
+
+---
+
+# Semantic Versioning for ML
+
+**Code versioning**: Git tags (v1.2.3)
+
+**Data versioning**: DVC tags
+
+**Model versioning**:
+```python
+# model_registry.py
+class ModelVersion:
+    def __init__(self, major, minor, patch):
+        self.version = f"{major}.{minor}.{patch}"
+        self.code_commit = get_git_commit()
+        self.data_version = get_dvc_version()
+        self.config = load_config()
+        self.metrics = {}
+
+    def save(self, path):
+        metadata = {
+            'version': self.version,
+            'code_commit': self.code_commit,
+            'data_version': self.data_version,
+            'config': self.config,
+            'metrics': self.metrics,
+            'timestamp': datetime.now().isoformat()
+        }
+        with open(f"{path}/metadata.json", 'w') as f:
+            json.dump(metadata, f, indent=2)
+```
+
+---
+
+# Dependency Resolution Best Practices
+
+**Problem**: Dependency hell.
+
+**pip-tools** for locked dependencies:
+```bash
+# requirements.in (high-level)
+numpy
+pandas
+scikit-learn
+
+# Generate locked requirements.txt
+pip-compile requirements.in
+
+# Result: requirements.txt with all transitive deps pinned
+numpy==1.24.3
+pandas==2.0.2
+  # via -r requirements.in
+scikit-learn==1.2.2
+  # via -r requirements.in
+scipy==1.10.1
+  # via scikit-learn
+```
+
+**Poetry** (modern alternative):
+```toml
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.24"
+pandas = "^2.0"
+
+# Poetry auto-resolves compatible versions
+# Creates poetry.lock for exact reproducibility
+```
+
+---
+
+# Container Best Practices
+
+**Multi-stage builds** (smaller images):
+```dockerfile
+# Build stage
+FROM python:3.10 AS builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user -r requirements.txt
+
+# Runtime stage
+FROM python:3.10-slim
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
+COPY . .
+ENV PATH=/root/.local/bin:$PATH
+CMD ["python", "app.py"]
+```
+
+**Benefits**: Final image ~200MB vs ~1GB.
+
+**Security**:
+```dockerfile
+# Don't run as root
+RUN useradd -m myuser
+USER myuser
+
+# Pin base image version
+FROM python:3.10.12-slim
+
+# Scan for vulnerabilities
+# docker scan myimage:latest
+```
+
+---
+
+# Testing for Reproducibility
+
+**Automated reproducibility tests**:
+```python
+def test_reproducibility():
+    """Test that model training is deterministic."""
+    set_seed(42)
+    model1 = train_model(data, epochs=5)
+    loss1 = model1.evaluate(test_data)
+
+    set_seed(42)
+    model2 = train_model(data, epochs=5)
+    loss2 = model2.evaluate(test_data)
+
+    # Should be EXACTLY equal
+    assert loss1 == loss2, f"Non-deterministic: {loss1} != {loss2}"
+
+    # Check model weights are identical
+    for p1, p2 in zip(model1.parameters(), model2.parameters()):
+        assert torch.allclose(p1, p2), "Weights differ!"
+```
+
+**Run in CI/CD** to catch non-determinism early.
+
+---
+
+# Continuous Reproducibility Monitoring
+
+**Track reproducibility metrics over time**:
+```python
+def log_reproducibility_metadata():
+    """Log all factors affecting reproducibility."""
+    metadata = {
+        'git_commit': get_git_hash(),
+        'git_branch': get_git_branch(),
+        'data_hash': compute_data_hash(),
+        'python_version': sys.version,
+        'torch_version': torch.__version__,
+        'cuda_version': torch.version.cuda,
+        'cudnn_version': torch.backends.cudnn.version(),
+        'hostname': socket.gethostname(),
+        'timestamp': datetime.now().isoformat(),
+        'random_seed': 42,
+        'config': load_config()
+    }
+
+    # Log to MLflow/W&B
+    mlflow.log_params(metadata)
+
+    return metadata
+```
+
+**Alert on drift**: Notify if results differ from baseline.
+
+---
+
+# Reproducibility Checklist
+
+**Before running experiments**:
+- [ ] Set all random seeds
+- [ ] Pin all package versions
+- [ ] Document Python version
+- [ ] Version control code (Git)
+- [ ] Version control data (DVC)
+- [ ] Document hardware (GPU model, CUDA version)
+
+**During training**:
+- [ ] Log hyperparameters
+- [ ] Save checkpoints with metadata
+- [ ] Track metrics
+- [ ] Log system info
+
+**After training**:
+- [ ] Test reproducibility (re-run with same seed)
+- [ ] Document results
+- [ ] Archive model + metadata
+- [ ] Create reproducibility report
 
 ---
 

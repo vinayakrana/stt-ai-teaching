@@ -89,22 +89,28 @@ You want to run it on a Raspberry Pi or a Mobile Phone.
 
 # Techniques Overview
 
-<div class="mermaid">
-graph TD
-    A[Trained Model] --> B[Quantization];
-    A --> C[Pruning];
-    A --> D[Knowledge Distillation];
-    A --> E[Architecture Search];
-    B --> F[Optimized Model];
-    C --> F;
-    D --> F;
-    E --> F;
-</div>
+![Model Optimization Techniques](../figures/week12_optimization_techniques.png)
 
 **Today's Focus**:
-1.  **Quantization**: Lower precision math.
-2.  **Pruning**: Removing useless connections.
-3.  **ONNX**: Efficient Runtime.
+1.  **Quantization**: Lower precision math
+2.  **Pruning**: Removing useless connections
+3.  **Knowledge Distillation**: Train smaller student model
+4.  **ONNX**: Efficient cross-platform runtime
+
+---
+
+# Optimization Techniques: Comparison
+
+| Technique | Size Reduction | Speed Improvement | Accuracy Impact | Implementation Complexity | When to Use |
+|-----------|----------------|-------------------|-----------------|--------------------------|-------------|
+| **Quantization (INT8)** | 4x (FP32→INT8) | 2-4x faster | Minimal (<1%) | Low | Always (first step) |
+| **Pruning (50%)** | 2x (half weights) | 1.5-2x faster | Small (1-2%) | Medium | After quantization |
+| **Knowledge Distillation** | Depends on student size | Significant | Can match teacher | High | When you can retrain |
+| **NAS** | Variable | Variable | Can improve | Very High | Research/new domains |
+
+**Typical pipeline**: Train → Prune → Quantize → Export (ONNX) → Deploy
+
+**Best bang for buck**: Quantization (easy + effective)
 
 ---
 
@@ -339,31 +345,11 @@ def distillation_loss(student_logits, teacher_logits, labels, T=3, alpha=0.5):
 
 ---
 
-# Pruning: Theory
-
-**Idea**: Neural Networks are over-parameterized. Many weights are near zero.
-**Action**: Set small weights to exactly zero.
-
-**Structured vs Unstructured**:
-- **Unstructured**: Random zeros. Good for compression, bad for speed (sparse matrices need hardware support).
-- **Structured**: Remove entire channels/filters. Good for speed (smaller matrix).
-
----
-
 # ONNX: Open Neural Network Exchange
 
 **The Universal Bridge**
 
-<div class="mermaid">
-graph LR
-    A[PyTorch] --> D[ONNX Graph];
-    B[TensorFlow] --> D;
-    C[Scikit-Learn] --> D;
-    D --> E[ONNX Runtime (ORT)];
-    E --> F[Android];
-    E --> G[Raspberry Pi];
-    E --> H[Browser (WASM)];
-</div>
+![ONNX Ecosystem](../figures/week12_onnx_ecosystem.png)
 
 **Why use it?**
 - **Interoperability**: Train in PyTorch, deploy in C++
@@ -496,31 +482,47 @@ with open("model.tflite", "wb") as f:
 
 ---
 
-# TensorRT (NVIDIA)
+# TensorRT (NVIDIA): Overview
 
-**High-performance inference engine** for NVIDIA GPUs.
+**High-performance inference engine for NVIDIA GPUs**
 
-**Optimizations**:
-- Layer fusion
-- Precision calibration (FP32 → FP16 → INT8)
-- Kernel auto-tuning
+**Key optimizations**:
+- **Layer fusion**: Combine operations (Conv+BN+ReLU → single kernel)
+- **Precision calibration**: Automatic FP32 → FP16 → INT8 conversion
+- **Kernel auto-tuning**: Select fastest GPU kernels for your model
+- **Memory optimization**: Reduce memory footprint
 
-**Typical speedup**: 2-5x over PyTorch
+**Performance gains**:
+- Typical speedup: 2-5x over PyTorch
+- Latency reduction: 50-80% for large models
+- Best for production deployment on NVIDIA GPUs
+
+**Use cases**: Real-time inference, video processing, autonomous vehicles
+
+---
+
+# TensorRT: Implementation
 
 ```python
 import tensorrt as trt
 
-# Convert ONNX to TensorRT
+# 1. Create builder and network
 builder = trt.Builder(TRT_LOGGER)
 network = builder.create_network()
+
+# 2. Parse ONNX model
 parser = trt.OnnxParser(network, TRT_LOGGER)
 parser.parse_from_file("model.onnx")
 
-# Build engine with FP16 precision
+# 3. Configure optimization
 config = builder.create_builder_config()
-config.set_flag(trt.BuilderFlag.FP16)
+config.set_flag(trt.BuilderFlag.FP16)  # Enable FP16
+
+# 4. Build optimized engine
 engine = builder.build_engine(network, config)
 ```
+
+**Next step**: Save engine and load for inference
 
 ---
 

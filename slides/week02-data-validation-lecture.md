@@ -886,6 +886,953 @@ def log_data_statistics(df, dataset_name):
 
 ---
 
+# Advanced Data Validation Topics
+
+Additional theory for production-grade data quality.
+
+---
+
+# Data Quality Metrics and KPIs
+
+**Quantify data quality**:
+
+**Completeness metrics**:
+```python
+completeness = (1 - df.isnull().sum() / len(df)) * 100
+print(f"Completeness by column:\n{completeness}")
+
+# Overall completeness
+overall_completeness = (df.notnull().sum().sum() / df.size) * 100
+```
+
+**Accuracy metrics** (requires ground truth):
+```python
+# For categorical data
+accuracy = (df['predicted'] == df['actual']).mean()
+
+# For numeric data (within tolerance)
+tolerance = 0.01
+accuracy = ((df['predicted'] - df['actual']).abs() < tolerance).mean()
+```
+
+**Consistency metrics**:
+```python
+# Check referential integrity
+orphaned_records = df[~df['foreign_key'].isin(ref_df['primary_key'])]
+consistency_pct = 100 * (1 - len(orphaned_records) / len(df))
+```
+
+---
+
+# Data Quality Scorecard
+
+**Aggregate quality score**:
+```python
+def data_quality_score(df, reference_df=None):
+    """Calculate overall data quality score (0-100)."""
+    scores = {}
+
+    # Completeness (30%)
+    completeness = (df.notnull().sum().sum() / df.size) * 100
+    scores['completeness'] = completeness * 0.3
+
+    # Uniqueness (20%)
+    duplicate_rate = df.duplicated().sum() / len(df)
+    uniqueness = (1 - duplicate_rate) * 100
+    scores['uniqueness'] = uniqueness * 0.2
+
+    # Validity (30%)
+    # Assuming you have validation rules
+    valid_rate = 0.95  # Example: 95% of records pass validation
+    scores['validity'] = valid_rate * 100 * 0.3
+
+    # Consistency (20%)
+    # Cross-field validation pass rate
+    consistency_rate = 0.98  # Example
+    scores['consistency'] = consistency_rate * 100 * 0.2
+
+    total_score = sum(scores.values())
+    return total_score, scores
+
+score, breakdown = data_quality_score(df)
+print(f"Overall quality: {score:.1f}/100")
+print(f"Breakdown: {breakdown}")
+```
+
+---
+
+# Benford's Law for Fraud Detection
+
+**Benford's Law**: In many real-world datasets, the first digit follows a logarithmic distribution.
+
+**Expected distribution**:
+- Digit 1: ~30.1%
+- Digit 2: ~17.6%
+- Digit 3: ~12.5%
+- ...
+- Digit 9: ~4.6%
+
+**Check for manipulation**:
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+def check_benfords_law(series):
+    """Check if numeric data follows Benford's Law."""
+    # Extract first digit
+    first_digits = series.astype(str).str[0].astype(int)
+
+    # Observed distribution
+    observed = first_digits.value_counts(normalize=True).sort_index()
+
+    # Expected distribution (Benford's Law)
+    expected = {d: np.log10(1 + 1/d) for d in range(1, 10)}
+    expected = pd.Series(expected)
+
+    # Chi-square test
+    from scipy.stats import chisquare
+    statistic, p_value = chisquare(observed, expected)
+
+    print(f"Chi-square statistic: {statistic:.4f}")
+    print(f"P-value: {p_value:.4f}")
+
+    if p_value < 0.05:
+        print("⚠️ Data may not follow Benford's Law (potential manipulation)")
+
+    return observed, expected
+
+# Example: Financial transaction amounts
+observed, expected = check_benfords_law(df['transaction_amount'])
+```
+
+**Use case**: Detect fabricated financial data, election fraud, scientific misconduct.
+
+---
+
+# Data Lineage and Provenance
+
+**Data lineage**: Track the origin and transformations of data.
+
+**Why it matters**:
+- Debug data quality issues
+- Compliance (GDPR, audit trails)
+- Reproducibility
+
+**Simple lineage tracking**:
+```python
+class DataLineage:
+    def __init__(self, source):
+        self.history = [{"operation": "load", "source": source}]
+
+    def add_operation(self, operation, params=None):
+        self.history.append({
+            "operation": operation,
+            "params": params,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    def get_lineage(self):
+        return self.history
+
+# Usage
+lineage = DataLineage("s3://bucket/raw_data.csv")
+df = pd.read_csv("raw_data.csv")
+
+df = df.dropna()
+lineage.add_operation("dropna")
+
+df['price'] = df['price'].fillna(df['price'].mean())
+lineage.add_operation("fillna", {"column": "price", "method": "mean"})
+
+print(json.dumps(lineage.get_lineage(), indent=2))
+```
+
+**Production tools**: Apache Atlas, OpenLineage, DataHub.
+
+---
+
+# Sampling Strategies for Validation
+
+**Problem**: Validating 1 billion rows is expensive.
+
+**Solution: Statistical sampling**
+
+**Simple random sampling**:
+```python
+# Validate 1% of data
+sample = df.sample(frac=0.01, random_state=42)
+schema.validate(sample)
+```
+
+**Stratified sampling** (preserve distribution):
+```python
+# Ensure sample has same genre distribution
+sample = df.groupby('genre', group_keys=False).apply(
+    lambda x: x.sample(frac=0.01, random_state=42)
+)
+schema.validate(sample)
+```
+
+**Reservoir sampling** (streaming data):
+```python
+import random
+
+def reservoir_sample(stream, k=1000):
+    """Sample k items from a stream of unknown size."""
+    reservoir = []
+
+    for i, item in enumerate(stream):
+        if i < k:
+            reservoir.append(item)
+        else:
+            # Randomly replace elements
+            j = random.randint(0, i)
+            if j < k:
+                reservoir[j] = item
+
+    return reservoir
+
+# Usage for large file
+sample = reservoir_sample(pd.read_csv('huge_file.csv', chunksize=1000))
+```
+
+---
+
+# Data Contracts
+
+**Data contract**: Formal agreement between data producer and consumer.
+
+**Contract definition** (YAML):
+```yaml
+dataset: movie_ratings
+version: 1.0
+owner: data-team@company.com
+update_frequency: daily
+sla:
+  freshness: 24h
+  completeness: 95%
+
+schema:
+  title:
+    type: string
+    nullable: false
+  year:
+    type: integer
+    min: 1900
+    max: 2030
+  rating:
+    type: float
+    min: 0.0
+    max: 10.0
+  genre:
+    type: string
+    allowed_values: [Action, Comedy, Drama, Horror, Sci-Fi]
+
+expectations:
+  - name: no_future_years
+    condition: year <= current_year
+  - name: rating_distribution
+    condition: mean(rating) BETWEEN 5 AND 8
+```
+
+**Enforce contract**:
+```python
+import yaml
+from pydantic import BaseModel, create_model
+
+def load_contract(contract_file):
+    with open(contract_file) as f:
+        contract = yaml.safe_load(f)
+    return contract
+
+def enforce_contract(df, contract):
+    # Check freshness
+    # Check completeness
+    # Validate schema
+    # Check expectations
+    pass
+```
+
+---
+
+# Data Versioning with DVC
+
+**Problem**: Data changes over time, hard to reproduce experiments.
+
+**Solution: Version control for data** (like Git for code).
+
+**DVC (Data Version Control)**:
+```bash
+# Initialize DVC
+dvc init
+
+# Track data file
+dvc add data/movies.csv
+
+# Commit DVC metadata (not the actual data)
+git add data/movies.csv.dvc .gitignore
+git commit -m "Add movies dataset v1"
+
+# Tag version
+git tag -a "data-v1.0" -m "Initial dataset"
+
+# Push data to remote storage (S3, GCS)
+dvc remote add -d storage s3://my-bucket/data
+dvc push
+```
+
+**Retrieve specific version**:
+```bash
+git checkout data-v1.0
+dvc checkout
+# Now data/movies.csv is at v1.0
+```
+
+**Benefits**: Reproducibility, collaboration, data lineage.
+
+---
+
+# Advanced Regex Patterns for Validation
+
+**Email validation** (comprehensive):
+```python
+import re
+
+EMAIL_PATTERN = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+def validate_email(email):
+    return re.match(EMAIL_PATTERN, email) is not None
+
+# Pydantic integration
+from pydantic import validator
+
+class User(BaseModel):
+    email: str
+
+    @validator('email')
+    def validate_email(cls, v):
+        if not re.match(EMAIL_PATTERN, v):
+            raise ValueError('Invalid email')
+        return v
+```
+
+**Phone number** (international):
+```python
+# E.164 format: +[country code][number]
+PHONE_PATTERN = r'^\+?[1-9]\d{1,14}$'
+
+# US format
+US_PHONE_PATTERN = r'^(\+1)?[-.\s]?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$'
+```
+
+**URL validation**:
+```python
+URL_PATTERN = r'^https?://[^\s/$.?#].[^\s]*$'
+```
+
+**Credit card** (basic):
+```python
+CREDIT_CARD_PATTERN = r'^[0-9]{13,19}$'
+
+def luhn_checksum(card_number):
+    """Validate credit card using Luhn algorithm."""
+    def digits_of(n):
+        return [int(d) for d in str(n)]
+
+    digits = digits_of(card_number)
+    odd_digits = digits[-1::-2]
+    even_digits = digits[-2::-2]
+
+    checksum = sum(odd_digits)
+    for d in even_digits:
+        checksum += sum(digits_of(d*2))
+
+    return checksum % 10 == 0
+```
+
+---
+
+# Date and Time Validation
+
+**Parsing dates safely**:
+```python
+from dateutil import parser
+from datetime import datetime
+
+def parse_date_robust(date_str):
+    """Parse date with multiple format attempts."""
+    formats = [
+        '%Y-%m-%d',
+        '%d/%m/%Y',
+        '%m/%d/%Y',
+        '%Y-%m-%d %H:%M:%S',
+        '%d-%b-%Y',
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+
+    # Fallback to dateutil parser
+    try:
+        return parser.parse(date_str)
+    except:
+        raise ValueError(f"Cannot parse date: {date_str}")
+
+# Pydantic validator
+from pydantic import BaseModel, validator
+
+class Event(BaseModel):
+    event_date: str
+
+    @validator('event_date')
+    def validate_date(cls, v):
+        try:
+            date = parse_date_robust(v)
+            # Check date is not in future
+            if date > datetime.now():
+                raise ValueError("Future dates not allowed")
+            return date.isoformat()
+        except:
+            raise ValueError(f"Invalid date: {v}")
+```
+
+---
+
+# Timezone Handling
+
+**Problem**: Date without timezone is ambiguous.
+
+**Best practices**:
+```python
+from datetime import datetime, timezone
+import pytz
+
+# Always use timezone-aware datetimes
+dt_aware = datetime.now(timezone.utc)
+
+# Convert timezones
+eastern = pytz.timezone('US/Eastern')
+dt_eastern = dt_aware.astimezone(eastern)
+
+# Validate timezone-aware data
+class Event(BaseModel):
+    event_time: datetime
+
+    @validator('event_time')
+    def ensure_timezone(cls, v):
+        if v.tzinfo is None:
+            # Assume UTC if no timezone
+            return v.replace(tzinfo=timezone.utc)
+        return v
+```
+
+**pandas timezone conversion**:
+```python
+# Convert to timezone-aware
+df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
+
+# Convert to specific timezone
+df['timestamp'] = df['timestamp'].dt.tz_convert('US/Eastern')
+```
+
+---
+
+# String Normalization
+
+**Unicode normalization**:
+```python
+import unicodedata
+
+def normalize_string(s):
+    """Normalize string for consistent comparison."""
+    # NFD: Decompose (é → e + ´)
+    # NFC: Compose (e + ´ → é)
+    s = unicodedata.normalize('NFKC', s)
+
+    # Case folding (better than lower() for Unicode)
+    s = s.casefold()
+
+    # Strip accents
+    s = ''.join(
+        c for c in unicodedata.normalize('NFD', s)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+    # Remove extra whitespace
+    s = ' '.join(s.split())
+
+    return s
+
+# Example
+assert normalize_string("Café") == normalize_string("CAFE")
+assert normalize_string("  hello   world  ") == "hello world"
+```
+
+**Text cleaning**:
+```python
+import re
+
+def clean_text(text):
+    """Clean text for ML."""
+    # Remove URLs
+    text = re.sub(r'https?://\S+', '', text)
+
+    # Remove email addresses
+    text = re.sub(r'\S+@\S+', '', text)
+
+    # Remove HTML tags
+    text = re.sub(r'<.*?>', '', text)
+
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+
+    return text.strip()
+```
+
+---
+
+# Currency and Unit Validation
+
+**Parse currency amounts**:
+```python
+import re
+
+def parse_currency(amount_str):
+    """Parse currency string to float."""
+    # Remove currency symbols and separators
+    cleaned = re.sub(r'[^\d.,]', '', amount_str)
+
+    # Handle different decimal separators
+    if ',' in cleaned and '.' in cleaned:
+        # Determine which is decimal separator
+        if cleaned.rindex(',') > cleaned.rindex('.'):
+            # European format: 1.234,56
+            cleaned = cleaned.replace('.', '').replace(',', '.')
+        else:
+            # US format: 1,234.56
+            cleaned = cleaned.replace(',', '')
+    elif ',' in cleaned:
+        # Could be European decimal or US thousands
+        if len(cleaned.split(',')[-1]) == 2:
+            # European decimal: 1234,56
+            cleaned = cleaned.replace(',', '.')
+        else:
+            # US thousands: 1,234
+            cleaned = cleaned.replace(',', '')
+
+    return float(cleaned)
+
+# Examples
+assert parse_currency("$1,234.56") == 1234.56
+assert parse_currency("€1.234,56") == 1234.56
+assert parse_currency("¥1234") == 1234.0
+```
+
+**Unit conversion validation**:
+```python
+from pint import UnitRegistry
+
+ureg = UnitRegistry()
+
+def validate_measurement(value, from_unit, expected_range, expected_unit):
+    """Validate measurement is in expected range."""
+    quantity = value * ureg(from_unit)
+    converted = quantity.to(expected_unit)
+
+    if not (expected_range[0] <= converted.magnitude <= expected_range[1]):
+        raise ValueError(
+            f"{converted} outside expected range {expected_range} {expected_unit}"
+        )
+
+    return converted.magnitude
+
+# Example: Validate height
+height_cm = validate_measurement(
+    value=180,
+    from_unit='cm',
+    expected_range=(50, 250),
+    expected_unit='cm'
+)
+```
+
+---
+
+# Geospatial Data Validation
+
+**Coordinate validation**:
+```python
+from pydantic import BaseModel, validator
+
+class Location(BaseModel):
+    latitude: float
+    longitude: float
+
+    @validator('latitude')
+    def validate_latitude(cls, v):
+        if not -90 <= v <= 90:
+            raise ValueError('Latitude must be between -90 and 90')
+        return v
+
+    @validator('longitude')
+    def validate_longitude(cls, v):
+        if not -180 <= v <= 180:
+            raise ValueError('Longitude must be between -180 and 180')
+        return v
+```
+
+**Bounding box validation**:
+```python
+from shapely.geometry import Point, Polygon
+
+def validate_location_in_region(lat, lon, region_polygon):
+    """Check if point is within region."""
+    point = Point(lon, lat)
+    return region_polygon.contains(point)
+
+# Example: Validate location is in India
+india_bounds = Polygon([
+    (68.1, 6.7),   # Southwest
+    (97.4, 6.7),   # Southeast
+    (97.4, 35.5),  # Northeast
+    (68.1, 35.5),  # Northwest
+    (68.1, 6.7)    # Close polygon
+])
+
+is_valid = validate_location_in_region(
+    lat=28.6139,  # New Delhi
+    lon=77.2090,
+    region_polygon=india_bounds
+)
+```
+
+---
+
+# Constraint Satisfaction and Referential Integrity
+
+**Foreign key validation**:
+```python
+def validate_referential_integrity(child_df, parent_df, foreign_key, primary_key):
+    """Ensure all foreign keys exist in parent table."""
+    # Find orphaned records
+    orphaned = child_df[~child_df[foreign_key].isin(parent_df[primary_key])]
+
+    if len(orphaned) > 0:
+        raise ValueError(
+            f"Found {len(orphaned)} orphaned records. "
+            f"Foreign keys: {orphaned[foreign_key].tolist()}"
+        )
+
+# Example: Movies must have valid studio_id
+validate_referential_integrity(
+    child_df=movies_df,
+    parent_df=studios_df,
+    foreign_key='studio_id',
+    primary_key='id'
+)
+```
+
+**Composite constraints**:
+```python
+import pandera as pa
+
+schema = pa.DataFrameSchema(
+    columns={
+        "min_age": pa.Column(int),
+        "max_age": pa.Column(int),
+    },
+    checks=[
+        # max_age must be greater than min_age
+        pa.Check(
+            lambda df: (df['max_age'] > df['min_age']).all(),
+            error="max_age must be greater than min_age"
+        )
+    ]
+)
+```
+
+---
+
+# Unit Testing for Data Validation
+
+**pytest fixtures for data**:
+```python
+import pytest
+import pandas as pd
+
+@pytest.fixture
+def sample_movies_df():
+    """Sample data for testing."""
+    return pd.DataFrame({
+        'title': ['Inception', 'Interstellar'],
+        'year': [2010, 2014],
+        'rating': [8.8, 8.6],
+        'genre': ['Sci-Fi', 'Sci-Fi']
+    })
+
+def test_year_range(sample_movies_df):
+    """Test all years are in valid range."""
+    assert (sample_movies_df['year'] >= 1900).all()
+    assert (sample_movies_df['year'] <= 2030).all()
+
+def test_rating_range(sample_movies_df):
+    """Test all ratings are between 0 and 10."""
+    assert (sample_movies_df['rating'] >= 0).all()
+    assert (sample_movies_df['rating'] <= 10).all()
+
+def test_no_nulls_in_title(sample_movies_df):
+    """Test title column has no nulls."""
+    assert sample_movies_df['title'].notnull().all()
+```
+
+**Property-based testing** (hypothesis):
+```python
+from hypothesis import given, strategies as st
+import pandas as pd
+
+@given(
+    year=st.integers(min_value=1900, max_value=2030),
+    rating=st.floats(min_value=0, max_value=10)
+)
+def test_movie_schema_invariants(year, rating):
+    """Test schema accepts all valid values."""
+    movie = Movie(
+        title="Test Movie",
+        year=year,
+        rating=rating,
+        genre="Action"
+    )
+    assert movie.year == year
+    assert movie.rating == rating
+```
+
+---
+
+# Incremental Validation
+
+**Problem**: Validating 1TB of data is slow.
+
+**Solution: Incremental validation** (only validate new/changed data).
+
+**Implementation**:
+```python
+import hashlib
+
+def compute_data_hash(df):
+    """Compute hash of DataFrame."""
+    return hashlib.md5(
+        pd.util.hash_pandas_object(df, index=True).values
+    ).hexdigest()
+
+def incremental_validate(df, schema, checkpoint_file='validation_checkpoint.json'):
+    """Only validate rows that changed since last validation."""
+    # Load previous hashes
+    try:
+        with open(checkpoint_file) as f:
+            checkpoint = json.load(f)
+    except FileNotFoundError:
+        checkpoint = {}
+
+    # Compute current hash
+    current_hash = compute_data_hash(df)
+
+    if checkpoint.get('hash') == current_hash:
+        print("Data unchanged, skipping validation")
+        return True
+
+    # Validate
+    try:
+        schema.validate(df)
+        # Save checkpoint
+        checkpoint['hash'] = current_hash
+        checkpoint['last_validated'] = datetime.now().isoformat()
+
+        with open(checkpoint_file, 'w') as f:
+            json.dump(checkpoint, f)
+
+        return True
+    except Exception as e:
+        print(f"Validation failed: {e}")
+        return False
+```
+
+---
+
+# Validation Performance Optimization
+
+**Parallel validation**:
+```python
+from concurrent.futures import ProcessPoolExecutor
+import numpy as np
+
+def validate_chunk(chunk, schema):
+    """Validate a chunk of DataFrame."""
+    try:
+        schema.validate(chunk)
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+def parallel_validate(df, schema, n_workers=4):
+    """Validate DataFrame in parallel chunks."""
+    chunks = np.array_split(df, n_workers)
+
+    with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        results = list(executor.map(
+            lambda chunk: validate_chunk(chunk, schema),
+            chunks
+        ))
+
+    # Check if all chunks passed
+    all_passed = all(result[0] for result in results)
+
+    if not all_passed:
+        errors = [result[1] for result in results if not result[0]]
+        raise ValueError(f"Validation failed:\n" + "\n".join(errors))
+
+    return True
+
+# Usage for large DataFrames
+parallel_validate(large_df, schema, n_workers=8)
+```
+
+---
+
+# Data Quality Tools Ecosystem
+
+**Open-source tools**:
+
+**Great Expectations**:
+```python
+import great_expectations as ge
+
+df_ge = ge.from_pandas(df)
+
+# Define expectations
+df_ge.expect_column_values_to_be_between('year', min_value=1900, max_value=2030)
+df_ge.expect_column_values_to_not_be_null('title')
+df_ge.expect_column_values_to_be_in_set('genre', ['Action', 'Comedy', 'Drama'])
+
+# Validate
+validation_result = df_ge.validate()
+print(validation_result)
+```
+
+**Deepchecks**:
+```python
+from deepchecks.tabular import Dataset
+from deepchecks.tabular.checks import FeatureLabelCorrelation
+
+# Create dataset
+dataset = Dataset(df, label='rating', cat_features=['genre'])
+
+# Run checks
+check = FeatureLabelCorrelation()
+result = check.run(dataset)
+result.show()
+```
+
+**Evidently AI** (drift detection):
+```python
+from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
+
+report = Report(metrics=[DataDriftPreset()])
+report.run(reference_data=train_df, current_data=prod_df)
+report.save_html('drift_report.html')
+```
+
+---
+
+# Data Validation Best Practices
+
+**1. Fail early**: Validate at ingestion, not at training time.
+
+**2. Be explicit**: Write validation rules as code (not documentation).
+
+**3. Test your tests**: Unit test your validation logic.
+
+**4. Monitor in production**: Continuous validation, not one-time.
+
+**5. Version your schemas**: Track schema changes over time.
+
+**6. Sample intelligently**: Don't validate 100% if 1% is statistically sufficient.
+
+**7. Profile first**: Understand your data before writing rules.
+
+**8. Separate concerns**:
+   - Row-level validation → Pydantic
+   - Batch validation → Pandera
+   - Drift detection → Evidently
+
+---
+
+# Production Validation Pipeline
+
+**Complete end-to-end example**:
+```python
+from typing import List
+import logging
+
+class DataValidationPipeline:
+    def __init__(self, schema, drift_detector=None):
+        self.schema = schema
+        self.drift_detector = drift_detector
+        self.logger = logging.getLogger(__name__)
+
+    def validate(self, df, reference_df=None):
+        """Run full validation pipeline."""
+        results = {
+            'passed': False,
+            'errors': [],
+            'warnings': [],
+            'stats': {}
+        }
+
+        # 1. Schema validation
+        try:
+            self.schema.validate(df)
+            self.logger.info("Schema validation passed")
+        except Exception as e:
+            results['errors'].append(f"Schema validation failed: {e}")
+            return results
+
+        # 2. Quality checks
+        completeness = (1 - df.isnull().sum() / len(df))
+        if (completeness < 0.95).any():
+            results['warnings'].append(
+                f"Low completeness: {completeness[completeness < 0.95].to_dict()}"
+            )
+
+        # 3. Drift detection
+        if reference_df is not None and self.drift_detector:
+            drift_detected = self.drift_detector.detect(df, reference_df)
+            if drift_detected:
+                results['warnings'].append("Data drift detected")
+
+        # 4. Summary stats
+        results['stats'] = {
+            'num_rows': len(df),
+            'num_cols': len(df.columns),
+            'completeness': completeness.to_dict(),
+            'duplicates': df.duplicated().sum()
+        }
+
+        results['passed'] = len(results['errors']) == 0
+        return results
+
+# Usage
+pipeline = DataValidationPipeline(schema=movie_schema)
+result = pipeline.validate(new_df, reference_df=train_df)
+
+if not result['passed']:
+    raise ValueError(f"Validation failed: {result['errors']}")
+```
+
+---
+
 # Summary: The Checklist
 
 Before training a model, ask:
@@ -895,6 +1842,11 @@ Before training a model, ask:
 3.  [ ] **Ranges**: Are numbers within physical bounds? (Age > 0)
 4.  [ ] **Duplicates**: Are primary keys unique?
 5.  [ ] **Stats**: Does the distribution look normal? (Pandera)
+6.  [ ] **Consistency**: Do cross-field constraints hold?
+7.  [ ] **Lineage**: Can you trace data back to its source?
+8.  [ ] **Drift**: Has the distribution changed significantly?
+9.  [ ] **Quality score**: Is overall quality above threshold (>90%)?
+10. [ ] **Testing**: Are validation rules tested?
 
 **Lab**: You will build a script that takes a raw JSON dump and produces a clean, validated CSV ready for training.
 

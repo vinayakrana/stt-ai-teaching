@@ -32,18 +32,7 @@ Prof. Nipun Batra, IIT Gandhinagar
 
 It's not just `model.fit()`. It's a cycle.
 
-<div class="mermaid">
-graph LR
-    A[Data Prep] --> B[Feat Eng];
-    B --> C[Model Selection];
-    C --> D[Training];
-    D --> E[Evaluation];
-    E --> F{Good Enough?};
-    F -- No --> C;
-    F -- Yes --> G[Deployment];
-    E --> H[Error Analysis];
-    H --> A;
-</div>
+![ML Model Lifecycle](../figures/week07_model_lifecycle.png)
 
 **Iterative Process**:
 1. Start simple (Baseline).
@@ -157,12 +146,7 @@ y_pred_high_recall = (model.predict_proba(X)[:, 1] >= 0.2).astype(int)
 **Bias (Underfitting)**: Model is too simple to capture patterns.
 **Variance (Overfitting)**: Model memorizes noise in training data.
 
-<div class="mermaid">
-graph TD
-    A[Total Error] --> B[Bias^2];
-    A --> C[Variance];
-    A --> D[Irreducible Error];
-</div>
+![Bias-Variance Tradeoff](../figures/week07_bias_variance.png)
 
 **Goal**: Sweet spot where Total Error is minimized.
 
@@ -536,16 +520,7 @@ model = LogisticRegression(class_weight={0: 1, 1: 10})
 
 **AutoGluon** (Amazon) creates a stacked ensemble of models.
 
-<div class="mermaid">
-graph TD
-    Data --> M1[Random Forest];
-    Data --> M2[CatBoost];
-    Data --> M3[Neural Net];
-    M1 --> L2[Weighted Ensemble];
-    M2 --> L2;
-    M3 --> L2;
-    L2 --> Prediction;
-</div>
+![AutoML Ensemble](../figures/week07_automl_ensemble.png)
 
 **Pros**: SOTA performance with 3 lines of code.
 **Cons**: Slow training, heavy inference, hard to interpret.
@@ -625,16 +600,7 @@ Someone (Google/Meta) spent $10M to train a model on ImageNet (14M images). It l
 2.  **Fine-Tuning**: Unfreeze backbone (or parts of it) and train with low learning rate.
     - Slower, needs more data, higher accuracy.
 
-<div class="mermaid">
-graph TD
-    A[Pre-trained Backbone] --> B[New Head];
-    subgraph "Feature Extraction"
-    A:::frozen
-    B:::trainable
-    end
-    classDef frozen fill:#eee,stroke:#333,stroke-dasharray: 5 5;
-    classDef trainable fill:#bbf,stroke:#333;
-</div>
+![Transfer Learning](../figures/week07_transfer_learning.png)
 
 ---
 
@@ -700,6 +666,482 @@ model.print_trainable_parameters()
 3.  **Track Everything**: Use W&B/MLflow.
 4.  **Save Often**: Checkpoints are life-savers.
 5.  **Be Lazy**: Use Transfer Learning and AutoML where possible.
+
+---
+
+# Optimization Algorithms Deep Dive
+
+**Stochastic Gradient Descent (SGD)**:
+$$\theta_{t+1} = \theta_t - \eta \nabla L(\theta_t)$$
+
+**SGD with Momentum**:
+$$v_{t+1} = \gamma v_t + \eta \nabla L(\theta_t)$$
+$$\theta_{t+1} = \theta_t - v_{t+1}$$
+- Accelerates convergence
+- Reduces oscillations
+
+**Adam (Adaptive Moment Estimation)**:
+$$m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t$$
+$$v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2$$
+$$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{v_t} + \epsilon} m_t$$
+
+**Comparison**:
+- SGD: Simple, needs careful tuning
+- Momentum: Faster, smoother
+- Adam: Adaptive, works well out-of-box (default choice)
+
+---
+
+# Learning Rate Schedules
+
+**Fixed LR**: Same rate throughout training (often suboptimal).
+
+**Step Decay**:
+$$\eta_t = \eta_0 \cdot \gamma^{\lfloor t/k \rfloor}$$
+Reduce LR every $k$ epochs.
+
+**Cosine Annealing**:
+$$\eta_t = \eta_{min} + \frac{1}{2}(\eta_{max} - \eta_{min})(1 + \cos(\frac{t\pi}{T}))$$
+
+**Warmup + Cosine**:
+```python
+def get_lr(epoch, warmup_epochs=5, total_epochs=100):
+    if epoch < warmup_epochs:
+        # Linear warmup
+        return epoch / warmup_epochs * lr_max
+    else:
+        # Cosine decay
+        progress = (epoch - warmup_epochs) / (total_epochs - warmup_epochs)
+        return lr_min + 0.5 * (lr_max - lr_min) * (1 + np.cos(np.pi * progress))
+```
+
+**Why it works**: Start fast, slow down to find minimum.
+
+---
+
+# Regularization: L1 and L2
+
+**Prevent overfitting by adding constraints to the loss function**.
+
+**L1 Regularization (Lasso)**:
+$$L = L_{data} + \lambda \sum_i |\theta_i|$$
+- Drives some weights to exactly zero
+- **Effect**: Feature selection (sparse models)
+- **Use case**: When you have many irrelevant features
+
+**L2 Regularization (Ridge)**:
+$$L = L_{data} + \lambda \sum_i \theta_i^2$$
+- Shrinks all weights toward zero
+- **Effect**: Reduces model complexity
+- **Use case**: General overfitting prevention
+
+**ElasticNet**: Combines both L1 + L2 for best of both worlds
+
+---
+
+# Regularization: Dropout and Early Stopping
+
+**Dropout** (for neural networks):
+```python
+# Training: randomly drop neurons
+mask = np.random.binomial(1, keep_prob, size=activations.shape)
+activations = activations * mask / keep_prob  # Scale up
+
+# Inference: use all neurons (no dropout)
+```
+
+**Why it works**:
+- Forces network to not rely on specific neurons
+- Acts like training ensemble of sub-networks
+- Typical dropout rate: 0.2-0.5
+
+**Early Stopping**:
+- Monitor validation loss during training
+- Stop when it stops improving
+- Prevents overfitting without explicit regularization
+
+---
+
+# Batch Normalization: Theory
+
+**Problem**: Internal Covariate Shift
+- Layer inputs change during training
+- Slows down training
+- Requires careful initialization
+
+**Solution**: Normalize activations within each mini-batch
+
+**Formula**:
+$$\hat{x} = \frac{x - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}$$
+$$y = \gamma \hat{x} + \beta$$
+
+where $\mu_B$, $\sigma_B$ = batch mean/std, $\gamma$, $\beta$ = learnable parameters
+
+---
+
+# Batch Normalization: Implementation
+
+**Benefits**:
+- Faster training (can use higher learning rates)
+- Less sensitive to initialization
+- Acts as regularization (slight noise from batch statistics)
+- Almost always improves performance
+
+**PyTorch Implementation**:
+```python
+import torch.nn as nn
+
+model = nn.Sequential(
+    nn.Linear(784, 256),
+    nn.BatchNorm1d(256),  # After linear, before activation
+    nn.ReLU(),
+    nn.Linear(256, 10)
+)
+```
+
+**Key insight**: Add BatchNorm after linear/conv, before activation
+
+---
+
+# Layer Normalization vs Batch Normalization
+
+**Batch Norm**: Normalize across batch dimension.
+- For each feature, compute mean/std across batch samples
+
+**Layer Norm**: Normalize across feature dimension.
+- For each sample, compute mean/std across all features
+
+**When to use**:
+- **Batch Norm**: CNNs, large batches
+- **Layer Norm**: Transformers, RNNs, small batches
+
+```python
+# Batch Norm (for CNNs)
+nn.BatchNorm2d(num_features=64)
+
+# Layer Norm (for Transformers)
+nn.LayerNorm(normalized_shape=512)
+```
+
+**Group Norm**: Middle ground (normalize within groups of channels).
+
+---
+
+# Gradient Descent Variants
+
+**Batch Gradient Descent**:
+- Use entire dataset per update
+- Slow, memory-intensive
+- Smooth convergence
+
+**Stochastic Gradient Descent (SGD)**:
+- One sample per update
+- Fast, noisy
+- Can escape local minima
+
+**Mini-Batch Gradient Descent**:
+- Batch of 32-512 samples per update
+- **Best of both worlds** (most common)
+
+**Batch size effects**:
+- Small batches: Noisy gradients, regularization effect
+- Large batches: Smooth gradients, less generalization
+
+**Practical recommendation**: 32-256 for most tasks.
+
+---
+
+# Ensemble Methods Theory
+
+**Bagging (Bootstrap Aggregating)**:
+1. Create $N$ bootstrap samples
+2. Train model on each
+3. Average predictions
+
+**Example**: Random Forest = Bagging + Decision Trees
+
+**Boosting**: Sequentially train models, focus on errors.
+
+**AdaBoost**:
+$$\alpha_t = \frac{1}{2}\log\frac{1-\epsilon_t}{\epsilon_t}$$
+Weight misclassified examples higher.
+
+**Gradient Boosting**: Fit models to residual errors.
+
+**Stacking**: Train meta-model on base model predictions.
+
+```python
+from sklearn.ensemble import StackingClassifier
+
+stack = StackingClassifier(
+    estimators=[('rf', RandomForestClassifier()),
+                ('svm', SVC())],
+    final_estimator=LogisticRegression()
+)
+```
+
+---
+
+# Model Calibration
+
+**Problem**: Model outputs probabilities, but are they reliable?
+
+**Calibration**: P(y=1|score=0.7) should actually be 70%.
+
+**Reliability Diagram**:
+```python
+from sklearn.calibration import calibration_curve
+
+fraction_positive, mean_predicted = calibration_curve(
+    y_true, y_probs, n_bins=10
+)
+
+plt.plot(mean_predicted, fraction_positive)
+plt.plot([0, 1], [0, 1], 'k--')  # Perfect calibration
+```
+
+**Temperature Scaling**:
+$$P_{calibrated}(y|x) = \text{softmax}(z/T)$$
+
+Find $T$ on validation set.
+
+```python
+from sklearn.linear_model import LogisticRegression
+
+# Simple calibration
+calibrated = CalibratedClassifierCV(model, method='sigmoid', cv=5)
+calibrated.fit(X_train, y_train)
+```
+
+---
+
+# Multi-Task Learning
+
+**Idea**: Train one model on multiple related tasks simultaneously.
+
+**Architecture**:
+```python
+class MultiTaskModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Shared encoder
+        self.shared = nn.Sequential(
+            nn.Linear(input_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128)
+        )
+
+        # Task-specific heads
+        self.task1_head = nn.Linear(128, num_classes1)
+        self.task2_head = nn.Linear(128, num_classes2)
+
+    def forward(self, x):
+        shared_repr = self.shared(x)
+        out1 = self.task1_head(shared_repr)
+        out2 = self.task2_head(shared_repr)
+        return out1, out2
+
+# Training
+loss = alpha * loss_task1 + (1-alpha) * loss_task2
+```
+
+**Benefits**: Shared representations, better generalization.
+
+---
+
+# Curriculum Learning
+
+**Idea**: Train on easy examples first, gradually increase difficulty.
+
+**Implementation**:
+```python
+def curriculum_learning(model, data, epochs_per_stage=10):
+    # Stage 1: Easy examples (high confidence labels)
+    easy_data = data[data['confidence'] > 0.9]
+    train(model, easy_data, epochs=epochs_per_stage)
+
+    # Stage 2: Medium difficulty
+    medium_data = data[data['confidence'].between(0.7, 0.9)]
+    train(model, easy_data + medium_data, epochs=epochs_per_stage)
+
+    # Stage 3: All data
+    train(model, data, epochs=epochs_per_stage)
+```
+
+**Applications**:
+- Language models (start with short sequences)
+- Image classification (start with low-resolution images)
+- Reinforcement learning (simple tasks first)
+
+---
+
+# Neural Architecture Search (NAS) Details
+
+**Search space**: All possible architectures (layers, connections).
+
+**Search strategy**:
+1. **Random search**: Try random architectures
+2. **Evolutionary algorithms**: Mutate/crossover architectures
+3. **Reinforcement learning**: RL agent proposes architectures
+4. **Gradient-based (DARTS)**: Differentiable architecture search
+
+**DARTS intuition**:
+- Relax discrete choices to continuous
+- Use gradient descent to find best architecture
+- Discretize at the end
+
+**Cost**: Thousands of GPU hours for full search.
+
+**Practical alternative**: Use searched architectures (EfficientNet, etc.).
+
+---
+
+# Mixed Precision Training
+
+**Idea**: Use FP16 (16-bit) instead of FP32 (32-bit) to save memory and time.
+
+**Automatic Mixed Precision (AMP)**:
+```python
+import torch
+from torch.cuda.amp import autocast, GradScaler
+
+model = model.cuda()
+optimizer = torch.optim.Adam(model.parameters())
+scaler = GradScaler()
+
+for x, y in dataloader:
+    optimizer.zero_grad()
+
+    # Forward pass in FP16
+    with autocast():
+        outputs = model(x)
+        loss = criterion(outputs, y)
+
+    # Backward pass (scaled to prevent underflow)
+    scaler.scale(loss).backward()
+    scaler.step(optimizer)
+    scaler.update()
+```
+
+**Benefits**:
+- 2x speedup
+- 2x less memory
+- ~Same accuracy (with careful tuning)
+
+---
+
+# Distributed Training
+
+**Data Parallel**: Split batch across GPUs.
+```python
+model = nn.DataParallel(model, device_ids=[0, 1, 2, 3])
+
+# Each GPU gets batch_size / num_gpus samples
+# Gradients are averaged across GPUs
+```
+
+**Distributed Data Parallel (DDP)**: More efficient.
+```python
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+# Initialize process group
+dist.init_process_group(backend='nccl')
+
+model = DDP(model, device_ids=[local_rank])
+
+# Each GPU trains independently, syncs gradients
+```
+
+**Model Parallel**: Split model across GPUs (for very large models).
+
+**Speedup**: Near-linear with num_gpus (if communication is fast).
+
+---
+
+# Gradient Accumulation
+
+**Problem**: Want large batch size, but GPU memory is limited.
+
+**Solution**: Accumulate gradients over multiple mini-batches.
+
+```python
+accumulation_steps = 4
+optimizer.zero_grad()
+
+for i, (x, y) in enumerate(dataloader):
+    outputs = model(x)
+    loss = criterion(outputs, y)
+
+    # Scale loss by accumulation steps
+    loss = loss / accumulation_steps
+    loss.backward()
+
+    if (i + 1) % accumulation_steps == 0:
+        # Update weights every N mini-batches
+        optimizer.step()
+        optimizer.zero_grad()
+```
+
+**Effective batch size** = `batch_size × accumulation_steps`.
+
+**Tradeoff**: Same as large batch, but slower (more forward passes).
+
+---
+
+# Feature Engineering for Neural Networks
+
+**Normalization**:
+```python
+from sklearn.preprocessing import StandardScaler
+
+# Z-score normalization
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X_train)
+
+# Min-max scaling (for bounded inputs like images)
+X_scaled = (X - X.min()) / (X.max() - X.min())
+```
+
+**Categorical encoding**:
+```python
+# One-hot encoding
+from sklearn.preprocessing import OneHotEncoder
+encoder = OneHotEncoder(sparse=False)
+
+# Embedding (for high-cardinality categorical)
+embedding = nn.Embedding(num_categories, embedding_dim)
+```
+
+**Temporal features** (for time series):
+- Hour of day, day of week, month
+- Rolling statistics (mean, std)
+- Lag features
+
+---
+
+# Debugging Training Issues
+
+**Symptom: Loss is NaN**
+- Cause: Exploding gradients
+- Fix: Gradient clipping, lower learning rate
+
+**Symptom: Loss not decreasing**
+- Cause: Learning rate too low/high, wrong optimizer
+- Fix: Try LR finder, use Adam
+
+**Symptom: High train accuracy, low val accuracy**
+- Cause: Overfitting
+- Fix: Regularization, more data, early stopping
+
+**Symptom: Both train and val accuracy low**
+- Cause: Underfitting
+- Fix: More complex model, more features, train longer
+
+**Gradient clipping**:
+```python
+nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+```
 
 ---
 

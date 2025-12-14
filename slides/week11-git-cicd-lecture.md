@@ -490,12 +490,343 @@ repos:
 
 ---
 
+# Git Branching Strategies
+
+**Trunk-Based Development**: Everyone commits to main frequently.
+- **Pros**: Simple, fast feedback
+- **Cons**: Requires discipline, good tests
+- **Used by**: Google, Facebook
+
+**GitFlow**: Feature branches → develop → release → main.
+```
+main (production)
+  ↑
+release/1.2
+  ↑
+develop
+  ↑
+feature/new-model
+```
+
+**GitHub Flow** (simpler):
+```
+main
+  ↑
+feature/fix-bug → PR → Review → Merge
+```
+
+**For ML projects**: GitHub Flow + experiment branches.
+
+---
+
+# Advanced Git: Rebasing vs Merging
+
+**Merge**: Creates merge commit.
+```bash
+git checkout main
+git merge feature-branch
+# Creates merge commit with two parents
+```
+
+**Rebase**: Replay commits on top of main.
+```bash
+git checkout feature-branch
+git rebase main
+# Re-writes history, linear timeline
+```
+
+**When to use**:
+- **Merge**: Public branches, preserves history
+- **Rebase**: Local branches, clean history
+
+**Golden rule**: Never rebase public branches!
+
+**Interactive rebase**:
+```bash
+git rebase -i HEAD~3  # Edit last 3 commits
+# Pick, squash, reword, edit
+```
+
+---
+
+# Infrastructure as Code (IaC)
+
+**Problem**: Manual server setup is error-prone.
+
+**Solution**: Define infrastructure in code.
+
+**Terraform example**:
+```hcl
+resource "aws_instance" "ml_server" {
+  ami           = "ami-0c55b159cbfafe1f0"
+  instance_type = "p3.2xlarge"  # GPU instance
+
+  tags = {
+    Name = "ML-Training-Server"
+  }
+}
+
+resource "aws_s3_bucket" "model_artifacts" {
+  bucket = "my-ml-models"
+  versioning {
+    enabled = true
+  }
+}
+```
+
+**Benefits**:
+- Version controlled
+- Reproducible
+- Self-documenting
+- Can be reviewed/tested
+
+---
+
+# Blue-Green Deployment
+
+**Strategy**: Run two identical environments.
+
+```
+Blue (current production) ← 100% traffic
+Green (new version)       ← 0% traffic
+
+# After testing:
+Blue  ← 0% traffic
+Green ← 100% traffic  # Switch!
+
+# If issues, instant rollback:
+Blue  ← 100% traffic  # Switch back!
+```
+
+**Implementation** (with load balancer):
+```yaml
+# GitHub Actions
+- name: Deploy to Green
+  run: |
+    kubectl set image deployment/app app=myapp:${{ github.sha }} -n green
+
+- name: Wait for health
+  run: kubectl rollout status deployment/app -n green
+
+- name: Switch traffic
+  run: kubectl patch service app -p '{"spec":{"selector":{"env":"green"}}}'
+```
+
+**Benefit**: Zero-downtime deployment, instant rollback.
+
+---
+
+# Canary Releases
+
+**Strategy**: Gradually shift traffic to new version.
+
+```
+v1.0 ← 100% traffic
+v2.0 ← 0% traffic
+
+# Step 1:
+v1.0 ← 95% traffic
+v2.0 ← 5% traffic  # Test on small subset
+
+# Step 2:
+v1.0 ← 50% traffic
+v2.0 ← 50% traffic
+
+# Step 3 (if metrics good):
+v1.0 ← 0% traffic
+v2.0 ← 100% traffic
+```
+
+**Monitoring**: Watch for errors, latency spikes.
+
+**Rollback** if metrics degrade:
+```yaml
+if: ${{ steps.canary.outputs.error_rate > 0.01 }}
+run: kubectl rollout undo deployment/app
+```
+
+---
+
+# Feature Flags and Gradual Rollouts
+
+**Feature flags**: Toggle features without deploying.
+
+```python
+import flagsmith
+
+flags = flagsmith.get_environment_flags()
+
+if flags.is_feature_enabled("new_model_v2"):
+    model = load_model("v2")
+else:
+    model = load_model("v1")
+```
+
+**Gradual rollout**:
+```python
+# Enable for 10% of users
+user_id_hash = hash(user_id) % 100
+if user_id_hash < 10:
+    use_new_feature = True
+```
+
+**Benefits**:
+- Test in production safely
+- Easy rollback (toggle off)
+- A/B testing
+
+**Tools**: LaunchDarkly, Flagsmith, ConfigCat.
+
+---
+
+# Rollback Strategies
+
+**1. Git revert**:
+```bash
+git revert HEAD      # Create new commit that undoes last
+git push
+# CI/CD deploys the revert
+```
+
+**2. Kubernetes rollout**:
+```bash
+kubectl rollout undo deployment/app
+# Instantly roll back to previous version
+```
+
+**3. Database rollbacks** (harder):
+- Forward-compatible migrations
+- Blue-green for schema changes
+- Keep old code compatible with new schema
+
+**Best practice**: Make rollbacks automated and tested.
+
+```yaml
+# GitHub Actions: Auto-rollback on failure
+- name: Deploy
+  run: kubectl apply -f deployment.yaml
+
+- name: Health check
+  run: ./health_check.sh
+
+- name: Rollback on failure
+  if: failure()
+  run: kubectl rollout undo deployment/app
+```
+
+---
+
+# CI/CD Security Best Practices
+
+**Secrets management**:
+```yaml
+# GitHub Secrets (encrypted)
+steps:
+  - name: Deploy
+    env:
+      AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+```
+
+**Never commit secrets!**
+
+**SAST (Static Application Security Testing)**:
+```yaml
+- name: Run Bandit (Python security linter)
+  run: bandit -r src/
+
+- name: Check for secrets
+  uses: trufflesecurity/trufflehog@main
+```
+
+**DAST (Dynamic Application Security Testing)**: Test running app for vulnerabilities.
+
+**Dependency scanning**:
+```yaml
+- name: Check dependencies for vulnerabilities
+  run: safety check
+```
+
+---
+
+# Matrix Builds for Multi-Environment Testing
+
+**Test across multiple configurations**:
+
+```yaml
+strategy:
+  matrix:
+    python-version: [3.8, 3.9, 3.10, 3.11]
+    os: [ubuntu-latest, macos-latest, windows-latest]
+
+steps:
+  - uses: actions/setup-python@v4
+    with:
+      python-version: ${{ matrix.python-version }}
+
+  - name: Run tests
+    run: pytest tests/
+```
+
+**Result**: 4 Python versions × 3 OS = 12 test jobs (parallel).
+
+**ML-specific matrix**:
+```yaml
+matrix:
+  framework: [pytorch, tensorflow, jax]
+  backend: [cpu, gpu]
+```
+
+---
+
+# Caching Strategies in CI/CD
+
+**Problem**: Installing dependencies is slow (2-5 minutes).
+
+**Solution**: Cache dependencies.
+
+```yaml
+- name: Cache pip dependencies
+  uses: actions/cache@v3
+  with:
+    path: ~/.cache/pip
+    key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+- name: Install dependencies
+  run: pip install -r requirements.txt
+# Cached, takes 10 seconds instead of 2 minutes
+```
+
+**Docker layer caching**:
+```yaml
+- name: Build Docker image
+  uses: docker/build-push-action@v4
+  with:
+    cache-from: type=gha
+    cache-to: type=gha,mode=max
+```
+
+**ML-specific**: Cache datasets, pre-trained models.
+
+---
+
 # Summary
 
 1.  **GitHub API**: Automate repo management and reviews.
 2.  **GitHub Actions**: The engine for CI/CD.
 3.  **Testing**: Essential for robust ML systems (Unit, Data, Model tests).
 4.  **Pre-commit**: The first line of defense.
+
+**Advanced Topics**:
+- Git branching strategies (trunk-based, GitFlow)
+- Advanced Git (rebase, interactive rebase)
+- Infrastructure as Code (Terraform)
+- Deployment strategies (blue-green, canary)
+- Feature flags and gradual rollouts
+- Rollback strategies
+- CI/CD security (secrets, SAST/DAST)
+- Matrix builds for multi-environment testing
+- Caching strategies
 
 **Lab**: You will build a full CI pipeline that runs tests and uses a custom Action to auto-grade/review PRs.
 

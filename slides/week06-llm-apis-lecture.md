@@ -1401,6 +1401,636 @@ print(f"Estimated cost: ${total_cost:.6f}")
 
 ---
 
+# Transformer Architecture Deep Dive
+
+**Self-Attention Mechanism**: Core of transformers
+
+**Attention formula**:
+$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+
+Where:
+- $Q$ = Query matrix
+- $K$ = Key matrix
+- $V$ = Value matrix
+- $d_k$ = dimension of keys
+
+**Multi-Head Attention**: Run attention multiple times in parallel
+$$\text{MultiHead}(Q,K,V) = \text{Concat}(\text{head}_1,...,\text{head}_h)W^O$$
+
+**Why it works**: Attention learns which tokens are relevant to each other.
+
+---
+
+# Positional Encoding in Transformers
+
+**Problem**: Transformers have no notion of position.
+
+**Solution**: Add positional information to embeddings.
+
+**Sinusoidal encoding**:
+$$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right)$$
+$$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)$$
+
+**Properties**:
+- Different frequency for each dimension
+- Allows model to learn relative positions
+- Works for any sequence length
+
+**Modern approach**: Learned positional embeddings (GPT) or rotary embeddings (RoPE, used in Llama).
+
+---
+
+# Advanced Prompting: Self-Consistency
+
+**Self-Consistency**: Generate multiple reasoning paths, take majority vote.
+
+```python
+def self_consistency(prompt, model, n_samples=5):
+    """Generate multiple solutions and take majority vote."""
+    solutions = []
+
+    for _ in range(n_samples):
+        # Generate with temperature > 0 for diversity
+        response = model.generate(prompt, temperature=0.7)
+        final_answer = extract_answer(response)
+        solutions.append(final_answer)
+
+    # Majority vote
+    from collections import Counter
+    majority = Counter(solutions).most_common(1)[0][0]
+
+    return majority
+```
+
+**Improves accuracy** on reasoning tasks by 10-30%.
+
+**Tradeoff**: $N$ times more expensive.
+
+---
+
+# Tree-of-Thoughts (ToT) Prompting
+
+**Idea**: Explore multiple reasoning branches like search tree.
+
+**Algorithm**:
+1. Generate multiple thought steps
+2. Evaluate each thought
+3. Expand most promising
+4. Backtrack if needed
+
+```python
+def tree_of_thoughts(prompt, model, depth=3, breadth=3):
+    """Tree-of-thoughts prompting."""
+    def evaluate_thought(thought):
+        eval_prompt = f"Rate this reasoning (1-10): {thought}"
+        score = model.generate(eval_prompt)
+        return float(score)
+
+    current_thoughts = [prompt]
+
+    for level in range(depth):
+        next_thoughts = []
+
+        for thought in current_thoughts:
+            # Generate multiple next steps
+            candidates = []
+            for _ in range(breadth):
+                next_step = model.generate(f"{thought}\nNext step:")
+                score = evaluate_thought(next_step)
+                candidates.append((next_step, score))
+
+            # Keep best candidates
+            candidates.sort(key=lambda x: x[1], reverse=True)
+            next_thoughts.extend([c[0] for c in candidates[:breadth]])
+
+        current_thoughts = next_thoughts
+
+    # Return best final thought
+    return max(current_thoughts, key=evaluate_thought)
+```
+
+---
+
+# Retrieval-Augmented Generation (RAG)
+
+**RAG**: Combine retrieval with generation for factual accuracy.
+
+**Workflow**:
+1. Query → Retrieve relevant documents
+2. Documents + Query → Generate answer
+
+```python
+from sentence_transformers import SentenceTransformer
+import faiss
+
+class RAG:
+    def __init__(self, documents, model):
+        self.documents = documents
+        self.model = model
+
+        # Create embeddings
+        embedder = SentenceTransformer('all-MiniLM-L6-v2')
+        self.doc_embeddings = embedder.encode(documents)
+
+        # Build index
+        self.index = faiss.IndexFlatL2(self.doc_embeddings.shape[1])
+        self.index.add(self.doc_embeddings)
+
+    def retrieve(self, query, k=3):
+        """Retrieve top-k relevant documents."""
+        embedder = SentenceTransformer('all-MiniLM-L6-v2')
+        query_embedding = embedder.encode([query])
+
+        distances, indices = self.index.search(query_embedding, k)
+
+        return [self.documents[i] for i in indices[0]]
+
+    def generate(self, query):
+        """RAG: retrieve + generate."""
+        # Retrieve relevant docs
+        docs = self.retrieve(query, k=3)
+
+        # Augment prompt
+        context = "\n\n".join(docs)
+        prompt = f"""Context:\n{context}\n\nQuestion: {query}\n\nAnswer based on the context:"""
+
+        # Generate
+        answer = self.model.generate(prompt)
+
+        return answer
+```
+
+---
+
+# Fine-Tuning vs Prompting Tradeoffs
+
+**When to use prompting**:
+- Quick iteration
+- Task changes frequently
+- Limited labeled data
+- No infrastructure for training
+
+**When to fine-tune**:
+- Task is fixed
+- Large labeled dataset (>10K examples)
+- Need best possible performance
+- Want smaller, cheaper model
+
+**Cost comparison**:
+```
+Prompting:
+- Setup: $0
+- Per-request: $0.01 (GPT-4)
+- Total for 100K requests: $1,000
+
+Fine-tuning:
+- Setup: $100 (training)
+- Per-request: $0.001 (fine-tuned model)
+- Total for 100K requests: $200
+```
+
+**Rule**: Fine-tune if you'll make >10K requests.
+
+---
+
+# Token Probability Distributions
+
+**Perplexity**: Measure of how surprised the model is.
+
+$$\text{Perplexity} = \exp\left(-\frac{1}{N}\sum_{i=1}^N \log P(w_i|w_{<i})\right)$$
+
+**Interpretation**:
+- Lower perplexity = model is more confident
+- Perplexity of 1 = perfect prediction
+- Perplexity of 100 = choosing from ~100 equiprobable words
+
+**Entropy**: Uncertainty in token distribution.
+
+$$H(P) = -\sum_i P(w_i) \log P(w_i)$$
+
+**Use cases**:
+- Detect hallucinations (high entropy = unsure)
+- Early stopping (perplexity plateaus)
+- Model comparison
+
+---
+
+# Beam Search vs Sampling
+
+**Greedy**: Always pick most likely token.
+- Fast, deterministic
+- Can get stuck in loops
+
+**Beam Search**: Keep top-K sequences.
+```python
+def beam_search(model, prompt, beam_width=5, max_length=100):
+    """Beam search decoding."""
+    sequences = [(prompt, 0.0)]  # (text, log_prob)
+
+    for _ in range(max_length):
+        candidates = []
+
+        for seq, score in sequences:
+            # Get top-K next tokens
+            probs = model.predict_next_token_probs(seq)
+            top_k = probs.argsort()[-beam_width:]
+
+            for token_id in top_k:
+                new_seq = seq + model.decode(token_id)
+                new_score = score + np.log(probs[token_id])
+                candidates.append((new_seq, new_score))
+
+        # Keep top beam_width sequences
+        sequences = sorted(candidates, key=lambda x: x[1], reverse=True)[:beam_width]
+
+    return sequences[0][0]  # Best sequence
+```
+
+**Sampling**: Stochastic, more diverse.
+
+**Hybrid**: Beam search + sampling (nucleus sampling with beams).
+
+---
+
+# Constrained Generation
+
+**Problem**: Want outputs in specific format (JSON, code, etc.).
+
+**Grammar-based generation**:
+```python
+import outlines
+
+# Define JSON schema
+schema = '''
+{
+  "name": "str",
+  "age": "int",
+  "skills": ["str"]
+}
+'''
+
+# Constrained generation
+model = outlines.models.transformers("mistralai/Mistral-7B-v0.1")
+generator = outlines.generate.json(model, schema)
+
+result = generator("Extract person info: John is 30 and knows Python and SQL")
+# Guaranteed valid JSON: {"name": "John", "age": 30, "skills": ["Python", "SQL"]}
+```
+
+**Gemini structured outputs**:
+```python
+from google import genai
+
+response = client.models.generate_content(
+    model='gemini-2.0-flash-exp',
+    contents='Extract entities from: Apple CEO Tim Cook announced new iPhone',
+    config={
+        'response_mime_type': 'application/json',
+        'response_schema': {
+            'type': 'object',
+            'properties': {
+                'person': {'type': 'string'},
+                'organization': {'type': 'string'},
+                'product': {'type': 'string'}
+            }
+        }
+    }
+)
+```
+
+---
+
+# Evaluation Metrics for LLM Outputs
+
+**Automatic metrics**:
+
+**1. BLEU** (translation quality):
+$$\text{BLEU} = BP \cdot \exp\left(\sum_{n=1}^{N} w_n \log p_n\right)$$
+- Compares n-gram overlap with reference
+
+**2. ROUGE** (summarization):
+- ROUGE-N: N-gram overlap
+- ROUGE-L: Longest common subsequence
+
+**3. BERTScore** (semantic similarity):
+```python
+from bert_score import score
+
+P, R, F1 = score(
+    candidates=["The cat sat on the mat"],
+    references=["A cat was sitting on a mat"],
+    lang="en"
+)
+# F1 ≈ 0.95 (high semantic similarity)
+```
+
+**4. Perplexity** (fluency).
+
+**Human evaluation**: Gold standard but expensive.
+
+---
+
+# RLHF: Reinforcement Learning from Human Feedback
+
+**How ChatGPT was trained**:
+
+**Step 1**: Supervised fine-tuning (SFT)
+- Train on human demonstrations
+
+**Step 2**: Reward modeling
+- Humans rank model outputs
+- Train reward model: $r_\theta(x, y)$
+
+**Step 3**: RL optimization (PPO)
+$$\max_\pi \mathbb{E}_{x \sim D, y \sim \pi}[r_\theta(x, y) - \beta \cdot KL(\pi || \pi_{SFT})]$$
+
+**PPO (Proximal Policy Optimization)**: Iteratively improve policy $\pi$ (the LLM).
+
+**Result**: Model learns to generate outputs humans prefer.
+
+---
+
+# Constitutional AI (CAI)
+
+**Anthropic's approach to alignment**.
+
+**Idea**: Use AI to self-improve via "constitution" (set of principles).
+
+**Process**:
+1. Generate multiple responses
+2. AI critiques itself based on constitution
+3. AI revises to be more aligned
+4. Train on self-improvements
+
+**Example constitution rules**:
+- "Be helpful and harmless"
+- "Respect user privacy"
+- "Avoid harmful content"
+
+**Advantage**: Less reliance on human feedback at scale.
+
+---
+
+# Context Window Management
+
+**Context window**: Maximum tokens model can process.
+
+| Model | Context Window |
+| :--- | :---: |
+| GPT-3.5 | 4K / 16K |
+| GPT-4 | 8K / 32K / 128K |
+| Claude 3 | 200K |
+| Gemini 1.5 Pro | 1M / 2M |
+
+**Strategies for long documents**:
+
+**1. Chunking + Map-Reduce**:
+```python
+def map_reduce_summarize(document, model, chunk_size=4000):
+    """Summarize long document."""
+    chunks = split_into_chunks(document, chunk_size)
+
+    # Map: Summarize each chunk
+    summaries = []
+    for chunk in chunks:
+        summary = model.generate(f"Summarize: {chunk}")
+        summaries.append(summary)
+
+    # Reduce: Summarize summaries
+    combined = "\n".join(summaries)
+    final_summary = model.generate(f"Summarize these summaries: {combined}")
+
+    return final_summary
+```
+
+**2. Sliding window**.
+**3. Retrieval (RAG)** for very long documents.
+
+---
+
+# Embeddings and Semantic Similarity
+
+**Embeddings**: Dense vector representations of text.
+
+**Creating embeddings**:
+```python
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+# Get embeddings
+texts = ["I love programming", "Coding is fun", "I hate bugs"]
+embeddings = model.encode(texts)
+
+# Compute similarity
+from sklearn.metrics.pairwise import cosine_similarity
+
+sim_matrix = cosine_similarity(embeddings)
+print(sim_matrix)
+# [[ 1.    0.85  0.32]
+#  [ 0.85  1.    0.29]
+#  [ 0.32  0.29  1.  ]]
+```
+
+**Applications**:
+- Semantic search
+- Clustering
+- Retrieval in RAG
+- Deduplication
+
+**Gemini embeddings**:
+```python
+from google import genai
+
+result = client.models.embed_content(
+    model='text-embedding-004',
+    content="What is machine learning?"
+)
+embedding = result['embedding']  # 768-dim vector
+```
+
+---
+
+# Token Efficiency Techniques
+
+**Technique 1**: Abbreviations and symbols
+```python
+# ❌ Verbose (15 tokens)
+"Please classify the sentiment as positive, negative, or neutral"
+
+# ✅ Concise (5 tokens)
+"Sentiment (Pos/Neg/Neut):"
+```
+
+**Technique 2**: Remove filler words
+```python
+# ❌ Verbose
+"I would like you to kindly please help me understand..."
+
+# ✅ Direct
+"Explain:"
+```
+
+**Technique 3**: Use structured formats
+```python
+# JSON is more token-efficient than verbose descriptions
+{
+  "task": "classify",
+  "input": "text",
+  "output": "sentiment"
+}
+```
+
+**Monitoring token usage**:
+```python
+def count_tokens_approximate(text):
+    """Approximate token count (4 chars ≈ 1 token)."""
+    return len(text) // 4
+```
+
+---
+
+# Advanced Prompt Patterns
+
+**1. Role prompting**:
+```python
+"You are an expert Python developer with 20 years of experience..."
+```
+
+**2. Output format specification**:
+```python
+"Respond ONLY with valid JSON. No markdown, no explanation."
+```
+
+**3. Examples with explanations**:
+```python
+"""
+Input: "The movie was great!"
+Explanation: Positive sentiment due to "great"
+Output: Positive
+
+Input: "Terrible product"
+Explanation: Negative sentiment due to "terrible"
+Output: Negative
+"""
+```
+
+**4. Constraints**:
+```python
+"Answer in exactly 3 bullet points, each under 15 words."
+```
+
+---
+
+# Prompt Chaining
+
+**Break complex task into steps**:
+
+```python
+def prompt_chain(text, model):
+    """Chain multiple prompts for complex task."""
+
+    # Step 1: Extract entities
+    step1_prompt = f"Extract all person names from: {text}"
+    entities = model.generate(step1_prompt)
+
+    # Step 2: Classify each entity
+    step2_prompt = f"For each person, classify as politician/athlete/actor: {entities}"
+    classifications = model.generate(step2_prompt)
+
+    # Step 3: Summarize
+    step3_prompt = f"Summarize these classifications: {classifications}"
+    summary = model.generate(step3_prompt)
+
+    return {
+        'entities': entities,
+        'classifications': classifications,
+        'summary': summary
+    }
+```
+
+**Benefits**:
+- Each step is simpler
+- Easier to debug
+- Can cache intermediate results
+
+---
+
+# Function Calling (Tool Use)
+
+**Allow LLM to call external functions**.
+
+**Gemini function calling**:
+```python
+def get_weather(location: str) -> dict:
+    """Get current weather for a location."""
+    # Call weather API
+    return {"temp": 72, "condition": "sunny"}
+
+tools = [{
+    "name": "get_weather",
+    "description": "Get current weather",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "location": {"type": "string", "description": "City name"}
+        },
+        "required": ["location"]
+    }
+}]
+
+response = client.models.generate_content(
+    model='gemini-2.0-flash-exp',
+    contents="What's the weather in Paris?",
+    config={"tools": tools}
+)
+
+if response.candidates[0].content.parts[0].function_call:
+    function_call = response.candidates[0].content.parts[0].function_call
+    # Execute function
+    result = get_weather(**function_call.args)
+```
+
+---
+
+# LLM Safety and Guardrails
+
+**Input filtering**:
+```python
+def check_input_safety(user_input):
+    """Check for unsafe inputs."""
+    unsafe_patterns = [
+        r'ignore (previous|all) instructions',
+        r'you are now',
+        r'your new role',
+    ]
+
+    for pattern in unsafe_patterns:
+        if re.search(pattern, user_input, re.IGNORECASE):
+            return False, "Potentially unsafe input detected"
+
+    return True, "Input is safe"
+```
+
+**Output filtering**:
+```python
+def check_output_safety(model_output, prohibited_topics):
+    """Check if output discusses prohibited topics."""
+    # Use another LLM to check
+    safety_prompt = f"""
+    Does this text discuss any of these topics: {prohibited_topics}?
+    Text: {model_output}
+    Answer: Yes or No
+    """
+
+    result = safety_model.generate(safety_prompt)
+    return "No" in result
+```
+
+**Moderation APIs**: OpenAI Moderation, Perspective API.
+
+---
+
 # Lab Preview
 
 ## What You'll Build Today

@@ -227,23 +227,18 @@ Understanding these helps debug data collection failures.
 
 Most APIs require authentication to track usage and prevent abuse.
 
-**Common methods**:
+| Method | Header/Query | Security | Complexity | Use Case |
+|--------|-------------|----------|------------|----------|
+| **API Key** | `?apikey=abc123`<br>`X-API-Key: abc123` | Low | Very Simple | Public APIs, prototyping |
+| **Basic Auth** | `Authorization: Basic <base64>` | Medium | Simple | Internal APIs (with HTTPS) |
+| **Bearer Token** | `Authorization: Bearer <token>` | High | Medium | Modern REST APIs |
+| **OAuth 2.0** | Multi-step authorization flow | Very High | Complex | Third-party integrations (Google, Twitter) |
 
-1. **API Key** (simplest):
-   - `?apikey=abc123` or `X-API-Key: abc123` header
-   - Easy to use but less secure
-
-2. **Bearer Token (OAuth)**:
-   - `Authorization: Bearer abc123`
-   - More secure, time-limited
-
-3. **Basic Auth**:
-   - `Authorization: Basic base64(username:password)`
-   - Simple but requires HTTPS
-
-4. **OAuth 2.0** (most secure):
-   - Complex flow with authorization servers
-   - Used by Google, Twitter APIs
+**Security levels**:
+- API Key: Can be leaked in URLs/logs
+- Basic Auth: Requires HTTPS, credentials in every request
+- Bearer Token: Time-limited, can be refreshed
+- OAuth 2.0: Never exposes user credentials
 
 ---
 
@@ -743,11 +738,888 @@ Websites use techniques to block scrapers:
 
 ---
 
+# Advanced HTTP Concepts
+
+Additional theory for robust data collection.
+
+---
+
+# HTTP Protocol Evolution
+
+**HTTP/1.1** (1997):
+- One request per connection (or sequential on keep-alive)
+- Text-based protocol
+- Head-of-line blocking problem
+
+**HTTP/2** (2015):
+- **Multiplexing**: Multiple requests over single connection
+- **Header compression**: Reduces overhead
+- **Server push**: Server can send resources proactively
+- **Binary protocol**: More efficient parsing
+
+**HTTP/3** (2022):
+- Uses **QUIC** over UDP instead of TCP
+- **No head-of-line blocking** at transport layer
+- **Faster connection establishment** (0-RTT)
+- Better performance on lossy networks
+
+**For ML data collection**: HTTP/2+ improves API throughput significantly.
+
+---
+
+# Content Negotiation
+
+**Content negotiation** lets clients specify preferred response formats.
+
+**Request headers**:
+```http
+Accept: application/json
+Accept-Language: en-US,en
+Accept-Encoding: gzip, deflate, br
+```
+
+**Server response**:
+```http
+Content-Type: application/json; charset=utf-8
+Content-Language: en-US
+Content-Encoding: gzip
+```
+
+**Why it matters**:
+- Same endpoint can return JSON, XML, or CSV
+- Specify compression to reduce transfer size
+- Language-specific datasets for NLP
+
+**Example**:
+```python
+headers = {
+    'Accept': 'application/json',
+    'Accept-Encoding': 'gzip'
+}
+requests.get(url, headers=headers)
+```
+
+---
+
+# HTTP Caching Mechanisms
+
+**Caching** reduces redundant requests and server load.
+
+**Cache-Control header**:
+```http
+Cache-Control: max-age=3600, public
+```
+- `max-age`: Cache lifetime in seconds
+- `public`: Can be cached by intermediaries (CDNs)
+- `private`: Only client can cache (user-specific data)
+- `no-cache`: Revalidate before using cached copy
+- `no-store`: Never cache (sensitive data)
+
+**Conditional requests** (efficiency):
+```http
+If-Modified-Since: Wed, 21 Oct 2023 07:28:00 GMT
+If-None-Match: "abc123xyz"  # ETag
+```
+
+**Server response**:
+- `304 Not Modified`: Use cached version
+- `200 OK`: New data provided
+
+---
+
+# ETags for Change Detection
+
+**ETag (Entity Tag)** is a version identifier for resources.
+
+**First request**:
+```http
+GET /api/data
+→ 200 OK
+ETag: "v123"
+{...data...}
+```
+
+**Subsequent request**:
+```http
+GET /api/data
+If-None-Match: "v123"
+→ 304 Not Modified
+(No body - save bandwidth)
+```
+
+**Use case for ML**:
+- **Incremental data collection**: Only fetch changed data
+- **Version tracking**: Know when dataset updates
+- **Bandwidth savings**: Important for large datasets
+
+---
+
+# CORS (Cross-Origin Resource Sharing)
+
+**CORS** controls which domains can access an API.
+
+**Problem**: Browser security prevents cross-domain requests.
+
+**Example**:
+- Your web app at `https://myapp.com`
+- Trying to call API at `https://api.example.com`
+- Browser blocks the request (same-origin policy)
+
+**Solution**: Server sends CORS headers:
+```http
+Access-Control-Allow-Origin: https://myapp.com
+Access-Control-Allow-Methods: GET, POST
+Access-Control-Allow-Headers: Content-Type
+```
+
+**For ML**:
+- Not an issue for server-side scripts (Python)
+- Matters when building browser-based data collection tools
+- Some APIs require specific `Origin` headers
+
+---
+
+# API Pagination Strategies
+
+**Problem**: APIs don't return all data at once (performance, memory).
+
+**Offset-based pagination**:
+```python
+# Page 1: items 0-99
+GET /movies?limit=100&offset=0
+
+# Page 2: items 100-199
+GET /movies?limit=100&offset=100
+```
+
+**Pros**: Simple, can jump to any page
+**Cons**: Inconsistent if data changes (items added/removed)
+
+**Cursor-based pagination** (better):
+```python
+# First page
+GET /movies?limit=100
+→ {data: [...], next_cursor: "abc123"}
+
+# Next page
+GET /movies?limit=100&cursor=abc123
+→ {data: [...], next_cursor: "def456"}
+```
+
+**Pros**: Consistent even with data changes
+**Cons**: Can't jump to specific page
+
+---
+
+# Pagination Implementation Pattern
+
+**Collect all pages**:
+```python
+def fetch_all_pages(url, params):
+    all_data = []
+    page = 1
+
+    while True:
+        params['page'] = page
+        resp = requests.get(url, params=params)
+        data = resp.json()
+
+        if not data.get('results'):
+            break  # No more data
+
+        all_data.extend(data['results'])
+
+        # Check for next page
+        if not data.get('next'):
+            break
+
+        page += 1
+        time.sleep(1)  # Rate limiting
+
+    return all_data
+```
+
+**Best practice**: Check for `next` link rather than guessing page count.
+
+---
+
+# Data Serialization Formats
+
+**JSON** (most common):
+```json
+{"name": "John", "age": 30}
+```
+- Human-readable
+- Language-agnostic
+- Moderate size (~4KB for 1000 fields)
+
+**XML** (legacy):
+```xml
+<person><name>John</name><age>30</age></person>
+```
+- Verbose (larger)
+- Schema validation (XSD)
+- Used by older APIs (SOAP)
+
+**Protocol Buffers** (Google):
+```
+message Person {
+  string name = 1;
+  int32 age = 2;
+}
+```
+- Binary format (smallest size)
+- Requires schema definition
+- 3-10x smaller than JSON
+- Used in high-performance systems
+
+---
+
+# Data Serialization Comparison
+
+| Format | Size | Speed | Human-Readable | Schema |
+|:-------|:----:|:-----:|:--------------:|:------:|
+| **JSON** | Medium | Fast | ✓ | Optional |
+| **XML** | Large | Slow | ✓ | ✓ (XSD) |
+| **Protocol Buffers** | Small | Very Fast | ✗ | Required |
+| **MessagePack** | Small | Very Fast | ✗ | Optional |
+| **CSV** | Small | Fast | ✓ | None |
+
+**For ML data collection**:
+- JSON: Default choice (balance of features)
+- Protocol Buffers: High-volume production systems
+- CSV: Tabular data, legacy systems
+
+---
+
+# GraphQL vs REST
+
+**REST**: Multiple endpoints for different resources
+```
+GET /users/123
+GET /users/123/posts
+GET /posts/456/comments
+```
+**Problem**: Over-fetching (extra fields) or under-fetching (need multiple requests)
+
+**GraphQL**: Single endpoint, client specifies exactly what it needs
+```graphql
+query {
+  user(id: 123) {
+    name
+    posts {
+      title
+      comments { text }
+    }
+  }
+}
+```
+
+**Trade-offs**:
+- **REST**: Simple, cacheable, widely supported
+- **GraphQL**: Flexible, efficient, complex to implement
+
+**For ML**: GraphQL is better for exploratory data collection.
+
+---
+
+# API Versioning Strategies
+
+**Why versioning?**
+- APIs evolve (new features, breaking changes)
+- Need to support old clients
+
+**Three approaches**:
+
+**1. URL versioning**:
+```
+https://api.example.com/v1/movies
+https://api.example.com/v2/movies
+```
+
+**2. Header versioning**:
+```http
+GET /movies
+Accept: application/vnd.api.v1+json
+```
+
+**3. Query parameter**:
+```
+https://api.example.com/movies?version=1
+```
+
+**Best practice**: URL versioning (explicit, easy to test).
+
+---
+
+# Session vs Token Authentication
+
+**Session-based** (stateful):
+1. Client sends credentials
+2. Server creates session, stores in database
+3. Server sends session ID (cookie)
+4. Client includes cookie in future requests
+
+**Token-based** (stateless, modern):
+1. Client sends credentials
+2. Server creates **JWT (JSON Web Token)**
+3. Client stores token, includes in `Authorization` header
+4. Server validates token (no database lookup)
+
+**JWT structure**:
+```
+header.payload.signature
+eyJhbGc...  .  eyJzdWI...  .  SflKxwRJ...
+```
+
+**For ML APIs**: Token-based is preferred (scalable, works across services).
+
+---
+
+# JWT (JSON Web Token) Deep Dive
+
+**JWT contains three parts** (Base64-encoded):
+
+**1. Header**:
+```json
+{"alg": "HS256", "typ": "JWT"}
+```
+
+**2. Payload** (claims):
+```json
+{
+  "sub": "user123",
+  "name": "John Doe",
+  "exp": 1609459200  // Expiration timestamp
+}
+```
+
+**3. Signature**:
+```
+HMACSHA256(
+  base64(header) + "." + base64(payload),
+  secret_key
+)
+```
+
+**Security**: Server verifies signature to ensure token hasn't been tampered with.
+
+**Advantage**: Stateless (no database lookup on every request).
+
+---
+
+# Webhooks: Push vs Pull
+
+**Pull model** (polling - what we've learned):
+```python
+while True:
+    data = requests.get('/api/new-items')
+    if data:
+        process(data)
+    time.sleep(60)  # Check every minute
+```
+**Problem**: Wastes resources checking when nothing changed.
+
+**Push model** (webhooks):
+```python
+# Your server exposes an endpoint
+@app.post('/webhook')
+def handle_webhook(data):
+    process(data)  # Called when event occurs
+```
+
+**How it works**:
+1. You register webhook URL with service
+2. Service POSTs to your URL when events occur
+3. Your server processes immediately
+
+**Example**: GitHub webhooks notify you of new commits.
+
+---
+
+# Connection Pooling Theory
+
+**Problem**: Creating new TCP connections is expensive.
+- DNS lookup
+- TCP handshake (3-way)
+- TLS handshake (for HTTPS)
+
+**Solution: Connection pooling**
+- Reuse existing connections for multiple requests
+- `requests.Session()` does this automatically
+
+**Performance impact**:
+```python
+# Without pooling (slow)
+for url in urls:
+    requests.get(url)  # New connection each time
+
+# With pooling (fast)
+session = requests.Session()
+for url in urls:
+    session.get(url)  # Reuse connection
+```
+
+**Speedup**: 2-5x faster for multiple requests to same domain.
+
+---
+
+# HTTP Keep-Alive
+
+**Keep-Alive** keeps TCP connection open for multiple requests.
+
+**Without Keep-Alive**:
+```
+Request 1: Connect → Request → Response → Close
+Request 2: Connect → Request → Response → Close
+```
+
+**With Keep-Alive**:
+```
+Connect → Request 1 → Response 1 → Request 2 → Response 2 → Close
+```
+
+**Headers**:
+```http
+Connection: keep-alive
+Keep-Alive: timeout=5, max=1000
+```
+
+**Benefits**:
+- Faster subsequent requests
+- Reduced server load
+- Lower latency
+
+**Enabled by default** in HTTP/1.1 and `requests.Session()`.
+
+---
+
+# Character Encoding: UTF-8 vs ASCII
+
+**ASCII** (7-bit): Only English characters (128 chars)
+```python
+"Hello" → [72, 101, 108, 108, 111]
+```
+
+**UTF-8** (variable-length): All Unicode characters
+```python
+"Hello 世界" → [72, 101, 108, 108, 111, 32, 228, 184, 150, 231, 149, 140]
+```
+
+**Common issue**:
+```python
+# Wrong encoding causes gibberish
+resp.text  # Assumes UTF-8
+→ "Caf\xe9"  # Should be "Café"
+
+# Fix: Specify encoding
+resp.encoding = 'utf-8'
+resp.text  # Now correct
+```
+
+**For ML**: Critical for text data (NLP, international datasets).
+
+---
+
+# HTTP Compression
+
+**Compression** reduces response size (faster transfer, lower bandwidth).
+
+**Common algorithms**:
+- **gzip**: Most common, good compression
+- **deflate**: Similar to gzip
+- **brotli (br)**: Better compression, slower
+
+**Request**:
+```http
+Accept-Encoding: gzip, deflate, br
+```
+
+**Response**:
+```http
+Content-Encoding: gzip
+Content-Length: 1234  # Compressed size
+```
+
+**Python handles automatically**:
+```python
+requests.get(url)  # Auto-decompresses
+```
+
+**Savings**: 70-90% for text data (JSON, HTML).
+
+---
+
+# Regular Expressions for Data Extraction
+
+**Regex** extracts patterns from text when structure is inconsistent.
+
+**Common patterns**:
+```python
+import re
+
+# Extract email
+email = re.findall(r'[\w\.-]+@[\w\.-]+', text)
+
+# Extract URLs
+urls = re.findall(r'https?://[^\s]+', text)
+
+# Extract numbers
+numbers = re.findall(r'\d+\.?\d*', text)
+
+# Extract dates (YYYY-MM-DD)
+dates = re.findall(r'\d{4}-\d{2}-\d{2}', text)
+```
+
+**Use case**: Cleaning scraped data with inconsistent formatting.
+
+**Warning**: Regex is fragile; prefer structured parsing (JSON, HTML tags) when possible.
+
+---
+
+# Web Crawling Strategies
+
+**Breadth-First Crawling**:
+```
+Start → Level 1 (all links) → Level 2 (all links) → ...
+```
+- **Use**: Discover all pages at same depth
+- **Example**: Site mapping, shallow scraping
+
+**Depth-First Crawling**:
+```
+Start → Follow first link → Follow its first link → ... → Backtrack
+```
+- **Use**: Deep exploration of specific paths
+- **Example**: Following article chains
+
+**Priority-based Crawling**:
+```python
+from queue import PriorityQueue
+
+queue = PriorityQueue()
+queue.put((priority, url))
+
+while not queue.empty():
+    priority, url = queue.get()
+    # Crawl important pages first
+```
+
+---
+
+# Politeness Policies for Crawling
+
+**Be a good citizen**:
+
+**1. Crawl delay**:
+```python
+import time
+for url in urls:
+    fetch(url)
+    time.sleep(1)  # 1 second between requests
+```
+
+**2. Respect robots.txt**:
+```python
+from urllib.robotparser import RobotFileParser
+
+rp = RobotFileParser()
+rp.set_url(f"{base_url}/robots.txt")
+rp.read()
+
+if rp.can_fetch("*", url):
+    fetch(url)
+```
+
+**3. Identify yourself**:
+```python
+headers = {'User-Agent': 'MyBot/1.0 (+http://mysite.com/bot)'}
+```
+
+**4. Limit concurrency**:
+```python
+# Max 5 concurrent requests
+from concurrent.futures import ThreadPoolExecutor
+with ThreadPoolExecutor(max_workers=5) as executor:
+    executor.map(fetch, urls)
+```
+
+---
+
+# Handling Redirects
+
+**HTTP redirects** (3xx status codes):
+- `301 Moved Permanently`: Resource moved permanently
+- `302 Found`: Temporary redirect
+- `307 Temporary Redirect`: Keep request method
+- `308 Permanent Redirect`: Keep request method
+
+**Python requests handles automatically**:
+```python
+resp = requests.get(url)
+print(resp.url)  # Final URL after redirects
+print(resp.history)  # List of redirect responses
+```
+
+**Disable auto-redirect**:
+```python
+resp = requests.get(url, allow_redirects=False)
+if resp.status_code in [301, 302]:
+    new_url = resp.headers['Location']
+```
+
+**Use case**: Detect URL shorteners, track redirect chains.
+
+---
+
+# Request Timeouts: Theory
+
+**Two types of timeout**:
+
+**1. Connection timeout**: How long to wait for server to accept connection
+```python
+requests.get(url, timeout=5)  # 5 seconds
+```
+
+**2. Read timeout**: How long to wait for server to send data
+```python
+requests.get(url, timeout=(3, 10))  # Connect: 3s, Read: 10s
+```
+
+**Best practice**:
+```python
+TIMEOUT = (3, 30)  # 3s connect, 30s read
+
+try:
+    resp = requests.get(url, timeout=TIMEOUT)
+except requests.Timeout:
+    # Handle timeout
+```
+
+**Why it matters**: Prevents hanging on slow/dead servers.
+
+---
+
+# Handling Large Responses
+
+**Problem**: Loading 1GB JSON into memory crashes your script.
+
+**Solution: Streaming**:
+```python
+resp = requests.get(url, stream=True)
+
+# Process in chunks
+with open('large_file.json', 'wb') as f:
+    for chunk in resp.iter_content(chunk_size=8192):
+        f.write(chunk)
+```
+
+**For JSON streaming**:
+```python
+import ijson  # Streaming JSON parser
+
+with requests.get(url, stream=True) as resp:
+    objects = ijson.items(resp.raw, 'item')
+    for obj in objects:
+        process(obj)  # Process one item at a time
+```
+
+**Memory usage**: Constant (regardless of file size).
+
+---
+
+# Proxy Usage for Data Collection
+
+**Proxies** route requests through intermediary servers.
+
+**Use cases**:
+1. **IP rotation**: Avoid rate limiting/blocking
+2. **Geo-location**: Access region-specific content
+3. **Anonymity**: Hide your identity
+
+**Implementation**:
+```python
+proxies = {
+    'http': 'http://proxy.example.com:8080',
+    'https': 'https://proxy.example.com:8080',
+}
+
+resp = requests.get(url, proxies=proxies)
+```
+
+**Commercial services**: ScraperAPI, Bright Data (rotating proxies).
+
+**Ethical note**: Use proxies responsibly, not to bypass security.
+
+---
+
+# Data Collection Architecture Patterns
+
+**Pattern 1: Batch Collection** (simple):
+```python
+# Run once, collect all data
+data = []
+for item in items:
+    data.append(fetch(item))
+save(data)
+```
+
+**Pattern 2: Incremental Collection** (efficient):
+```python
+# Only fetch new items since last run
+last_id = load_checkpoint()
+new_items = fetch_since(last_id)
+save_checkpoint(max_id)
+```
+
+**Pattern 3: Streaming Collection** (real-time):
+```python
+# Continuous collection
+while True:
+    data = poll_api()
+    process_immediately(data)
+    sleep(interval)
+```
+
+**Choose based on**: Data update frequency, volume, and requirements.
+
+---
+
+# Distributed Data Collection
+
+**Problem**: Single machine is too slow for large-scale collection.
+
+**Solution: Distributed workers**:
+
+**Master-Worker pattern**:
+```python
+# Master: Distributes URLs to workers
+from celery import Celery
+
+app = Celery('tasks', broker='redis://localhost')
+
+@app.task
+def fetch_url(url):
+    return requests.get(url).json()
+
+# Queue tasks
+for url in urls:
+    fetch_url.delay(url)
+```
+
+**Workers**: Multiple machines process tasks in parallel.
+
+**Tools**: Celery, Apache Airflow, Prefect.
+
+**Speedup**: Linear with number of workers (10 workers = ~10x faster).
+
+---
+
+# Error Handling Patterns
+
+**Retry with exponential backoff**:
+```python
+import backoff
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_tries=5
+)
+def fetch_with_retry(url):
+    return requests.get(url)
+```
+
+**Circuit breaker pattern** (prevent cascading failures):
+```python
+class CircuitBreaker:
+    def __init__(self, failure_threshold=5):
+        self.failures = 0
+        self.threshold = failure_threshold
+        self.state = 'closed'  # closed, open, half-open
+
+    def call(self, func):
+        if self.state == 'open':
+            raise Exception("Circuit open")
+
+        try:
+            result = func()
+            self.failures = 0
+            return result
+        except:
+            self.failures += 1
+            if self.failures >= self.threshold:
+                self.state = 'open'
+            raise
+```
+
+---
+
+# Monitoring Data Collection Pipelines
+
+**Metrics to track**:
+1. **Success rate**: % of successful requests
+2. **Latency**: Average request time
+3. **Throughput**: Requests per second
+4. **Error rate**: % of failed requests
+5. **Data quality**: % of valid/complete records
+
+**Implementation**:
+```python
+import time
+from collections import Counter
+
+stats = Counter()
+
+def fetch_with_logging(url):
+    start = time.time()
+    try:
+        resp = requests.get(url)
+        stats['success'] += 1
+        stats['total_time'] += time.time() - start
+        return resp
+    except:
+        stats['errors'] += 1
+        raise
+
+# Print stats
+print(f"Success rate: {stats['success']/sum(stats.values()):.2%}")
+```
+
+---
+
+# Data Collection Best Practices Summary
+
+**Architecture**:
+1. ✅ Use connection pooling (`requests.Session()`)
+2. ✅ Implement retry logic with backoff
+3. ✅ Set appropriate timeouts
+4. ✅ Handle pagination correctly
+5. ✅ Stream large responses
+
+**Reliability**:
+6. ✅ Log all errors with context
+7. ✅ Save checkpoints for resumability
+8. ✅ Validate data immediately
+9. ✅ Monitor pipeline metrics
+10. ✅ Implement circuit breakers
+
+**Ethics & Legality**:
+11. ✅ Respect robots.txt
+12. ✅ Rate limit yourself
+13. ✅ Identify your bot
+14. ✅ Check data licenses
+15. ✅ Don't overload servers
+
+---
+
 # Summary
 
 1.  **APIs > Scraping**: Always look for an API first (stable, legal).
 2.  **Tools**: `curl` for quick checks, `requests` for scripts.
 3.  **Robustness**: Handle errors, retries, and rate limits.
 4.  **Ethics**: Respect `robots.txt` and server load.
+5.  **Advanced techniques**: Caching, compression, streaming for efficiency.
+6.  **Architecture**: Design for scale, reliability, and maintainability.
 
 **Next Up**: Now that we have data, it's probably messy. **Week 2: Data Validation**.

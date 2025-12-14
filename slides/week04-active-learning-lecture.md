@@ -96,17 +96,17 @@ Prof. Nipun Batra, IIT Gandhinagar
 
 ---
 
-# Query Strategies: Overview
+# Query Strategies: Comparison
 
-**Main strategies:**
+| Strategy | Approach | Pros | Cons | Best For |
+|----------|----------|------|------|----------|
+| **Uncertainty Sampling** | Pick most uncertain examples | Simple, fast, effective | May cluster in decision boundary | Most tasks (default choice) |
+| **Query-by-Committee** | Pick where models disagree | Robust, diverse | Requires training multiple models | When you can afford ensembles |
+| **Expected Model Change** | Pick examples that change model most | Adaptive | Computationally expensive | When labels are very expensive |
+| **Diversity Sampling** | Pick diverse examples | Covers feature space | Ignores model uncertainty | Imbalanced or clustered data |
+| **Hybrid** | Combine uncertainty + diversity | Best of both worlds | More complex | Production systems |
 
-1. **Uncertainty Sampling**: Pick examples model is most uncertain about
-2. **Query-by-Committee**: Pick examples where models disagree
-3. **Expected Model Change**: Pick examples that change model most
-4. **Expected Error Reduction**: Pick examples that reduce error most
-5. **Diversity Sampling**: Pick diverse examples to cover feature space
-
-**Most popular**: Uncertainty Sampling (simple and effective)
+**Recommendation**: Start with **Uncertainty Sampling**, add diversity if needed
 
 ---
 
@@ -1084,6 +1084,1044 @@ def class_balanced_uncertainty_sampling(model, X_unlabeled, n_samples=10):
 
 **Courses:**
 - CS 294: Active Learning (Berkeley)
+
+---
+
+# Bayesian Active Learning
+
+**Bayesian Perspective**: Uncertainty about model parameters $\theta$
+
+**Posterior after seeing data** $\mathcal{D}$:
+$$P(\theta | \mathcal{D}) = \frac{P(\mathcal{D} | \theta) P(\theta)}{P(\mathcal{D})}$$
+
+**Predictive distribution**:
+$$P(y|x, \mathcal{D}) = \int P(y|x, \theta) P(\theta | \mathcal{D}) d\theta$$
+
+**Uncertainty** comes from:
+1. **Aleatoric**: Inherent data noise
+2. **Epistemic**: Model uncertainty (reducible with more data)
+
+**Active learning targets epistemic uncertainty**
+
+---
+
+# BALD: Bayesian Active Learning by Disagreement
+
+**Goal**: Maximize information gain about model parameters
+
+**Information Gain**:
+$$I(y; \theta | x, \mathcal{D}) = H(y|x, \mathcal{D}) - \mathbb{E}_{P(\theta|\mathcal{D})}[H(y|x, \theta)]$$
+
+**Components**:
+- $H(y|x, \mathcal{D})$: Entropy of predictive distribution (uncertainty)
+- $\mathbb{E}[H(y|x, \theta)]$: Expected conditional entropy (noise)
+
+**Difference** = epistemic uncertainty (what active learning should target)
+
+**Implementation** (with MC Dropout):
+```python
+def bald_acquisition(model, x, n_samples=30):
+    """BALD acquisition function using MC Dropout."""
+    # Enable dropout at inference
+    model.train()
+
+    # Multiple forward passes
+    predictions = []
+    for _ in range(n_samples):
+        pred = model(x)
+        predictions.append(pred)
+
+    predictions = np.array(predictions)
+
+    # Predictive distribution
+    pred_mean = predictions.mean(axis=0)
+
+    # H(y|x,D) - predictive entropy
+    h_pred = -np.sum(pred_mean * np.log(pred_mean + 1e-10), axis=1)
+
+    # E[H(y|x,theta)] - expected conditional entropy
+    h_cond = -np.mean(np.sum(predictions * np.log(predictions + 1e-10), axis=2), axis=0)
+
+    # Information gain
+    bald_score = h_pred - h_cond
+
+    return bald_score
+```
+
+---
+
+# BatchBALD: BALD for Batches
+
+**Problem**: BALD is for single queries, but we want batches
+
+**Naive approach**: Select top-k BALD scores
+**Issue**: May select redundant examples
+
+**BatchBALD**: Maximize joint information gain
+
+**Joint Mutual Information**:
+$$I(\{y_1, ..., y_b\}; \theta | \{x_1, ..., x_b\}, \mathcal{D})$$
+
+**Greedy approximation**:
+1. Select $x_1$ with highest BALD score
+2. Select $x_2$ with highest conditional information gain given $x_1$
+3. Repeat for batch size $b$
+
+**Implementation** (simplified):
+```python
+def batch_bald(model, X_unlabeled, batch_size=10, n_samples=30):
+    """Greedy BatchBALD acquisition."""
+    selected = []
+
+    for _ in range(batch_size):
+        if not selected:
+            # First sample: use BALD
+            scores = bald_acquisition(model, X_unlabeled, n_samples)
+        else:
+            # Conditional information gain
+            scores = conditional_information_gain(
+                model, X_unlabeled, X_unlabeled[selected], n_samples
+            )
+
+        # Select highest score
+        idx = np.argmax(scores)
+        selected.append(idx)
+
+        # Remove from pool
+        X_unlabeled = np.delete(X_unlabeled, idx, axis=0)
+
+    return np.array(selected)
+```
+
+---
+
+# Expected Error Reduction: Detailed Theory
+
+**Goal**: Select examples that minimize expected future error
+
+**Expected Error** after labeling $(x, y)$:
+$$\mathbb{E}_{P(y|x)}[L(\mathcal{D} \cup \{(x,y)\})]$$
+
+where $L(\mathcal{D})$ is loss on validation set given training set $\mathcal{D}$
+
+**Algorithm**:
+1. For each unlabeled $x_i$
+2. For each possible label $y$:
+   - Compute $P(y|x_i)$
+   - Simulate adding $(x_i, y)$ to training set
+   - Retrain model → compute validation loss
+3. Compute expected loss weighted by $P(y|x_i)$
+4. Select $x_i$ with minimum expected loss
+
+**Formula**:
+$$x^* = \arg\min_{x} \sum_{y} P(y|x) \cdot L(\mathcal{D} \cup \{(x, y)\})$$
+
+---
+
+# Expected Error Reduction: Implementation
+
+```python
+def expected_error_reduction(model, X_unlabeled, X_val, y_val, n_samples=5):
+    """Approximate expected error reduction."""
+    expected_errors = []
+
+    for x in X_unlabeled:
+        # Get prediction probabilities
+        probs = model.predict_proba([x])[0]
+
+        # For each possible label
+        expected_error = 0
+        for y, prob in enumerate(probs):
+            # Simulate adding (x, y) to training set
+            # (In practice, use gradient approximation instead of retraining)
+
+            # Approximate: train model with new example
+            model_copy = clone(model)
+            X_train_new = np.vstack([X_labeled, [x]])
+            y_train_new = np.hstack([y_labeled, [y]])
+            model_copy.fit(X_train_new, y_train_new)
+
+            # Compute validation error
+            val_error = 1 - model_copy.score(X_val, y_val)
+
+            # Weight by probability
+            expected_error += prob * val_error
+
+        expected_errors.append(expected_error)
+
+    # Select sample with minimum expected error
+    return np.argmin(expected_errors)
+```
+
+**Note**: Very expensive (requires retraining or gradient computation)
+
+---
+
+# Version Space and Active Learning
+
+**Version Space**: Set of all hypotheses consistent with training data
+
+$$VS_{\mathcal{D}} = \{h \in \mathcal{H} : h(x) = y \text{ for all } (x, y) \in \mathcal{D}\}$$
+
+**Query-by-Committee** samples from version space:
+- Each committee member represents a hypothesis in $VS$
+- Disagreement → large version space → more uncertainty
+
+**Optimal query** (theoretically):
+- Cuts version space in half
+- Maximizes expected reduction in version space size
+
+**Generalized Binary Search**:
+$$x^* = \arg\max_{x} \min_{y} |VS_{\mathcal{D} \cup \{(x,y)\}}|$$
+
+**In practice**: Use ensemble to approximate version space
+
+---
+
+# PAC Learning Bounds for Active Learning
+
+**PAC (Probably Approximately Correct)**: With probability $1-\delta$, achieve error $\leq \epsilon$
+
+**Passive learning** label complexity:
+$$m_{passive} = O\left(\frac{d \log(1/\epsilon)}{\epsilon}\right)$$
+
+where $d$ = VC dimension
+
+**Active learning** label complexity (linear separators):
+$$m_{active} = O\left(d \log^2\left(\frac{1}{\epsilon}\right)\right)$$
+
+**Improvement**: Exponential in $\epsilon$ for some hypothesis classes!
+
+**Disagreement coefficient** $\theta$:
+$$m_{active} = O\left(\theta d \log\left(\frac{1}{\epsilon}\right)\right)$$
+
+Lower $\theta$ → better active learning performance
+
+---
+
+# Stream-Based Active Learning
+
+**Pool-based**: Have entire unlabeled pool, select best examples
+**Stream-based**: Examples arrive sequentially, decide to label or skip
+
+**Decision function**:
+$$\text{label}(x) = \begin{cases}
+\text{true} & \text{if } U(x) > \tau \\
+\text{false} & \text{otherwise}
+\end{cases}$$
+
+where $\tau$ is threshold
+
+**Adaptive threshold**:
+```python
+class StreamActiveLearner:
+    def __init__(self, model, budget):
+        self.model = model
+        self.budget = budget
+        self.labeled_count = 0
+        self.threshold = 0.5  # Initial threshold
+
+    def process_stream(self, x):
+        """Decide whether to label incoming example."""
+        # Predict uncertainty
+        probs = self.model.predict_proba([x])[0]
+        uncertainty = 1 - np.max(probs)
+
+        # Adaptive threshold
+        remaining_budget = self.budget - self.labeled_count
+        if remaining_budget > 0:
+            # Adjust threshold based on budget
+            self.threshold = np.percentile(
+                self.seen_uncertainties, 100 * (1 - remaining_budget / self.budget)
+            )
+
+            # Label if uncertain enough
+            if uncertainty > self.threshold:
+                label = get_label(x)  # Oracle
+                self.model.partial_fit([x], [label])
+                self.labeled_count += 1
+                return True
+
+        return False
+```
+
+---
+
+# Membership Query Synthesis
+
+**Standard active learning**: Select from unlabeled pool
+**Membership query**: Generate/synthesize queries
+
+**Example** (linear classifier):
+- Decision boundary is $w^T x = 0$
+- Generate query on decision boundary
+- Most informative for refining boundary
+
+**Synthetic query generation**:
+```python
+def generate_boundary_query(model, X_pool):
+    """Generate query on decision boundary."""
+    # Find two examples from different classes
+    probs = model.predict_proba(X_pool)
+    preds = np.argmax(probs, axis=1)
+
+    # Find examples close to decision boundary
+    uncertainties = 1 - np.max(probs, axis=1)
+    uncertain_idx = np.argmax(uncertainties)
+    x1 = X_pool[uncertain_idx]
+
+    # Find nearest example from different predicted class
+    other_class = 1 - preds[uncertain_idx]
+    other_class_idx = np.where(preds == other_class)[0]
+    distances = np.linalg.norm(X_pool[other_class_idx] - x1, axis=1)
+    x2 = X_pool[other_class_idx[np.argmin(distances)]]
+
+    # Generate query at midpoint
+    query = (x1 + x2) / 2
+
+    return query
+```
+
+**Challenges**: Synthetic examples may not be realistic or labelable
+
+---
+
+# Multi-Label Active Learning
+
+**Multi-label**: Each example can have multiple labels
+
+**Example**: Image tagging - "beach", "sunset", "people"
+
+**Uncertainty measures**:
+
+**1. Min-max uncertainty**:
+$$U(x) = \max_l P(l|x) - \min_l P(l|x)$$
+
+**2. Avg uncertainty across labels**:
+$$U(x) = \frac{1}{L} \sum_{l=1}^{L} H(P(y_l|x))$$
+
+**3. Label cardinality uncertainty**:
+$$U(x) = H\left(\sum_{l=1}^{L} P(y_l = 1|x)\right)$$
+
+**Implementation**:
+```python
+def multi_label_uncertainty(model, X_unlabeled):
+    """Uncertainty sampling for multi-label classification."""
+    # Get probabilities for all labels
+    probs = model.predict_proba(X_unlabeled)  # Shape: (n_samples, n_labels)
+
+    # Average entropy across labels
+    entropies = -np.sum(probs * np.log(probs + 1e-10) +
+                        (1-probs) * np.log(1-probs + 1e-10), axis=1) / probs.shape[1]
+
+    # Select highest entropy
+    return np.argsort(entropies)[-10:]
+```
+
+---
+
+# Active Feature Acquisition
+
+**Scenario**: Features are costly to obtain (medical tests, sensors)
+
+**Goal**: Decide which features AND which examples to acquire
+
+**Decision**:
+1. **Example selection**: Which instance to label?
+2. **Feature selection**: Which features to measure for that instance?
+
+**Value of information**:
+$$VOI(f_i, x) = I(y; f_i | x, \mathcal{D})$$
+
+**Joint optimization**:
+```python
+def active_feature_acquisition(model, X_partial, feature_costs):
+    """Select which feature to acquire for which sample."""
+    best_value = -np.inf
+    best_sample = None
+    best_feature = None
+
+    for i, x in enumerate(X_partial):
+        for j, feature_cost in enumerate(feature_costs):
+            # Estimate value of acquiring feature j for sample i
+            if np.isnan(x[j]):  # Feature not yet acquired
+                # Predict with missing feature
+                uncertainty_before = predict_uncertainty(model, x)
+
+                # Estimate uncertainty after acquiring feature
+                # (using imputation or Monte Carlo)
+                uncertainty_after = estimate_uncertainty_with_feature(model, x, j)
+
+                # Value of information
+                voi = uncertainty_before - uncertainty_after
+
+                # Normalize by cost
+                value = voi / feature_cost
+
+                if value > best_value:
+                    best_value = value
+                    best_sample = i
+                    best_feature = j
+
+    return best_sample, best_feature
+```
+
+---
+
+# Active Learning with Label Noise
+
+**Problem**: Oracle labels can be noisy (human errors)
+
+**Strategies**:
+
+**1. Repeated labeling**:
+- Label uncertain examples multiple times
+- Use majority vote or probabilistic aggregation
+
+**2. Confidence-weighted sampling**:
+```python
+def noise_robust_sampling(model, X_unlabeled, n_samples=10):
+    """Uncertainty sampling robust to label noise."""
+    probs = model.predict_proba(X_unlabeled)
+    uncertainties = 1 - np.max(probs, axis=1)
+
+    # Downweight very hard examples (likely noise)
+    # Weight by difficulty
+    difficulty = 1 - np.abs(probs[:, 0] - 0.5)  # How far from 0.5
+    scores = uncertainties * (1 - difficulty)  # Downweight hardest
+
+    return np.argsort(scores)[-n_samples:]
+```
+
+**3. Self-consistent active learning**:
+- Track annotator consistency
+- Weight labels by annotator reliability
+
+---
+
+# Adversarial Active Learning
+
+**Goal**: Robustness to adversarial examples
+
+**Adversarial uncertainty**:
+```python
+def adversarial_active_learning(model, X_unlabeled, epsilon=0.1):
+    """Select examples near adversarial decision boundary."""
+    uncertainties = []
+
+    for x in X_unlabeled:
+        # Compute gradient
+        x_tensor = torch.tensor(x, requires_grad=True)
+        output = model(x_tensor)
+        loss = -torch.max(output)  # Negative to find worst case
+        loss.backward()
+
+        # Generate adversarial perturbation
+        perturbation = epsilon * torch.sign(x_tensor.grad)
+        x_adv = x_tensor + perturbation
+
+        # Measure uncertainty on adversarial example
+        adv_probs = model(x_adv).detach().numpy()
+        adv_uncertainty = 1 - np.max(adv_probs)
+
+        uncertainties.append(adv_uncertainty)
+
+    # Select most uncertain adversarial examples
+    return np.argsort(uncertainties)[-10:]
+```
+
+**Benefit**: Improves robustness to adversarial attacks
+
+---
+
+# Budget-Constrained Active Learning
+
+**Constraint**: Total labeling budget $B$
+
+**Variable costs**: Different samples have different labeling costs
+
+**Optimization**:
+$$\max_{\mathcal{S}} \text{Information}(\mathcal{S}) \quad \text{s.t.} \quad \sum_{x \in \mathcal{S}} c(x) \leq B$$
+
+**Cost-aware acquisition**:
+```python
+def cost_aware_active_learning(model, X_unlabeled, costs, budget):
+    """Active learning with variable annotation costs."""
+    selected = []
+    remaining_budget = budget
+
+    while remaining_budget > 0:
+        # Get uncertainties
+        probs = model.predict_proba(X_unlabeled)
+        uncertainties = 1 - np.max(probs, axis=1)
+
+        # Compute value = uncertainty / cost
+        values = uncertainties / costs
+
+        # Select highest value that fits budget
+        affordable = costs <= remaining_budget
+        if not affordable.any():
+            break
+
+        values[~affordable] = -np.inf
+        idx = np.argmax(values)
+
+        # Add to selected set
+        selected.append(idx)
+        remaining_budget -= costs[idx]
+
+        # Remove from pool
+        X_unlabeled = np.delete(X_unlabeled, idx, axis=0)
+        costs = np.delete(costs, idx)
+
+    return np.array(selected)
+```
+
+---
+
+# Regret Bounds for Active Learning
+
+**Regret**: Difference between optimal and actual performance
+
+**Cumulative regret** after $T$ queries:
+$$R(T) = \sum_{t=1}^{T} L(h_t) - L(h^*)$$
+
+where:
+- $L(h_t)$: Loss of model at iteration $t$
+- $L(h^*)$: Loss of optimal model
+
+**Goal**: Minimize regret
+
+**Upper bound** (for some algorithms):
+$$R(T) = O(\sqrt{T \log T})$$
+
+**Sublinear regret** → algorithm is learning
+
+**In practice**: Track cumulative regret
+```python
+def compute_regret(accuracies, optimal_accuracy):
+    """Compute cumulative regret."""
+    losses = 1 - np.array(accuracies)
+    optimal_loss = 1 - optimal_accuracy
+
+    regret = losses - optimal_loss
+    cumulative_regret = np.cumsum(regret)
+
+    return cumulative_regret
+```
+
+---
+
+# Exploration-Exploitation Tradeoff
+
+**Exploration**: Query uncertain examples (learn model)
+**Exploitation**: Query high-value examples (improve specific regions)
+
+**Thompson Sampling** for active learning:
+```python
+class ThompsonSamplingAL:
+    def __init__(self, model, n_models=10):
+        self.models = [clone(model) for _ in range(n_models)]
+
+    def query(self, X_unlabeled, X_labeled, y_labeled):
+        """Thompson sampling for active learning."""
+        # Train multiple models on bootstrap samples
+        for model in self.models:
+            # Bootstrap sample
+            idx = np.random.choice(len(X_labeled), size=len(X_labeled), replace=True)
+            model.fit(X_labeled[idx], y_labeled[idx])
+
+        # Sample one model
+        sampled_model = np.random.choice(self.models)
+
+        # Query using uncertainty from sampled model
+        probs = sampled_model.predict_proba(X_unlabeled)
+        uncertainties = 1 - np.max(probs, axis=1)
+
+        return np.argmax(uncertainties)
+```
+
+**Benefit**: Balances exploration and exploitation naturally
+
+---
+
+# Contextual Bandits and Active Learning
+
+**Connection**: Active learning as contextual bandit problem
+
+**Contextual bandit**:
+- Context: Unlabeled example $x$
+- Actions: Label or skip
+- Reward: Information gain
+
+**Upper Confidence Bound (UCB)**:
+$$\text{Score}(x) = \bar{U}(x) + \sqrt{\frac{2 \log t}{n(x)}}$$
+
+where:
+- $\bar{U}(x)$: Average uncertainty for examples similar to $x$
+- $n(x)$: Number of times similar examples queried
+- $t$: Current iteration
+
+**Implementation**:
+```python
+class UCBActiveLearner:
+    def __init__(self, model, n_clusters=10):
+        self.model = model
+        self.n_clusters = n_clusters
+        self.cluster_counts = np.zeros(n_clusters)
+        self.cluster_rewards = np.zeros(n_clusters)
+        self.iteration = 0
+
+    def query(self, X_unlabeled):
+        """UCB-based active learning."""
+        # Cluster unlabeled data
+        kmeans = KMeans(n_clusters=self.n_clusters)
+        clusters = kmeans.fit_predict(X_unlabeled)
+
+        # Compute UCB score for each cluster
+        ucb_scores = np.zeros(self.n_clusters)
+        for c in range(self.n_clusters):
+            if self.cluster_counts[c] == 0:
+                ucb_scores[c] = np.inf  # Prioritize unexplored
+            else:
+                avg_reward = self.cluster_rewards[c] / self.cluster_counts[c]
+                exploration = np.sqrt(2 * np.log(self.iteration + 1) / self.cluster_counts[c])
+                ucb_scores[c] = avg_reward + exploration
+
+        # Select from cluster with highest UCB
+        selected_cluster = np.argmax(ucb_scores)
+        cluster_mask = clusters == selected_cluster
+        cluster_idx = np.where(cluster_mask)[0]
+
+        # From this cluster, select most uncertain
+        probs = self.model.predict_proba(X_unlabeled[cluster_idx])
+        uncertainties = 1 - np.max(probs, axis=1)
+        idx = cluster_idx[np.argmax(uncertainties)]
+
+        # Update counts and rewards
+        self.cluster_counts[selected_cluster] += 1
+        self.cluster_rewards[selected_cluster] += uncertainties.max()
+        self.iteration += 1
+
+        return idx
+```
+
+---
+
+# Active Learning for Structured Prediction
+
+**Structured output**: Sequences, trees, graphs (NER, parsing, segmentation)
+
+**Challenge**: Output space is exponential
+
+**Uncertainty measures**:
+
+**1. Sequence entropy**:
+$$H(y|x) = -\sum_{y \in \mathcal{Y}} P(y|x) \log P(y|x)$$
+
+**2. Token-level uncertainty** (for sequences):
+$$U(x) = \frac{1}{|x|} \sum_{t=1}^{|x|} H(y_t | x)$$
+
+**3. N-best list diversity**:
+- Generate top-N predictions
+- Measure diversity among top predictions
+
+```python
+def structured_active_learning(model, X_unlabeled, n_samples=10):
+    """Active learning for sequence labeling."""
+    uncertainties = []
+
+    for x in X_unlabeled:
+        # Get top-k predictions
+        top_k_preds = model.predict_top_k(x, k=5)
+
+        # Measure diversity (entropy over n-best list)
+        pred_probs = model.predict_proba(x)
+
+        # Average token-level entropy
+        token_entropies = -np.sum(pred_probs * np.log(pred_probs + 1e-10), axis=1)
+        avg_entropy = token_entropies.mean()
+
+        uncertainties.append(avg_entropy)
+
+    return np.argsort(uncertainties)[-n_samples:]
+```
+
+---
+
+# Active Learning for Ranking
+
+**Goal**: Learn ranking function with minimal labeled pairs
+
+**Pairwise comparison**: "Is A better than B?"
+
+**Uncertainty for pairs**:
+$$U(x_i, x_j) = |P(x_i \succ x_j) - 0.5|$$
+
+Pairs close to 0.5 are most uncertain
+
+**Query selection**:
+```python
+def active_learning_for_ranking(model, items):
+    """Active learning for learning-to-rank."""
+    uncertainties = []
+
+    # Consider all pairs
+    for i, x_i in enumerate(items):
+        for j, x_j in enumerate(items):
+            if i < j:
+                # Predict probability that x_i ranked higher than x_j
+                prob = model.predict_pairwise(x_i, x_j)
+
+                # Uncertainty = closeness to 0.5
+                uncertainty = 1 - 2 * abs(prob - 0.5)
+                uncertainties.append((i, j, uncertainty))
+
+    # Select most uncertain pair
+    uncertainties.sort(key=lambda x: x[2], reverse=True)
+    i, j, _ = uncertainties[0]
+
+    return i, j
+```
+
+**Application**: Search ranking, recommendation systems
+
+---
+
+# Active Learning for Clustering
+
+**Unsupervised active learning**: Query pairwise constraints
+
+**Types of queries**:
+1. **Must-link**: Do $x_i$ and $x_j$ belong to same cluster?
+2. **Cannot-link**: Do $x_i$ and $x_j$ belong to different clusters?
+
+**Constrained K-means**:
+```python
+def active_learning_clustering(X, n_clusters, budget):
+    """Active learning for clustering."""
+    must_link = []
+    cannot_link = []
+
+    for _ in range(budget):
+        # Initial clustering
+        kmeans = KMeans(n_clusters=n_clusters)
+        clusters = kmeans.fit_predict(X)
+
+        # Find most uncertain pair
+        # (close in feature space but in different clusters)
+        uncertainties = []
+        for i in range(len(X)):
+            for j in range(i+1, len(X)):
+                dist = np.linalg.norm(X[i] - X[j])
+                same_cluster = clusters[i] == clusters[j]
+
+                # Uncertainty = close but different cluster OR far but same cluster
+                if same_cluster:
+                    uncertainty = 1 / (dist + 1)  # Close and same = low uncertainty
+                else:
+                    uncertainty = 1 / (dist + 1)  # Close and different = high uncertainty
+
+                uncertainties.append((i, j, uncertainty))
+
+        # Query most uncertain pair
+        uncertainties.sort(key=lambda x: x[2], reverse=True)
+        i, j, _ = uncertainties[0]
+
+        # Get oracle label
+        same = oracle_same_cluster(X[i], X[j])
+
+        if same:
+            must_link.append((i, j))
+        else:
+            cannot_link.append((i, j))
+
+        # Re-cluster with constraints
+        # (Use constrained K-means implementation)
+
+    return clusters, must_link, cannot_link
+```
+
+---
+
+# Lifelong Active Learning
+
+**Scenario**: Multiple related tasks over time
+
+**Goal**: Transfer knowledge across tasks to reduce labeling
+
+**Approach**:
+1. Learn task $T_1$ with active learning
+2. For task $T_2$, use knowledge from $T_1$ to initialize
+3. Active learning on $T_2$ with transfer
+
+```python
+class LifelongActiveLearner:
+    def __init__(self, base_model):
+        self.tasks = []
+        self.models = []
+
+    def learn_task(self, X_pool, y_pool, budget):
+        """Learn new task with active learning."""
+        # Transfer from previous tasks
+        if self.models:
+            # Initialize with previous model
+            model = clone(self.models[-1])
+        else:
+            # First task
+            model = clone(self.base_model)
+
+        # Active learning loop
+        X_labeled = []
+        y_labeled = []
+
+        for _ in range(budget):
+            # Query with uncertainty sampling
+            if X_labeled:
+                model.fit(X_labeled, y_labeled)
+
+            probs = model.predict_proba(X_pool)
+            uncertainties = 1 - np.max(probs, axis=1)
+            idx = np.argmax(uncertainties)
+
+            # Add to labeled set
+            X_labeled.append(X_pool[idx])
+            y_labeled.append(y_pool[idx])
+
+            # Remove from pool
+            X_pool = np.delete(X_pool, idx, axis=0)
+            y_pool = np.delete(y_pool, idx)
+
+        # Store task
+        self.tasks.append((X_labeled, y_labeled))
+        self.models.append(model)
+
+        return model
+```
+
+**Benefit**: Faster learning on new related tasks
+
+---
+
+# Online Active Learning
+
+**Setting**: Examples arrive in stream, must decide immediately
+
+**No look-ahead**: Can't compare to future examples
+
+**Challenge**: Balance immediate labeling vs waiting for better example
+
+**Threshold-based online active learning**:
+```python
+class OnlineActiveLearner:
+    def __init__(self, model, budget, stream_size):
+        self.model = model
+        self.budget = budget
+        self.stream_size = stream_size
+        self.labeled_count = 0
+        self.seen_uncertainties = []
+
+    def process_example(self, x, y_true):
+        """Process one example from stream."""
+        # Predict uncertainty
+        if hasattr(self.model, 'predict_proba'):
+            probs = self.model.predict_proba([x])[0]
+            uncertainty = 1 - np.max(probs)
+        else:
+            # Random if model not trained yet
+            uncertainty = 0.5
+
+        self.seen_uncertainties.append(uncertainty)
+
+        # Adaptive threshold based on budget
+        remaining = self.budget - self.labeled_count
+        progress = len(self.seen_uncertainties) / self.stream_size
+
+        # Adjust threshold: stricter early, looser later if budget remains
+        if remaining > 0:
+            target_percentile = 100 * (1 - remaining / self.budget)
+            threshold = np.percentile(self.seen_uncertainties, target_percentile)
+
+            # Label if uncertain enough
+            if uncertainty > threshold:
+                self.model.partial_fit([x], [y_true])
+                self.labeled_count += 1
+                return True
+
+        return False
+```
+
+**Application**: Real-time systems, streaming data
+
+---
+
+# Distributed Active Learning
+
+**Scenario**: Multiple agents/annotators working in parallel
+
+**Challenges**:
+1. Coordination: Avoid querying same examples
+2. Communication: Share model updates
+3. Synchronization: Merge labels and retrain
+
+**Distributed uncertainty sampling**:
+```python
+class DistributedActiveLearner:
+    def __init__(self, model, n_agents):
+        self.global_model = model
+        self.n_agents = n_agents
+        self.agent_models = [clone(model) for _ in range(n_agents)]
+
+    def distributed_query(self, X_pool, n_samples_per_agent):
+        """Query examples for each agent."""
+        all_queries = []
+
+        for agent_id in range(self.n_agents):
+            # Each agent uses global model
+            probs = self.global_model.predict_proba(X_pool)
+            uncertainties = 1 - np.max(probs, axis=1)
+
+            # Select unique samples (avoid overlap with other agents)
+            # Use deterministic partitioning
+            agent_partition = agent_id * n_samples_per_agent
+            sorted_idx = np.argsort(uncertainties)[::-1]
+
+            # Each agent gets different partition of uncertain samples
+            query_idx = sorted_idx[agent_partition:agent_partition + n_samples_per_agent]
+            all_queries.append(query_idx)
+
+        return all_queries
+
+    def aggregate_labels(self, agent_data):
+        """Aggregate labels from all agents and update global model."""
+        X_all = []
+        y_all = []
+
+        for X, y in agent_data:
+            X_all.extend(X)
+            y_all.extend(y)
+
+        # Retrain global model
+        self.global_model.fit(X_all, y_all)
+```
+
+**Benefits**: Parallelization, faster labeling
+
+---
+
+# Privacy-Preserving Active Learning
+
+**Goal**: Active learning without exposing sensitive data
+
+**Federated active learning**:
+- Data stays on client devices
+- Only model updates shared
+
+**Differential privacy**:
+- Add noise to queries and labels
+- Preserve privacy while learning
+
+```python
+class PrivacyPreservingActiveLearner:
+    def __init__(self, model, epsilon=1.0):
+        self.model = model
+        self.epsilon = epsilon  # Privacy budget
+
+    def private_uncertainty(self, X_unlabeled):
+        """Compute uncertainty with differential privacy."""
+        # Get uncertainties
+        probs = self.model.predict_proba(X_unlabeled)
+        uncertainties = 1 - np.max(probs, axis=1)
+
+        # Add Laplace noise for privacy
+        sensitivity = 1.0  # Maximum change in uncertainty
+        noise = np.random.laplace(0, sensitivity / self.epsilon, size=len(uncertainties))
+        private_uncertainties = uncertainties + noise
+
+        return private_uncertainties
+
+    def private_query(self, X_unlabeled, n_samples=10):
+        """Select samples with differential privacy."""
+        private_uncertainties = self.private_uncertainty(X_unlabeled)
+
+        # Select top-k
+        indices = np.argsort(private_uncertainties)[-n_samples:]
+        return indices
+```
+
+**Trade-off**: Privacy vs utility
+
+---
+
+# Fairness in Active Learning
+
+**Problem**: Active learning may bias towards majority groups
+
+**Fair active learning**: Ensure diverse coverage across demographic groups
+
+```python
+def fair_active_learning(model, X_unlabeled, groups, n_samples=10):
+    """Active learning with fairness constraints."""
+    unique_groups = np.unique(groups)
+    samples_per_group = n_samples // len(unique_groups)
+
+    selected = []
+
+    for group in unique_groups:
+        # Get samples from this group
+        group_mask = groups == group
+        X_group = X_unlabeled[group_mask]
+        group_idx = np.where(group_mask)[0]
+
+        # Uncertainty sampling within group
+        probs = model.predict_proba(X_group)
+        uncertainties = 1 - np.max(probs, axis=1)
+
+        # Select top-k from this group
+        top_k_within_group = np.argsort(uncertainties)[-samples_per_group:]
+        selected.extend(group_idx[top_k_within_group])
+
+    return np.array(selected)
+```
+
+**Benefits**:
+- Balanced representation
+- Avoid bias amplification
+- Improve fairness metrics
+
+---
+
+# Advanced Active Learning Summary
+
+**Theoretical Foundations**:
+- Bayesian active learning (BALD, BatchBALD)
+- PAC learning bounds
+- Version space reduction
+- Regret bounds
+
+**Advanced Strategies**:
+- Expected error reduction
+- Membership query synthesis
+- Exploration-exploitation (Thompson sampling, UCB)
+
+**Specialized Settings**:
+- Multi-label active learning
+- Structured prediction
+- Ranking and clustering
+- Active feature acquisition
+
+**Practical Considerations**:
+- Label noise robustness
+- Budget constraints
+- Variable costs
+- Adversarial robustness
+
+**Emerging Directions**:
+- Lifelong active learning
+- Online active learning
+- Distributed active learning
+- Privacy-preserving active learning
+- Fairness in active learning
 
 ---
 
