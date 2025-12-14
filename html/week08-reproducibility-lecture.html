@@ -333,35 +333,51 @@ docker run --gpus all my-ml-project:v1
 </code></pre>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="16" lang="en-IN">
-<h1 id="dockerfile-for-ml-projects">Dockerfile for ML Projects</h1>
+<h1 id="dockerfile-for-ml-projects-key-structure">Dockerfile for ML Projects: Key Structure</h1>
+<p><strong>Essential Dockerfile components</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-dockerfile"><span class="hljs-comment"># 1. Base image</span>
+<span class="hljs-keyword">FROM</span> pytorch/pytorch:<span class="hljs-number">2.0</span>.<span class="hljs-number">1</span>-cuda11.<span class="hljs-number">7</span>-cudnn8-runtime
+
+<span class="hljs-comment"># 2. Working directory</span>
+<span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span>
+
+<span class="hljs-comment"># 3. Install dependencies (cached layer)</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> requirements.txt .</span>
+<span class="hljs-keyword">RUN</span><span class="language-bash"> pip install --no-cache-dir -r requirements.txt</span>
+
+<span class="hljs-comment"># 4. Copy application code (changes frequently)</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> . .</span>
+
+<span class="hljs-comment"># 5. Run command</span>
+<span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;train.py&quot;</span>]</span>
+</code></pre>
+<p><strong>Key insight</strong>: Order matters for caching! Dependencies change less than code.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="17" lang="en-IN">
+<h1 id="dockerfile-for-ml-projects-complete-example">Dockerfile for ML Projects: Complete Example</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-dockerfile"><span class="hljs-keyword">FROM</span> pytorch/pytorch:<span class="hljs-number">2.0</span>.<span class="hljs-number">1</span>-cuda11.<span class="hljs-number">7</span>-cudnn8-runtime
 
 <span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span>
 
-<span class="hljs-comment"># Install system dependencies</span>
-<span class="hljs-keyword">RUN</span><span class="language-bash"> apt-get update &amp;&amp; apt-get install -y \
-    git \
-    wget \
+<span class="hljs-comment"># System dependencies</span>
+<span class="hljs-keyword">RUN</span><span class="language-bash"> apt-get update &amp;&amp; apt-get install -y git wget \
     &amp;&amp; <span class="hljs-built_in">rm</span> -rf /var/lib/apt/lists/*</span>
 
-<span class="hljs-comment"># Copy and install Python dependencies</span>
+<span class="hljs-comment"># Python dependencies</span>
 <span class="hljs-keyword">COPY</span><span class="language-bash"> requirements.txt .</span>
 <span class="hljs-keyword">RUN</span><span class="language-bash"> pip install --no-cache-dir -r requirements.txt</span>
 
-<span class="hljs-comment"># Copy project</span>
+<span class="hljs-comment"># Application code</span>
 <span class="hljs-keyword">COPY</span><span class="language-bash"> . .</span>
 
-<span class="hljs-comment"># Create directories</span>
+<span class="hljs-comment"># Setup</span>
 <span class="hljs-keyword">RUN</span><span class="language-bash"> <span class="hljs-built_in">mkdir</span> -p /app/data /app/models /app/outputs</span>
-
-<span class="hljs-comment"># Set Python path</span>
 <span class="hljs-keyword">ENV</span> PYTHONPATH=/app
 
-<span class="hljs-comment"># Default command</span>
 <span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;train.py&quot;</span>]</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="17" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="18" lang="en-IN">
 <h1 id="docker-compose">Docker Compose</h1>
 <p><strong>Manage multi-container applications</strong></p>
 <p>Create <code>docker-compose.yml</code>:</p>
@@ -391,7 +407,7 @@ docker run --gpus all my-ml-project:v1
       <span class="hljs-bullet">-</span> <span class="hljs-string">ml-training</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="18" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="19" lang="en-IN">
 <h1 id="using-docker-compose">Using Docker Compose</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash"><span class="hljs-comment"># Start all services</span>
 docker-compose up
@@ -412,35 +428,39 @@ docker-compose run ml-training python train.py
 docker-compose build
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="19" lang="en-IN">
-<h1 id="multi-stage-docker-builds">Multi-Stage Docker Builds</h1>
-<p><strong>Reduce image size</strong></p>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-dockerfile"><span class="hljs-comment"># Stage 1: Build</span>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" lang="en-IN">
+<h1 id="multi-stage-docker-builds-concept">Multi-Stage Docker Builds: Concept</h1>
+<p><strong>Problem</strong>: Build tools bloat the final image</p>
+<p><strong>Solution</strong>: Build in one stage, run in another</p>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Final image only contains runtime dependencies</li>
+<li>Typical savings: 500MB → 200MB (60% reduction)</li>
+<li>More secure (fewer tools = smaller attack surface)</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="21" lang="en-IN">
+<h1 id="multi-stage-docker-builds-implementation">Multi-Stage Docker Builds: Implementation</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-dockerfile"><span class="hljs-comment"># Stage 1: Build (includes build tools)</span>
 <span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.10</span> AS builder
-
 <span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span>
 <span class="hljs-keyword">COPY</span><span class="language-bash"> requirements.txt .</span>
-<span class="hljs-keyword">RUN</span><span class="language-bash"> pip install --user --no-cache-dir -r requirements.txt</span>
+<span class="hljs-keyword">RUN</span><span class="language-bash"> pip install --user -r requirements.txt</span>
 
-<span class="hljs-comment"># Stage 2: Runtime</span>
+<span class="hljs-comment"># Stage 2: Runtime (slim base, no build tools)</span>
 <span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.10</span>-slim
-
 <span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span>
 
-<span class="hljs-comment"># Copy installed packages from builder</span>
+<span class="hljs-comment"># Copy ONLY the installed packages, not the build tools</span>
 <span class="hljs-keyword">COPY</span><span class="language-bash"> --from=builder /root/.local /root/.local</span>
-
-<span class="hljs-comment"># Copy application</span>
 <span class="hljs-keyword">COPY</span><span class="language-bash"> . .</span>
 
-<span class="hljs-comment"># Update PATH</span>
 <span class="hljs-keyword">ENV</span> PATH=/root/.local/bin:$PATH
-
 <span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;app.py&quot;</span>]</span>
 </code></pre>
-<p><strong>Result</strong>: Smaller final image (no build tools)</p>
+<p><strong>Key</strong>: <code>COPY --from=builder</code> pulls artifacts from stage 1</p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="22" lang="en-IN">
 <h1 id="docker-best-practices">Docker Best Practices</h1>
 <p><strong>1. Use specific base images</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-dockerfile"><span class="hljs-comment"># Good</span>
@@ -464,7 +484,7 @@ docker-compose build
 <strong>4. Don't run as root</strong><br />
 <strong>5. Use multi-stage builds</strong></p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="21" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" lang="en-IN">
 <h1 id="dockerignore">.dockerignore</h1>
 <p><strong>Exclude files from Docker context</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code># .dockerignore
@@ -489,7 +509,7 @@ models/*.pth
 .env
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="22" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" lang="en-IN">
 <h1 id="version-control-for-ml">Version Control for ML</h1>
 <p><strong>Git + DVC (Data Version Control)</strong></p>
 <p><strong>Problem</strong>: Git doesn't handle large files well</p>
@@ -512,7 +532,7 @@ dvc push
 dvc pull
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="25" lang="en-IN">
 <h1 id="dvc-pipeline">DVC Pipeline</h1>
 <p><strong>Define reproducible ML pipelines</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># dvc.yaml</span>
@@ -540,7 +560,7 @@ dvc pull
           <span class="hljs-attr">cache:</span> <span class="hljs-literal">false</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="26" lang="en-IN">
 <h1 id="running-dvc-pipelines">Running DVC Pipelines</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash"><span class="hljs-comment"># Reproduce pipeline</span>
 dvc repro
@@ -561,7 +581,7 @@ dvc exp run
 dvc exp diff
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="25" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="27" lang="en-IN">
 <h1 id="mlflow-for-experiment-tracking">MLflow for Experiment Tracking</h1>
 <p><strong>Track experiments, models, and parameters</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> mlflow
@@ -590,7 +610,7 @@ mlflow.set_experiment(<span class="hljs-string">&quot;my-experiment&quot;</span>
     mlflow.log_artifact(<span class="hljs-string">&quot;plots/confusion_matrix.png&quot;</span>)
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="26" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="28" lang="en-IN">
 <h1 id="mlflow-ui">MLflow UI</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash"><span class="hljs-comment"># Start MLflow server</span>
 mlflow ui --host 0.0.0.0 --port 5000
@@ -606,7 +626,7 @@ mlflow ui --host 0.0.0.0 --port 5000
 <li>Deploy models</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="27" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="29" lang="en-IN">
 <h1 id="weights--biases-wandb">Weights &amp; Biases (wandb)</h1>
 <p><strong>Modern experiment tracking and collaboration</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> wandb
@@ -639,7 +659,7 @@ wandb.log({<span class="hljs-string">&quot;confusion_matrix&quot;</span>: wandb.
 wandb.finish()
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="28" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="30" lang="en-IN">
 <h1 id="configuration-management">Configuration Management</h1>
 <p><strong>Use config files instead of hardcoding</strong></p>
 <p><strong>1. YAML/JSON configs:</strong></p>
@@ -660,7 +680,7 @@ wandb.finish()
   <span class="hljs-attr">num_workers:</span> <span class="hljs-number">4</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="29" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="31" lang="en-IN">
 <h1 id="loading-configs">Loading Configs</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> yaml
 <span class="hljs-keyword">from</span> dataclasses <span class="hljs-keyword">import</span> dataclass
@@ -684,7 +704,7 @@ config = load_config(<span class="hljs-string">&#x27;config.yaml&#x27;</span>)
 <span class="hljs-built_in">print</span>(config.learning_rate)
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="30" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="32" lang="en-IN">
 <h1 id="hydra-for-configuration">Hydra for Configuration</h1>
 <p><strong>Powerful configuration management</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> hydra
@@ -706,7 +726,7 @@ config = load_config(<span class="hljs-string">&#x27;config.yaml&#x27;</span>)
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">python train.py training.learning_rate=0.01 training.epochs=50
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="31" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="33" lang="en-IN">
 <h1 id="environment-variables">Environment Variables</h1>
 <p><strong>Store secrets and config</strong></p>
 <p><strong>Create <code>.env</code> file:</strong></p>
@@ -727,7 +747,7 @@ debug = os.getenv(<span class="hljs-string">&quot;DEBUG&quot;</span>, <span clas
 </code></pre>
 <p><strong>Important:</strong> Add <code>.env</code> to <code>.gitignore</code>!</p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="32" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="34" lang="en-IN">
 <h1 id="logging-best-practices">Logging Best Practices</h1>
 <p><strong>Structured logging for debugging</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> logging
@@ -756,7 +776,7 @@ logger.error(<span class="hljs-string">&quot;Failed to load checkpoint&quot;</sp
     logger.exception(<span class="hljs-string">&quot;Error loading model&quot;</span>)
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="33" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="35" lang="en-IN">
 <h1 id="model-checkpointing">Model Checkpointing</h1>
 <p><strong>Save model state regularly</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> torch
@@ -786,43 +806,69 @@ logger.error(<span class="hljs-string">&quot;Failed to load checkpoint&quot;</sp
                    <span class="hljs-string">f&#x27;checkpoints/model_epoch_<span class="hljs-subst">{epoch}</span>.pth&#x27;</span>)
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="34" lang="en-IN">
-<h1 id="project-structure">Project Structure</h1>
-<p><strong>Standard ML project layout:</strong></p>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="36" lang="en-IN">
+<h1 id="project-structure-key-components">Project Structure: Key Components</h1>
+<p><strong>Organize your ML project for reproducibility:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data/</code></td>
+<td>Raw, processed, and external data</td>
+</tr>
+<tr>
+<td><code>models/</code></td>
+<td>Trained model checkpoints</td>
+</tr>
+<tr>
+<td><code>notebooks/</code></td>
+<td>Exploratory analysis</td>
+</tr>
+<tr>
+<td><code>src/</code></td>
+<td>Source code (data, models, utils)</td>
+</tr>
+<tr>
+<td><code>tests/</code></td>
+<td>Unit and integration tests</td>
+</tr>
+<tr>
+<td><code>configs/</code></td>
+<td>Configuration files</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key files</strong>: <code>requirements.txt</code>, <code>Dockerfile</code>, <code>README.md</code>, <code>.gitignore</code></p>
+<p><strong>Principle</strong>: Separate code, data, config, and outputs</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="37" lang="en-IN">
+<h1 id="project-structure-full-layout">Project Structure: Full Layout</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code>ml-project/
 ├── data/
-│   ├── raw/
-│   ├── processed/
-│   └── external/
+│   ├── raw/           # Original, immutable data
+│   ├── processed/     # Cleaned, transformed data
+│   └── external/      # Data from third parties
 ├── models/
-│   └── trained/
-├── notebooks/
-│   └── exploration.ipynb
-├── src/
-│   ├── __init__.py
-│   ├── data/
-│   │   ├── __init__.py
-│   │   └── dataset.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── model.py
-│   └── utils/
-│       └── __init__.py
-├── tests/
-│   └── test_model.py
-├── configs/
-│   └── config.yaml
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-├── .env.example
-├── .gitignore
-├── .dockerignore
-├── README.md
-└── setup.py
+│   └── trained/       # Model checkpoints
+├── notebooks/         # Jupyter notebooks
+├── src/               # Source code
+│   ├── data/          # Data loading, preprocessing
+│   ├── models/        # Model definitions
+│   └── utils/         # Helper functions
+├── tests/             # pytest tests
+├── configs/           # YAML/JSON configs
+├── requirements.txt   # Python dependencies
+├── Dockerfile         # Container definition
+├── README.md          # Documentation
+└── .gitignore         # Ignore data/models in git
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="35" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="38" lang="en-IN">
 <h1 id="reproducibility-checklist">Reproducibility Checklist</h1>
 <p><strong>Before sharing code:</strong></p>
 <ul>
@@ -840,7 +886,7 @@ logger.error(<span class="hljs-string">&quot;Failed to load checkpoint&quot;</sp
 <li>[ ] Version control with Git</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="36" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="39" lang="en-IN">
 <h1 id="readme-template">README Template</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-markdown"><span class="hljs-section"># Project Name</span>
 
@@ -890,7 +936,7 @@ docker run -v $(pwd)/data:/app/data myproject
 \`\`\`
 </span></code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="37" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="40" lang="en-IN">
 <h1 id="continuous-integration-for-ml">Continuous Integration for ML</h1>
 <p><strong>Automate testing and validation</strong></p>
 <p><strong><code>.github/workflows/train.yml</code>:</strong></p>
@@ -927,7 +973,7 @@ docker run -v $(pwd)/data:/app/data myproject
         <span class="hljs-attr">path:</span> <span class="hljs-string">metrics.json</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="38" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="41" lang="en-IN">
 <h1 id="model-cards">Model Cards</h1>
 <p><strong>Document model details</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-markdown"><span class="hljs-section"># Model Card: Sentiment Classifier</span>
@@ -958,7 +1004,7 @@ docker run -v $(pwd)/data:/app/data myproject
 <span class="hljs-bullet">-</span> May amplify existing biases in training data
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="39" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="42" lang="en-IN">
 <h1 id="what-weve-learned">What We've Learned</h1>
 <p><strong>Environment Management:</strong></p>
 <ul>
@@ -989,7 +1035,244 @@ docker run -v $(pwd)/data:/app/data myproject
 <li>Reproducibility checklist</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="40" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="43" lang="en-IN">
+<h1 id="deterministic-training-in-pytorch">Deterministic Training in PyTorch</h1>
+<p><strong>Problem</strong>: GPUs use non-deterministic algorithms by default.</p>
+<p><strong>Full Determinism</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> random
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">set_seed</span>(<span class="hljs-params">seed=<span class="hljs-number">42</span></span>):
+    <span class="hljs-string">&quot;&quot;&quot;Set all random seeds for reproducibility.&quot;&quot;&quot;</span>
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    <span class="hljs-comment"># Deterministic algorithms</span>
+    torch.backends.cudnn.deterministic = <span class="hljs-literal">True</span>
+    torch.backends.cudnn.benchmark = <span class="hljs-literal">False</span>
+
+    <span class="hljs-comment"># For CUDA &gt;= 10.2</span>
+    torch.use_deterministic_algorithms(<span class="hljs-literal">True</span>)
+
+set_seed(<span class="hljs-number">42</span>)
+</code></pre>
+<p><strong>Tradeoffs</strong>:</p>
+<ul>
+<li><strong>Deterministic = True</strong>: Slower but reproducible</li>
+<li><strong>Benchmark = True</strong>: Faster but non-deterministic</li>
+</ul>
+<p><strong>When to use</strong>: Research, debugging. Disable in production for speed.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="44" lang="en-IN">
+<h1 id="handling-non-deterministic-operations">Handling Non-Deterministic Operations</h1>
+<p><strong>Some operations are inherently non-deterministic on GPU:</strong></p>
+<p><strong>Atomic adds</strong> (scatter, index_add):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Solution: Use deterministic scatter</span>
+torch.use_deterministic_algorithms(<span class="hljs-literal">True</span>, warn_only=<span class="hljs-literal">True</span>)
+</code></pre>
+<p><strong>Data loading randomness</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">worker_init_fn</span>(<span class="hljs-params">worker_id</span>):
+    <span class="hljs-string">&quot;&quot;&quot;Set seed per worker.&quot;&quot;&quot;</span>
+    np.random.seed(<span class="hljs-number">42</span> + worker_id)
+    random.seed(<span class="hljs-number">42</span> + worker_id)
+
+dataloader = DataLoader(
+    dataset,
+    batch_size=<span class="hljs-number">32</span>,
+    shuffle=<span class="hljs-literal">True</span>,
+    worker_init_fn=worker_init_fn,
+    generator=torch.Generator().manual_seed(<span class="hljs-number">42</span>)
+)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="45" lang="en-IN">
+<h1 id="hash-based-reproducibility">Hash-Based Reproducibility</h1>
+<p><strong>Content-Addressed Storage</strong>: Use hash of data/code, not timestamps.</p>
+<p><strong>DVC uses content addressing</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash"><span class="hljs-comment"># Data is identified by MD5 hash</span>
+$ dvc add data/train.csv
+<span class="hljs-comment"># Creates: data/train.csv.dvc with hash</span>
+
+<span class="hljs-comment"># Track changes</span>
+$ git add data/train.csv.dvc
+$ git commit -m <span class="hljs-string">&quot;Update training data&quot;</span>
+
+<span class="hljs-comment"># Anyone can retrieve exact version</span>
+$ dvc pull
+</code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Detect silent data changes</li>
+<li>Ensure exact data version</li>
+<li>Cache deduplication</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="46" lang="en-IN">
+<h1 id="semantic-versioning-for-ml">Semantic Versioning for ML</h1>
+<p><strong>Code versioning</strong>: Git tags (v1.2.3)</p>
+<p><strong>Data versioning</strong>: DVC tags</p>
+<p><strong>Model versioning</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># model_registry.py</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">ModelVersion</span>:
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, major, minor, patch</span>):
+        <span class="hljs-variable language_">self</span>.version = <span class="hljs-string">f&quot;<span class="hljs-subst">{major}</span>.<span class="hljs-subst">{minor}</span>.<span class="hljs-subst">{patch}</span>&quot;</span>
+        <span class="hljs-variable language_">self</span>.code_commit = get_git_commit()
+        <span class="hljs-variable language_">self</span>.data_version = get_dvc_version()
+        <span class="hljs-variable language_">self</span>.config = load_config()
+        <span class="hljs-variable language_">self</span>.metrics = {}
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">save</span>(<span class="hljs-params">self, path</span>):
+        metadata = {
+            <span class="hljs-string">&#x27;version&#x27;</span>: <span class="hljs-variable language_">self</span>.version,
+            <span class="hljs-string">&#x27;code_commit&#x27;</span>: <span class="hljs-variable language_">self</span>.code_commit,
+            <span class="hljs-string">&#x27;data_version&#x27;</span>: <span class="hljs-variable language_">self</span>.data_version,
+            <span class="hljs-string">&#x27;config&#x27;</span>: <span class="hljs-variable language_">self</span>.config,
+            <span class="hljs-string">&#x27;metrics&#x27;</span>: <span class="hljs-variable language_">self</span>.metrics,
+            <span class="hljs-string">&#x27;timestamp&#x27;</span>: datetime.now().isoformat()
+        }
+        <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{path}</span>/metadata.json&quot;</span>, <span class="hljs-string">&#x27;w&#x27;</span>) <span class="hljs-keyword">as</span> f:
+            json.dump(metadata, f, indent=<span class="hljs-number">2</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="47" lang="en-IN">
+<h1 id="dependency-resolution-best-practices">Dependency Resolution Best Practices</h1>
+<p><strong>Problem</strong>: Dependency hell.</p>
+<p><strong>pip-tools</strong> for locked dependencies:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash"><span class="hljs-comment"># requirements.in (high-level)</span>
+numpy
+pandas
+scikit-learn
+
+<span class="hljs-comment"># Generate locked requirements.txt</span>
+pip-compile requirements.in
+
+<span class="hljs-comment"># Result: requirements.txt with all transitive deps pinned</span>
+numpy==1.24.3
+pandas==2.0.2
+  <span class="hljs-comment"># via -r requirements.in</span>
+scikit-learn==1.2.2
+  <span class="hljs-comment"># via -r requirements.in</span>
+scipy==1.10.1
+  <span class="hljs-comment"># via scikit-learn</span>
+</code></pre>
+<p><strong>Poetry</strong> (modern alternative):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-toml"><span class="hljs-section">[tool.poetry.dependencies]</span>
+<span class="hljs-attr">python</span> = <span class="hljs-string">&quot;^3.10&quot;</span>
+<span class="hljs-attr">numpy</span> = <span class="hljs-string">&quot;^1.24&quot;</span>
+<span class="hljs-attr">pandas</span> = <span class="hljs-string">&quot;^2.0&quot;</span>
+
+<span class="hljs-comment"># Poetry auto-resolves compatible versions</span>
+<span class="hljs-comment"># Creates poetry.lock for exact reproducibility</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="48" lang="en-IN">
+<h1 id="container-best-practices">Container Best Practices</h1>
+<p><strong>Multi-stage builds</strong> (smaller images):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-dockerfile"><span class="hljs-comment"># Build stage</span>
+<span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.10</span> AS builder
+<span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> requirements.txt .</span>
+<span class="hljs-keyword">RUN</span><span class="language-bash"> pip install --user -r requirements.txt</span>
+
+<span class="hljs-comment"># Runtime stage</span>
+<span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.10</span>-slim
+<span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> --from=builder /root/.local /root/.local</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> . .</span>
+<span class="hljs-keyword">ENV</span> PATH=/root/.local/bin:$PATH
+<span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;app.py&quot;</span>]</span>
+</code></pre>
+<p><strong>Benefits</strong>: Final image ~200MB vs ~1GB.</p>
+<p><strong>Security</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-dockerfile"><span class="hljs-comment"># Don&#x27;t run as root</span>
+<span class="hljs-keyword">RUN</span><span class="language-bash"> useradd -m myuser</span>
+<span class="hljs-keyword">USER</span> myuser
+
+<span class="hljs-comment"># Pin base image version</span>
+<span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.10</span>.<span class="hljs-number">12</span>-slim
+
+<span class="hljs-comment"># Scan for vulnerabilities</span>
+<span class="hljs-comment"># docker scan myimage:latest</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="49" lang="en-IN">
+<h1 id="testing-for-reproducibility">Testing for Reproducibility</h1>
+<p><strong>Automated reproducibility tests</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_reproducibility</span>():
+    <span class="hljs-string">&quot;&quot;&quot;Test that model training is deterministic.&quot;&quot;&quot;</span>
+    set_seed(<span class="hljs-number">42</span>)
+    model1 = train_model(data, epochs=<span class="hljs-number">5</span>)
+    loss1 = model1.evaluate(test_data)
+
+    set_seed(<span class="hljs-number">42</span>)
+    model2 = train_model(data, epochs=<span class="hljs-number">5</span>)
+    loss2 = model2.evaluate(test_data)
+
+    <span class="hljs-comment"># Should be EXACTLY equal</span>
+    <span class="hljs-keyword">assert</span> loss1 == loss2, <span class="hljs-string">f&quot;Non-deterministic: <span class="hljs-subst">{loss1}</span> != <span class="hljs-subst">{loss2}</span>&quot;</span>
+
+    <span class="hljs-comment"># Check model weights are identical</span>
+    <span class="hljs-keyword">for</span> p1, p2 <span class="hljs-keyword">in</span> <span class="hljs-built_in">zip</span>(model1.parameters(), model2.parameters()):
+        <span class="hljs-keyword">assert</span> torch.allclose(p1, p2), <span class="hljs-string">&quot;Weights differ!&quot;</span>
+</code></pre>
+<p><strong>Run in CI/CD</strong> to catch non-determinism early.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="50" lang="en-IN">
+<h1 id="continuous-reproducibility-monitoring">Continuous Reproducibility Monitoring</h1>
+<p><strong>Track reproducibility metrics over time</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">log_reproducibility_metadata</span>():
+    <span class="hljs-string">&quot;&quot;&quot;Log all factors affecting reproducibility.&quot;&quot;&quot;</span>
+    metadata = {
+        <span class="hljs-string">&#x27;git_commit&#x27;</span>: get_git_hash(),
+        <span class="hljs-string">&#x27;git_branch&#x27;</span>: get_git_branch(),
+        <span class="hljs-string">&#x27;data_hash&#x27;</span>: compute_data_hash(),
+        <span class="hljs-string">&#x27;python_version&#x27;</span>: sys.version,
+        <span class="hljs-string">&#x27;torch_version&#x27;</span>: torch.__version__,
+        <span class="hljs-string">&#x27;cuda_version&#x27;</span>: torch.version.cuda,
+        <span class="hljs-string">&#x27;cudnn_version&#x27;</span>: torch.backends.cudnn.version(),
+        <span class="hljs-string">&#x27;hostname&#x27;</span>: socket.gethostname(),
+        <span class="hljs-string">&#x27;timestamp&#x27;</span>: datetime.now().isoformat(),
+        <span class="hljs-string">&#x27;random_seed&#x27;</span>: <span class="hljs-number">42</span>,
+        <span class="hljs-string">&#x27;config&#x27;</span>: load_config()
+    }
+
+    <span class="hljs-comment"># Log to MLflow/W&amp;B</span>
+    mlflow.log_params(metadata)
+
+    <span class="hljs-keyword">return</span> metadata
+</code></pre>
+<p><strong>Alert on drift</strong>: Notify if results differ from baseline.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="51" lang="en-IN">
+<h1 id="reproducibility-checklist-1">Reproducibility Checklist</h1>
+<p><strong>Before running experiments</strong>:</p>
+<ul>
+<li>[ ] Set all random seeds</li>
+<li>[ ] Pin all package versions</li>
+<li>[ ] Document Python version</li>
+<li>[ ] Version control code (Git)</li>
+<li>[ ] Version control data (DVC)</li>
+<li>[ ] Document hardware (GPU model, CUDA version)</li>
+</ul>
+<p><strong>During training</strong>:</p>
+<ul>
+<li>[ ] Log hyperparameters</li>
+<li>[ ] Save checkpoints with metadata</li>
+<li>[ ] Track metrics</li>
+<li>[ ] Log system info</li>
+</ul>
+<p><strong>After training</strong>:</p>
+<ul>
+<li>[ ] Test reproducibility (re-run with same seed)</li>
+<li>[ ] Document results</li>
+<li>[ ] Archive model + metadata</li>
+<li>[ ] Create reproducibility report</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="52" lang="en-IN">
 <h1 id="resources">Resources</h1>
 <p><strong>Tools:</strong></p>
 <ul>
@@ -1006,7 +1289,7 @@ docker run -v $(pwd)/data:/app/data myproject
 <li>DVC Tutorial: <a href="https://dvc.org/doc/start">https://dvc.org/doc/start</a></li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="41" data-class="lead" lang="en-IN" class="lead" style="--class:lead;">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="53" data-class="lead" lang="en-IN" class="lead" style="--class:lead;">
 <h1 id="questions">Questions?</h1>
 <p>Next: Testing &amp; CI/CD for AI<br />
 Lab: Dockerize ML project, setup experiment tracking</p>

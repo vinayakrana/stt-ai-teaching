@@ -33,15 +33,137 @@ Prof. Nipun Batra, IIT Gandhinagar</p>
 <p><strong>Benefits</strong>: Speed, Reliability, Consistency.</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="3" lang="en-IN">
+<h1 id="the-devops-culture">The DevOps Culture</h1>
+<p><strong>Traditional</strong>: Development throws code over the wall to Operations<br />
+<strong>DevOps</strong>: Developers own deployment and monitoring</p>
+<p><strong>Key principles</strong>:</p>
+<ol>
+<li><strong>Automation</strong>: Manual work is error-prone</li>
+<li><strong>Version everything</strong>: Code, config, infrastructure</li>
+<li><strong>Continuous feedback</strong>: Fast iteration cycles</li>
+<li><strong>Collaboration</strong>: Break down silos</li>
+<li><strong>Monitoring</strong>: Know when things break</li>
+</ol>
+<p><strong>MLOps = DevOps + Data + Models</strong></p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="4" lang="en-IN">
+<h1 id="ci-vs-cd-vs-cd">CI vs CD vs CD</h1>
+<p><strong>Continuous Integration (CI)</strong>:</p>
+<ul>
+<li>Automatically merge code frequently (daily)</li>
+<li>Run automated tests on every commit</li>
+<li><strong>Goal</strong>: Catch bugs early</li>
+</ul>
+<p><strong>Continuous Delivery</strong>:</p>
+<ul>
+<li>Code is always deployable</li>
+<li>Manual approval needed for production</li>
+<li><strong>Goal</strong>: Reduce deployment risk</li>
+</ul>
+<p><strong>Continuous Deployment</strong>:</p>
+<ul>
+<li>Every change automatically goes to production</li>
+<li>Zero human intervention</li>
+<li><strong>Goal</strong>: Maximum speed</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="5" lang="en-IN">
+<h1 id="git-fundamentals-review">Git Fundamentals Review</h1>
+<p><strong>Three areas</strong>:</p>
+<ol>
+<li><strong>Working Directory</strong>: Your local files</li>
+<li><strong>Staging Area</strong>: Changes ready to commit</li>
+<li><strong>Repository</strong>: Committed history</li>
+</ol>
+<p><strong>Basic workflow</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">git add file.py        <span class="hljs-comment"># Working → Staging</span>
+git commit -m <span class="hljs-string">&quot;msg&quot;</span>    <span class="hljs-comment"># Staging → Repository</span>
+git push origin main   <span class="hljs-comment"># Repository → Remote</span>
+</code></pre>
+<p><strong>Why it matters for CI/CD</strong>: Git is the trigger for automation.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="6" lang="en-IN">
+<h1 id="branching-strategies">Branching Strategies</h1>
+<p><strong>Feature Branch Workflow</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">git checkout -b feature/add-auth
+<span class="hljs-comment"># Make changes</span>
+git commit -m <span class="hljs-string">&quot;Add authentication&quot;</span>
+git push origin feature/add-auth
+<span class="hljs-comment"># Create PR → Review → Merge</span>
+</code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Isolate features</li>
+<li>Easy code review</li>
+<li>Revert if needed</li>
+</ul>
+<p><strong>Branch protection</strong>: Require PR reviews, passing tests before merge.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" lang="en-IN">
+<h1 id="gitflow-vs-trunk-based">Gitflow vs Trunk-Based</h1>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Aspect</th>
+<th style="text-align:left">Gitflow</th>
+<th style="text-align:left">Trunk-Based</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Branches</strong></td>
+<td style="text-align:left">main, develop, feature/*</td>
+<td style="text-align:left">main only</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Release</strong></td>
+<td style="text-align:left">release/* branches</td>
+<td style="text-align:left">Tags on main</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Complexity</strong></td>
+<td style="text-align:left">High</td>
+<td style="text-align:left">Low</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Best for</strong></td>
+<td style="text-align:left">Scheduled releases</td>
+<td style="text-align:left">Continuous deployment</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Modern trend</strong>: Trunk-based with feature flags.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" lang="en-IN">
+<h1 id="pull-request-best-practices">Pull Request Best Practices</h1>
+<p><strong>Good PR</strong>:</p>
+<ol>
+<li><strong>Small</strong>: &lt; 400 lines changed</li>
+<li><strong>Focused</strong>: One feature/bug fix</li>
+<li><strong>Tested</strong>: All tests pass</li>
+<li><strong>Documented</strong>: Clear description</li>
+</ol>
+<p><strong>Review checklist</strong>:</p>
+<ul>
+<li>Code style consistent?</li>
+<li>Tests added/updated?</li>
+<li>No hardcoded secrets?</li>
+<li>Performance implications?</li>
+</ul>
+<p><strong>Automate</strong>: Use bots for formatting, test coverage checks.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="9" lang="en-IN">
 <h1 id="github-automation-ecosystem">GitHub Automation Ecosystem</h1>
 <ol>
 <li><strong>Git</strong>: Version control (branches, merges).</li>
 <li><strong>GitHub API</strong>: Programmatic access to repos (Issues, PRs).</li>
 <li><strong>GitHub Actions</strong>: Serverless compute to run workflows.</li>
 <li><strong>Webhooks</strong>: Event-driven triggers.</li>
+<li><strong>GitHub Apps</strong>: Reusable automation packages</li>
+<li><strong>GitHub Copilot</strong>: AI pair programming</li>
 </ol>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="4" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" lang="en-IN">
 <h1 id="part-1-github-api--pygithub">Part 1: GitHub API &amp; PyGithub</h1>
 <p><strong>Automating the &quot;boring&quot; stuff.</strong></p>
 <p><strong>Authentication</strong>:</p>
@@ -60,7 +182,7 @@ repo = g.get_repo(<span class="hljs-string">&quot;nipunbatra/stt-ai-teaching&quo
     <span class="hljs-built_in">print</span>(issue.title)
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="5" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="11" lang="en-IN">
 <h1 id="use-case-ai-code-reviewer">Use Case: AI Code Reviewer</h1>
 <p><strong>Idea</strong>: When a PR is opened, fetch the diff, send to LLM, post comment.</p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python">pr = repo.get_pull(<span class="hljs-number">123</span>)
@@ -77,7 +199,7 @@ files = pr.get_files()
     pr.create_issue_comment(<span class="hljs-string">f&quot;## AI Review for <span class="hljs-subst">{file.filename}</span>\n\n<span class="hljs-subst">{review}</span>&quot;</span>)
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="6" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="12" lang="en-IN">
 <h1 id="part-2-github-actions-ci">Part 2: GitHub Actions (CI)</h1>
 <p><strong>Workflows</strong>: YAML files in <code>.github/workflows/</code>.</p>
 <p><strong>Structure</strong>:</p>
@@ -87,7 +209,7 @@ files = pr.get_files()
 <li><strong>Steps</strong>: Sequential commands within a job.</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="13" lang="en-IN">
 <h1 id="example-ci-pipeline-for-python">Example: CI Pipeline for Python</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">name:</span> <span class="hljs-string">CI</span>
 
@@ -115,7 +237,61 @@ files = pr.get_files()
         <span class="hljs-attr">run:</span> <span class="hljs-string">pytest</span> <span class="hljs-string">tests/</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="14" lang="en-IN">
+<h1 id="github-actions-triggers">GitHub Actions: Triggers</h1>
+<p><strong>Event types</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">on:</span>
+  <span class="hljs-attr">push:</span>
+    <span class="hljs-attr">branches:</span> [<span class="hljs-string">main</span>, <span class="hljs-string">develop</span>]
+  <span class="hljs-attr">pull_request:</span>
+    <span class="hljs-attr">branches:</span> [<span class="hljs-string">main</span>]
+  <span class="hljs-attr">schedule:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">cron:</span> <span class="hljs-string">&#x27;0 0 * * *&#x27;</span>  <span class="hljs-comment"># Daily at midnight</span>
+  <span class="hljs-attr">workflow_dispatch:</span>     <span class="hljs-comment"># Manual trigger</span>
+  <span class="hljs-attr">release:</span>
+    <span class="hljs-attr">types:</span> [<span class="hljs-string">published</span>]
+</code></pre>
+<p><strong>Conditional execution</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">jobs:</span>
+  <span class="hljs-attr">deploy:</span>
+    <span class="hljs-attr">if:</span> <span class="hljs-string">github.ref</span> <span class="hljs-string">==</span> <span class="hljs-string">&#x27;refs/heads/main&#x27;</span>
+    <span class="hljs-comment"># Only runs on main branch</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="15" lang="en-IN">
+<h1 id="caching-dependencies">Caching Dependencies</h1>
+<p><strong>Speed up builds by caching</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Cache</span> <span class="hljs-string">pip</span> <span class="hljs-string">packages</span>
+  <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/cache@v3</span>
+  <span class="hljs-attr">with:</span>
+    <span class="hljs-attr">path:</span> <span class="hljs-string">~/.cache/pip</span>
+    <span class="hljs-attr">key:</span> <span class="hljs-string">${{</span> <span class="hljs-string">runner.os</span> <span class="hljs-string">}}-pip-${{</span> <span class="hljs-string">hashFiles(&#x27;requirements.txt&#x27;)</span> <span class="hljs-string">}}</span>
+    <span class="hljs-attr">restore-keys:</span> <span class="hljs-string">|
+      ${{ runner.os }}-pip-
+</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Install</span> <span class="hljs-string">dependencies</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">pip</span> <span class="hljs-string">install</span> <span class="hljs-string">-r</span> <span class="hljs-string">requirements.txt</span>
+</code></pre>
+<p><strong>Typical speedup</strong>: 2-5 minutes → 30 seconds.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="16" lang="en-IN">
+<h1 id="artifacts-and-outputs">Artifacts and Outputs</h1>
+<p><strong>Save build artifacts</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Upload</span> <span class="hljs-string">test</span> <span class="hljs-string">results</span>
+  <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/upload-artifact@v3</span>
+  <span class="hljs-attr">with:</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">pytest-results</span>
+    <span class="hljs-attr">path:</span> <span class="hljs-string">test-results/</span>
+
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Upload</span> <span class="hljs-string">model</span>
+  <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/upload-artifact@v3</span>
+  <span class="hljs-attr">with:</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">trained-model</span>
+    <span class="hljs-attr">path:</span> <span class="hljs-string">model.pkl</span>
+</code></pre>
+<p><strong>Download in later jobs</strong> or from GitHub UI.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="17" lang="en-IN">
 <h1 id="cicd-for-ml">CI/CD for ML</h1>
 <p><strong>ML is harder than standard software.</strong></p>
 <ul>
@@ -131,7 +307,106 @@ Test across python versions / OSs.</p>
     <span class="hljs-attr">os:</span> [<span class="hljs-string">ubuntu-latest</span>, <span class="hljs-string">windows-latest</span>]
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="9" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="18" lang="en-IN">
+<h1 id="ml-specific-ci-checks">ML-Specific CI Checks</h1>
+<p><strong>Data validation</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Validate</span> <span class="hljs-string">data</span> <span class="hljs-string">schema</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">|
+    python -m pytest tests/test_data_schema.py
+</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Check</span> <span class="hljs-string">for</span> <span class="hljs-string">data</span> <span class="hljs-string">drift</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">|
+    python scripts/detect_drift.py
+</span></code></pre>
+<p><strong>Model performance gates</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Train</span> <span class="hljs-string">and</span> <span class="hljs-string">evaluate</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">|
+    python train.py
+    python evaluate.py
+</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Check</span> <span class="hljs-string">accuracy</span> <span class="hljs-string">threshold</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">|
+    accuracy=$(cat metrics.json | jq &#x27;.accuracy&#x27;)
+    if (( $(echo &quot;$accuracy &lt; 0.85&quot; | bc -l) )); then
+      echo &quot;Model accuracy too low!&quot;
+      exit 1
+    fi
+</span></code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="19" lang="en-IN">
+<h1 id="docker-integration">Docker Integration</h1>
+<p><strong>Build and push Docker images</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Build</span> <span class="hljs-string">Docker</span> <span class="hljs-string">image</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">docker</span> <span class="hljs-string">build</span> <span class="hljs-string">-t</span> <span class="hljs-string">myapp:${{</span> <span class="hljs-string">github.sha</span> <span class="hljs-string">}}</span> <span class="hljs-string">.</span>
+
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Push</span> <span class="hljs-string">to</span> <span class="hljs-string">registry</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">|
+    echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+    docker push myapp:${{ github.sha }}
+</span></code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Consistent environment</li>
+<li>Easy deployment</li>
+<li>Reproducible builds</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" lang="en-IN">
+<h1 id="deployment-strategies">Deployment Strategies</h1>
+<p><strong>Blue-Green Deployment</strong>:</p>
+<ul>
+<li>Two identical environments (blue, green)</li>
+<li>Deploy to inactive, then switch traffic</li>
+<li><strong>Rollback</strong>: Just switch back</li>
+</ul>
+<p><strong>Canary Deployment</strong>:</p>
+<ul>
+<li>Deploy to small % of users first</li>
+<li>Monitor metrics</li>
+<li>Gradually increase if healthy</li>
+</ul>
+<p><strong>Rolling Deployment</strong>:</p>
+<ul>
+<li>Update instances one by one</li>
+<li>Always some instances serving traffic</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="21" lang="en-IN">
+<h1 id="github-environments">GitHub Environments</h1>
+<p><strong>Separate configs for dev/staging/prod</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">jobs:</span>
+  <span class="hljs-attr">deploy:</span>
+    <span class="hljs-attr">environment:</span>
+      <span class="hljs-attr">name:</span> <span class="hljs-string">production</span>
+      <span class="hljs-attr">url:</span> <span class="hljs-string">https://myapp.com</span>
+    <span class="hljs-attr">steps:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Deploy</span>
+        <span class="hljs-attr">run:</span> <span class="hljs-string">./deploy.sh</span>
+</code></pre>
+<p><strong>Environment protection rules</strong>:</p>
+<ul>
+<li>Require reviewers</li>
+<li>Wait timer before deployment</li>
+<li>Deployment branches (only main)</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="22" lang="en-IN">
+<h1 id="monitoring-cicd-pipelines">Monitoring CI/CD Pipelines</h1>
+<p><strong>Key metrics</strong>:</p>
+<ol>
+<li><strong>Build time</strong>: How long does CI take?</li>
+<li><strong>Success rate</strong>: % of builds passing</li>
+<li><strong>Mean time to recovery</strong>: How fast do you fix broken builds?</li>
+<li><strong>Deployment frequency</strong>: How often do you deploy?</li>
+</ol>
+<p><strong>Tools</strong>:</p>
+<ul>
+<li>GitHub Actions insights</li>
+<li>Custom metrics (Prometheus + Grafana)</li>
+<li>Alerts (Slack, email)</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" lang="en-IN">
 <h1 id="secrets-management">Secrets Management</h1>
 <p><strong>Never hardcode API keys.</strong></p>
 <ol>
@@ -142,7 +417,7 @@ Test across python versions / OSs.</p>
     <span class="hljs-attr">OPENAI_API_KEY:</span> <span class="hljs-string">${{</span> <span class="hljs-string">secrets.OPENAI_API_KEY</span> <span class="hljs-string">}}</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" lang="en-IN">
 <h1 id="part-3-testing-strategy">Part 3: Testing Strategy</h1>
 <p><strong>The Testing Pyramid for AI</strong>:</p>
 <ol>
@@ -152,7 +427,7 @@ Test across python versions / OSs.</p>
 <li><strong>Data Tests</strong>: Validate input distributions.</li>
 </ol>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="11" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="25" lang="en-IN">
 <h1 id="writing-tests-with-pytest">Writing Tests with Pytest</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># test_model.py</span>
 <span class="hljs-keyword">from</span> my_model <span class="hljs-keyword">import</span> predict
@@ -169,7 +444,7 @@ Test across python versions / OSs.</p>
     <span class="hljs-keyword">assert</span> out1[<span class="hljs-string">&quot;class&quot;</span>] == out2[<span class="hljs-string">&quot;class&quot;</span>]
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="12" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="26" lang="en-IN">
 <h1 id="pre-commit-hooks">Pre-commit Hooks</h1>
 <p><strong>Run checks <em>before</em> you push.</strong><br />
 Prevents bad code from even reaching the repo.</p>
@@ -182,7 +457,260 @@ Prevents bad code from even reaching the repo.</p>
 </code></pre>
 <p><strong>Workflow</strong>: <code>git commit</code> -&gt; Black runs -&gt; Formatting fixed -&gt; Commit succeeds.</p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="13" lang="en-IN">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="27" lang="en-IN">
+<h1 id="git-branching-strategies">Git Branching Strategies</h1>
+<p><strong>Trunk-Based Development</strong>: Everyone commits to main frequently.</p>
+<ul>
+<li><strong>Pros</strong>: Simple, fast feedback</li>
+<li><strong>Cons</strong>: Requires discipline, good tests</li>
+<li><strong>Used by</strong>: Google, Facebook</li>
+</ul>
+<p><strong>GitFlow</strong>: Feature branches → develop → release → main.</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code>main (production)
+  ↑
+release/1.2
+  ↑
+develop
+  ↑
+feature/new-model
+</code></pre>
+<p><strong>GitHub Flow</strong> (simpler):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code>main
+  ↑
+feature/fix-bug → PR → Review → Merge
+</code></pre>
+<p><strong>For ML projects</strong>: GitHub Flow + experiment branches.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="28" lang="en-IN">
+<h1 id="advanced-git-rebasing-vs-merging">Advanced Git: Rebasing vs Merging</h1>
+<p><strong>Merge</strong>: Creates merge commit.</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">git checkout main
+git merge feature-branch
+<span class="hljs-comment"># Creates merge commit with two parents</span>
+</code></pre>
+<p><strong>Rebase</strong>: Replay commits on top of main.</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">git checkout feature-branch
+git rebase main
+<span class="hljs-comment"># Re-writes history, linear timeline</span>
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li><strong>Merge</strong>: Public branches, preserves history</li>
+<li><strong>Rebase</strong>: Local branches, clean history</li>
+</ul>
+<p><strong>Golden rule</strong>: Never rebase public branches!</p>
+<p><strong>Interactive rebase</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">git rebase -i HEAD~3  <span class="hljs-comment"># Edit last 3 commits</span>
+<span class="hljs-comment"># Pick, squash, reword, edit</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="29" lang="en-IN">
+<h1 id="infrastructure-as-code-iac">Infrastructure as Code (IaC)</h1>
+<p><strong>Problem</strong>: Manual server setup is error-prone.</p>
+<p><strong>Solution</strong>: Define infrastructure in code.</p>
+<p><strong>Terraform example</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-hcl">resource &quot;aws_instance&quot; &quot;ml_server&quot; {
+  ami           = &quot;ami-0c55b159cbfafe1f0&quot;
+  instance_type = &quot;p3.2xlarge&quot;  # GPU instance
+
+  tags = {
+    Name = &quot;ML-Training-Server&quot;
+  }
+}
+
+resource &quot;aws_s3_bucket&quot; &quot;model_artifacts&quot; {
+  bucket = &quot;my-ml-models&quot;
+  versioning {
+    enabled = true
+  }
+}
+</code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Version controlled</li>
+<li>Reproducible</li>
+<li>Self-documenting</li>
+<li>Can be reviewed/tested</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="30" lang="en-IN">
+<h1 id="blue-green-deployment">Blue-Green Deployment</h1>
+<p><strong>Strategy</strong>: Run two identical environments.</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code>Blue (current production) ← 100% traffic
+Green (new version)       ← 0% traffic
+
+# After testing:
+Blue  ← 0% traffic
+Green ← 100% traffic  # Switch!
+
+# If issues, instant rollback:
+Blue  ← 100% traffic  # Switch back!
+</code></pre>
+<p><strong>Implementation</strong> (with load balancer):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># GitHub Actions</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Deploy</span> <span class="hljs-string">to</span> <span class="hljs-string">Green</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">|
+    kubectl set image deployment/app app=myapp:${{ github.sha }} -n green
+</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Wait</span> <span class="hljs-string">for</span> <span class="hljs-string">health</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">kubectl</span> <span class="hljs-string">rollout</span> <span class="hljs-string">status</span> <span class="hljs-string">deployment/app</span> <span class="hljs-string">-n</span> <span class="hljs-string">green</span>
+
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Switch</span> <span class="hljs-string">traffic</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">kubectl</span> <span class="hljs-string">patch</span> <span class="hljs-string">service</span> <span class="hljs-string">app</span> <span class="hljs-string">-p</span> <span class="hljs-string">&#x27;{&quot;spec&quot;:{&quot;selector&quot;:{&quot;env&quot;:&quot;green&quot;}}}&#x27;</span>
+</code></pre>
+<p><strong>Benefit</strong>: Zero-downtime deployment, instant rollback.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="31" lang="en-IN">
+<h1 id="canary-releases">Canary Releases</h1>
+<p><strong>Strategy</strong>: Gradually shift traffic to new version.</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code>v1.0 ← 100% traffic
+v2.0 ← 0% traffic
+
+# Step 1:
+v1.0 ← 95% traffic
+v2.0 ← 5% traffic  # Test on small subset
+
+# Step 2:
+v1.0 ← 50% traffic
+v2.0 ← 50% traffic
+
+# Step 3 (if metrics good):
+v1.0 ← 0% traffic
+v2.0 ← 100% traffic
+</code></pre>
+<p><strong>Monitoring</strong>: Watch for errors, latency spikes.</p>
+<p><strong>Rollback</strong> if metrics degrade:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">if:</span> <span class="hljs-string">${{</span> <span class="hljs-string">steps.canary.outputs.error_rate</span> <span class="hljs-string">&gt;</span> <span class="hljs-number">0.01</span> <span class="hljs-string">}}</span>
+<span class="hljs-attr">run:</span> <span class="hljs-string">kubectl</span> <span class="hljs-string">rollout</span> <span class="hljs-string">undo</span> <span class="hljs-string">deployment/app</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="32" lang="en-IN">
+<h1 id="feature-flags-and-gradual-rollouts">Feature Flags and Gradual Rollouts</h1>
+<p><strong>Feature flags</strong>: Toggle features without deploying.</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> flagsmith
+
+flags = flagsmith.get_environment_flags()
+
+<span class="hljs-keyword">if</span> flags.is_feature_enabled(<span class="hljs-string">&quot;new_model_v2&quot;</span>):
+    model = load_model(<span class="hljs-string">&quot;v2&quot;</span>)
+<span class="hljs-keyword">else</span>:
+    model = load_model(<span class="hljs-string">&quot;v1&quot;</span>)
+</code></pre>
+<p><strong>Gradual rollout</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Enable for 10% of users</span>
+user_id_hash = <span class="hljs-built_in">hash</span>(user_id) % <span class="hljs-number">100</span>
+<span class="hljs-keyword">if</span> user_id_hash &lt; <span class="hljs-number">10</span>:
+    use_new_feature = <span class="hljs-literal">True</span>
+</code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Test in production safely</li>
+<li>Easy rollback (toggle off)</li>
+<li>A/B testing</li>
+</ul>
+<p><strong>Tools</strong>: LaunchDarkly, Flagsmith, ConfigCat.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="33" lang="en-IN">
+<h1 id="rollback-strategies">Rollback Strategies</h1>
+<p><strong>1. Git revert</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">git revert HEAD      <span class="hljs-comment"># Create new commit that undoes last</span>
+git push
+<span class="hljs-comment"># CI/CD deploys the revert</span>
+</code></pre>
+<p><strong>2. Kubernetes rollout</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">kubectl rollout undo deployment/app
+<span class="hljs-comment"># Instantly roll back to previous version</span>
+</code></pre>
+<p><strong>3. Database rollbacks</strong> (harder):</p>
+<ul>
+<li>Forward-compatible migrations</li>
+<li>Blue-green for schema changes</li>
+<li>Keep old code compatible with new schema</li>
+</ul>
+<p><strong>Best practice</strong>: Make rollbacks automated and tested.</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># GitHub Actions: Auto-rollback on failure</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Deploy</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">kubectl</span> <span class="hljs-string">apply</span> <span class="hljs-string">-f</span> <span class="hljs-string">deployment.yaml</span>
+
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Health</span> <span class="hljs-string">check</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">./health_check.sh</span>
+
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Rollback</span> <span class="hljs-string">on</span> <span class="hljs-string">failure</span>
+  <span class="hljs-attr">if:</span> <span class="hljs-string">failure()</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">kubectl</span> <span class="hljs-string">rollout</span> <span class="hljs-string">undo</span> <span class="hljs-string">deployment/app</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="34" lang="en-IN">
+<h1 id="cicd-security-best-practices">CI/CD Security Best Practices</h1>
+<p><strong>Secrets management</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># GitHub Secrets (encrypted)</span>
+<span class="hljs-attr">steps:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Deploy</span>
+    <span class="hljs-attr">env:</span>
+      <span class="hljs-attr">AWS_ACCESS_KEY:</span> <span class="hljs-string">${{</span> <span class="hljs-string">secrets.AWS_ACCESS_KEY</span> <span class="hljs-string">}}</span>
+      <span class="hljs-attr">DB_PASSWORD:</span> <span class="hljs-string">${{</span> <span class="hljs-string">secrets.DB_PASSWORD</span> <span class="hljs-string">}}</span>
+</code></pre>
+<p><strong>Never commit secrets!</strong></p>
+<p><strong>SAST (Static Application Security Testing)</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Run</span> <span class="hljs-string">Bandit</span> <span class="hljs-string">(Python</span> <span class="hljs-string">security</span> <span class="hljs-string">linter)</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">bandit</span> <span class="hljs-string">-r</span> <span class="hljs-string">src/</span>
+
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Check</span> <span class="hljs-string">for</span> <span class="hljs-string">secrets</span>
+  <span class="hljs-attr">uses:</span> <span class="hljs-string">trufflesecurity/trufflehog@main</span>
+</code></pre>
+<p><strong>DAST (Dynamic Application Security Testing)</strong>: Test running app for vulnerabilities.</p>
+<p><strong>Dependency scanning</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Check</span> <span class="hljs-string">dependencies</span> <span class="hljs-string">for</span> <span class="hljs-string">vulnerabilities</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">safety</span> <span class="hljs-string">check</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="35" lang="en-IN">
+<h1 id="matrix-builds-for-multi-environment-testing">Matrix Builds for Multi-Environment Testing</h1>
+<p><strong>Test across multiple configurations</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">strategy:</span>
+  <span class="hljs-attr">matrix:</span>
+    <span class="hljs-attr">python-version:</span> [<span class="hljs-number">3.8</span>, <span class="hljs-number">3.9</span>, <span class="hljs-number">3.10</span>, <span class="hljs-number">3.11</span>]
+    <span class="hljs-attr">os:</span> [<span class="hljs-string">ubuntu-latest</span>, <span class="hljs-string">macos-latest</span>, <span class="hljs-string">windows-latest</span>]
+
+<span class="hljs-attr">steps:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/setup-python@v4</span>
+    <span class="hljs-attr">with:</span>
+      <span class="hljs-attr">python-version:</span> <span class="hljs-string">${{</span> <span class="hljs-string">matrix.python-version</span> <span class="hljs-string">}}</span>
+
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Run</span> <span class="hljs-string">tests</span>
+    <span class="hljs-attr">run:</span> <span class="hljs-string">pytest</span> <span class="hljs-string">tests/</span>
+</code></pre>
+<p><strong>Result</strong>: 4 Python versions × 3 OS = 12 test jobs (parallel).</p>
+<p><strong>ML-specific matrix</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">matrix:</span>
+  <span class="hljs-attr">framework:</span> [<span class="hljs-string">pytorch</span>, <span class="hljs-string">tensorflow</span>, <span class="hljs-string">jax</span>]
+  <span class="hljs-attr">backend:</span> [<span class="hljs-string">cpu</span>, <span class="hljs-string">gpu</span>]
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="36" lang="en-IN">
+<h1 id="caching-strategies-in-cicd">Caching Strategies in CI/CD</h1>
+<p><strong>Problem</strong>: Installing dependencies is slow (2-5 minutes).</p>
+<p><strong>Solution</strong>: Cache dependencies.</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Cache</span> <span class="hljs-string">pip</span> <span class="hljs-string">dependencies</span>
+  <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/cache@v3</span>
+  <span class="hljs-attr">with:</span>
+    <span class="hljs-attr">path:</span> <span class="hljs-string">~/.cache/pip</span>
+    <span class="hljs-attr">key:</span> <span class="hljs-string">${{</span> <span class="hljs-string">runner.os</span> <span class="hljs-string">}}-pip-${{</span> <span class="hljs-string">hashFiles(&#x27;requirements.txt&#x27;)</span> <span class="hljs-string">}}</span>
+
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Install</span> <span class="hljs-string">dependencies</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">pip</span> <span class="hljs-string">install</span> <span class="hljs-string">-r</span> <span class="hljs-string">requirements.txt</span>
+<span class="hljs-comment"># Cached, takes 10 seconds instead of 2 minutes</span>
+</code></pre>
+<p><strong>Docker layer caching</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Build</span> <span class="hljs-string">Docker</span> <span class="hljs-string">image</span>
+  <span class="hljs-attr">uses:</span> <span class="hljs-string">docker/build-push-action@v4</span>
+  <span class="hljs-attr">with:</span>
+    <span class="hljs-attr">cache-from:</span> <span class="hljs-string">type=gha</span>
+    <span class="hljs-attr">cache-to:</span> <span class="hljs-string">type=gha,mode=max</span>
+</code></pre>
+<p><strong>ML-specific</strong>: Cache datasets, pre-trained models.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="37" lang="en-IN">
 <h1 id="summary">Summary</h1>
 <ol>
 <li><strong>GitHub API</strong>: Automate repo management and reviews.</li>
@@ -190,6 +718,18 @@ Prevents bad code from even reaching the repo.</p>
 <li><strong>Testing</strong>: Essential for robust ML systems (Unit, Data, Model tests).</li>
 <li><strong>Pre-commit</strong>: The first line of defense.</li>
 </ol>
+<p><strong>Advanced Topics</strong>:</p>
+<ul>
+<li>Git branching strategies (trunk-based, GitFlow)</li>
+<li>Advanced Git (rebase, interactive rebase)</li>
+<li>Infrastructure as Code (Terraform)</li>
+<li>Deployment strategies (blue-green, canary)</li>
+<li>Feature flags and gradual rollouts</li>
+<li>Rollback strategies</li>
+<li>CI/CD security (secrets, SAST/DAST)</li>
+<li>Matrix builds for multi-environment testing</li>
+<li>Caching strategies</li>
+</ul>
 <p><strong>Lab</strong>: You will build a full CI pipeline that runs tests and uses a custom Action to auto-grade/review PRs.</p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code></code></pre>
 </section>

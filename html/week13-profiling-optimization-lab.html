@@ -14,113 +14,1183 @@
 Duration: 3 hours</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="2" lang="en-IN">
-<h1 id="lab-objectives">Lab Objectives</h1>
-<ol>
-<li><strong>Profiling</strong>: Identify performance bottlenecks using PyTorch Profiler.</li>
-<li><strong>Mixed Precision</strong>: Implement AMP to speed up training.</li>
-<li><strong>Data Loading</strong>: Optimize DataLoader performance.</li>
-<li><strong>Pruning</strong>: Apply structured and unstructured pruning.</li>
-</ol>
+<h1 id="lab-overview">Lab Overview</h1>
+<p><strong>Objective</strong>: Optimize a ResNet-18 training loop from baseline to 2-3x faster.</p>
+<p><strong>Structure:</strong></p>
+<ul>
+<li><strong>Part 1</strong>: Baseline measurement and profiling (30 min)</li>
+<li><strong>Part 2</strong>: Data loading optimization (30 min)</li>
+<li><strong>Part 3</strong>: Mixed precision training (AMP) (40 min)</li>
+<li><strong>Part 4</strong>: Memory optimization (40 min)</li>
+<li><strong>Part 5</strong>: torch.compile optimization (30 min)</li>
+<li><strong>Part 6</strong>: Comprehensive comparison (20 min)</li>
+</ul>
 <p><strong>Prerequisites</strong>:</p>
 <ul>
-<li>GPU Runtime (Colab/Kaggle recommended).</li>
-<li><code>pip install torch torchvision tensorboard</code></li>
+<li>GPU runtime (Google Colab or Kaggle recommended)</li>
+<li>PyTorch 2.0+</li>
 </ul>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="3" lang="en-IN">
-<h1 id="exercise-1-the-baseline-30-min">Exercise 1: The Baseline (30 min)</h1>
-<p><strong>Setup</strong>:<br />
-Create <code>baseline.py</code>. Train a ResNet-18 on CIFAR-10.<br />
-Use standard settings: <code>batch_size=32</code>, <code>num_workers=0</code>, <code>Float32</code>.</p>
-<p><strong>Task</strong>:</p>
-<ol>
-<li>Measure <strong>Throughput</strong>: Images/second.</li>
-<li>Measure <strong>Peak Memory</strong>: <code>torch.cuda.max_memory_allocated()</code>.</li>
-<li>Record these baselines.</li>
-</ol>
+<h1 id="setup-and-installation">Setup and Installation</h1>
+<p><strong>Create a new notebook:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Install required packages</span>
+!pip install torch torchvision tensorboard torch-tb-profiler line_profiler memory_profiler matplotlib pandas seaborn
+
+<span class="hljs-comment"># Imports</span>
+<span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">import</span> torch.nn <span class="hljs-keyword">as</span> nn
+<span class="hljs-keyword">import</span> torch.optim <span class="hljs-keyword">as</span> optim
+<span class="hljs-keyword">from</span> torchvision <span class="hljs-keyword">import</span> datasets, transforms, models
+<span class="hljs-keyword">from</span> torch.utils.data <span class="hljs-keyword">import</span> DataLoader
+<span class="hljs-keyword">from</span> torch.profiler <span class="hljs-keyword">import</span> profile, record_function, ProfilerActivity
+<span class="hljs-keyword">from</span> torch.cuda.amp <span class="hljs-keyword">import</span> autocast, GradScaler
+<span class="hljs-keyword">import</span> torch.utils.checkpoint <span class="hljs-keyword">as</span> checkpoint
+<span class="hljs-keyword">import</span> time
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> matplotlib.pyplot <span class="hljs-keyword">as</span> plt
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+<span class="hljs-keyword">from</span> pathlib <span class="hljs-keyword">import</span> Path
+
+<span class="hljs-comment"># Check GPU</span>
+device = torch.device(<span class="hljs-string">&#x27;cuda&#x27;</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-string">&#x27;cpu&#x27;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Using device: <span class="hljs-subst">{device}</span>&quot;</span>)
+<span class="hljs-keyword">if</span> torch.cuda.is_available():
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;GPU: <span class="hljs-subst">{torch.cuda.get_device_name(<span class="hljs-number">0</span>)}</span>&quot;</span>)
+</code></pre>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="4" lang="en-IN">
-<h1 id="exercise-2-profiling-45-min">Exercise 2: Profiling (45 min)</h1>
-<p><strong>Task</strong>:<br />
-Wrap your training loop in the PyTorch Profiler.</p>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> torch.profiler <span class="hljs-keyword">import</span> profile, record_function, ProfilerActivity
+<h1 id="part-1-baseline-measurement-30-min">Part 1: Baseline Measurement (30 min)</h1>
+<p><strong>Goal</strong>: Establish performance baseline and profile the training loop.</p>
+<p><strong>Exercise 1.1: Create baseline training script</strong> (10 min)</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Define hyperparameters</span>
+BATCH_SIZE = <span class="hljs-number">32</span>
+NUM_EPOCHS = <span class="hljs-number">1</span>
+NUM_WORKERS = <span class="hljs-number">0</span>  <span class="hljs-comment"># Start with 0 for baseline</span>
+IMG_SIZE = <span class="hljs-number">224</span>
 
-<span class="hljs-keyword">with</span> profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=<span class="hljs-literal">True</span>) <span class="hljs-keyword">as</span> prof:
-    <span class="hljs-keyword">for</span> i, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(dataloader):
-        <span class="hljs-keyword">if</span> i &gt;= <span class="hljs-number">10</span>: <span class="hljs-keyword">break</span>
-        train_step(batch)
-        prof.step()
-
-<span class="hljs-built_in">print</span>(prof.key_averages().table(sort_by=<span class="hljs-string">&quot;cuda_time_total&quot;</span>, row_limit=<span class="hljs-number">10</span>))
+<span class="hljs-comment"># Data preprocessing</span>
+transform = transforms.Compose([
+    transforms.RandomResizedCrop(IMG_SIZE),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[<span class="hljs-number">0.485</span>, <span class="hljs-number">0.456</span>, <span class="hljs-number">0.406</span>],
+                       std=[<span class="hljs-number">0.229</span>, <span class="hljs-number">0.224</span>, <span class="hljs-number">0.225</span>])
+])
 </code></pre>
-<p><strong>Analyze</strong>:</p>
-<ul>
-<li>Is most time spent on CPU (DataLoader) or GPU (Compute)?</li>
-<li>Are there gaps in the GPU timeline?</li>
-</ul>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="5" lang="en-IN">
-<h1 id="exercise-3-optimizing-data-loading-30-min">Exercise 3: Optimizing Data Loading (30 min)</h1>
-<p><strong>Task</strong>:<br />
-Modify <code>DataLoader</code>:</p>
-<ol>
-<li>Increase <code>num_workers</code> (try 2, 4, 8).</li>
-<li>Enable <code>pin_memory=True</code>.</li>
-<li>Enable <code>persistent_workers=True</code>.</li>
-</ol>
-<p><strong>Measure</strong>:</p>
-<ul>
-<li>Did the throughput increase?</li>
-<li>Did the &quot;CPU time&quot; in profiler decrease?</li>
-</ul>
+<h1 id="exercise-11-continued">Exercise 1.1 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Load CIFAR-10 (small for quick iteration)</span>
+<span class="hljs-comment"># Note: We&#x27;ll use transforms designed for ImageNet for realistic overhead</span>
+train_dataset = datasets.CIFAR10(
+    root=<span class="hljs-string">&#x27;./data&#x27;</span>,
+    train=<span class="hljs-literal">True</span>,
+    download=<span class="hljs-literal">True</span>,
+    transform=transform
+)
+
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=<span class="hljs-literal">True</span>,
+    num_workers=NUM_WORKERS,
+    pin_memory=<span class="hljs-literal">False</span>  <span class="hljs-comment"># Baseline without optimization</span>
+)
+
+<span class="hljs-comment"># Load pretrained ResNet-18</span>
+model = models.resnet18(pretrained=<span class="hljs-literal">True</span>)
+model.fc = nn.Linear(model.fc.in_features, <span class="hljs-number">10</span>)  <span class="hljs-comment"># CIFAR-10 has 10 classes</span>
+model = model.to(device)
+
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=<span class="hljs-number">1e-4</span>)
+</code></pre>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="6" lang="en-IN">
-<h1 id="exercise-4-automatic-mixed-precision-amp-45-min">Exercise 4: Automatic Mixed Precision (AMP) (45 min)</h1>
-<p><strong>Task</strong>:<br />
-Integrate <code>torch.cuda.amp</code> into your training loop.</p>
-<ol>
-<li>Initialize <code>GradScaler</code>.</li>
-<li>Wrap forward pass in <code>with autocast():</code>.</li>
-<li>Use <code>scaler.scale(loss).backward()</code> and <code>scaler.step()</code>.</li>
-</ol>
-<p><strong>Measure</strong>:</p>
-<ul>
-<li>New Throughput (Images/sec).</li>
-<li>New Memory usage.</li>
-<li><strong>Expected Result</strong>: ~2x speedup, ~50% memory reduction.</li>
-</ul>
+<h1 id="exercise-12-baseline-training-loop-with-timing-10-min">Exercise 1.2: Baseline training loop with timing (10 min)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">train_epoch</span>(<span class="hljs-params">model, dataloader, criterion, optimizer, device</span>):
+    <span class="hljs-string">&quot;&quot;&quot;Train for one epoch and return metrics.&quot;&quot;&quot;</span>
+    model.train()
+    total_loss = <span class="hljs-number">0</span>
+    correct = <span class="hljs-number">0</span>
+    total = <span class="hljs-number">0</span>
+    batch_times = []
+
+    <span class="hljs-keyword">for</span> batch_idx, (images, labels) <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(dataloader):
+        batch_start = time.perf_counter()
+
+        images, labels = images.to(device), labels.to(device)
+
+        <span class="hljs-comment"># Forward pass</span>
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+
+        <span class="hljs-comment"># Backward pass</span>
+        loss.backward()
+        optimizer.step()
+
+        <span class="hljs-comment"># Metrics</span>
+        total_loss += loss.item()
+        _, predicted = outputs.<span class="hljs-built_in">max</span>(<span class="hljs-number">1</span>)
+        total += labels.size(<span class="hljs-number">0</span>)
+        correct += predicted.eq(labels).<span class="hljs-built_in">sum</span>().item()
+
+        batch_time = time.perf_counter() - batch_start
+        batch_times.append(batch_time)
+
+        <span class="hljs-keyword">if</span> batch_idx % <span class="hljs-number">50</span> == <span class="hljs-number">0</span>:
+            <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Batch <span class="hljs-subst">{batch_idx}</span>/<span class="hljs-subst">{<span class="hljs-built_in">len</span>(dataloader)}</span>, &quot;</span>
+                  <span class="hljs-string">f&quot;Loss: <span class="hljs-subst">{loss.item():<span class="hljs-number">.4</span>f}</span>, &quot;</span>
+                  <span class="hljs-string">f&quot;Acc: <span class="hljs-subst">{<span class="hljs-number">100.</span>*correct/total:<span class="hljs-number">.2</span>f}</span>%, &quot;</span>
+                  <span class="hljs-string">f&quot;Batch time: <span class="hljs-subst">{batch_time*<span class="hljs-number">1000</span>:<span class="hljs-number">.2</span>f}</span>ms&quot;</span>)
+
+    avg_loss = total_loss / <span class="hljs-built_in">len</span>(dataloader)
+    accuracy = <span class="hljs-number">100.</span> * correct / total
+    throughput = total / <span class="hljs-built_in">sum</span>(batch_times)  <span class="hljs-comment"># samples/sec</span>
+
+    <span class="hljs-keyword">return</span> {
+        <span class="hljs-string">&#x27;loss&#x27;</span>: avg_loss,
+        <span class="hljs-string">&#x27;accuracy&#x27;</span>: accuracy,
+        <span class="hljs-string">&#x27;throughput&#x27;</span>: throughput,
+        <span class="hljs-string">&#x27;batch_times&#x27;</span>: batch_times
+    }
+</code></pre>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" lang="en-IN">
-<h1 id="exercise-5-pruning-30-min">Exercise 5: Pruning (30 min)</h1>
-<p><strong>Task</strong>:<br />
-Prune the trained model.</p>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> torch.nn.utils.prune <span class="hljs-keyword">as</span> prune
+<h1 id="exercise-12-continued">Exercise 1.2 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Run baseline training</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">50</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;BASELINE TRAINING&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">50</span>)
 
-<span class="hljs-comment"># Prune 30% of connections in all Conv2d layers</span>
-<span class="hljs-keyword">for</span> name, module <span class="hljs-keyword">in</span> model.named_modules():
-    <span class="hljs-keyword">if</span> <span class="hljs-built_in">isinstance</span>(module, torch.nn.Conv2d):
-        prune.l1_unstructured(module, name=<span class="hljs-string">&#x27;weight&#x27;</span>, amount=<span class="hljs-number">0.3</span>)
+<span class="hljs-comment"># Warmup</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;Warming up...&quot;</span>)
+<span class="hljs-keyword">for</span> i, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(train_loader):
+    <span class="hljs-keyword">if</span> i &gt;= <span class="hljs-number">5</span>:
+        <span class="hljs-keyword">break</span>
+    images, labels = batch
+    images = images.to(device)
+    _ = model(images)
+
+<span class="hljs-comment"># Measure</span>
+torch.cuda.reset_peak_memory_stats() <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span>
+start_time = time.time()
+
+baseline_metrics = train_epoch(model, train_loader, criterion, optimizer, device)
+
+end_time = time.time()
+baseline_metrics[<span class="hljs-string">&#x27;epoch_time&#x27;</span>] = end_time - start_time
+baseline_metrics[<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>] = torch.cuda.max_memory_allocated() / <span class="hljs-number">1e6</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\nBaseline Results:&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;  Epoch time: <span class="hljs-subst">{baseline_metrics[<span class="hljs-string">&#x27;epoch_time&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>s&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;  Throughput: <span class="hljs-subst">{baseline_metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> samples/sec&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;  Peak memory: <span class="hljs-subst">{baseline_metrics[<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> MB&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;  Final accuracy: <span class="hljs-subst">{baseline_metrics[<span class="hljs-string">&#x27;accuracy&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>%&quot;</span>)
 </code></pre>
-<p><strong>Verify</strong>:</p>
-<ul>
-<li>Check sparsity: <code>print(torch.sum(module.weight == 0))</code></li>
-<li>Measure inference speed (CPU vs GPU). Note: Unstructured pruning might not speed up standard GPU inference!</li>
-</ul>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" lang="en-IN">
-<h1 id="submission">Submission</h1>
-<p><strong>Deliverables</strong>:</p>
-<ol>
-<li><code>optimization_report.md</code>:
+<h1 id="exercise-13-profile-with-pytorch-profiler-10-min">Exercise 1.3: Profile with PyTorch Profiler (10 min)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Profile the training loop</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\nProfiling baseline...&quot;</span>)
+
+<span class="hljs-keyword">with</span> profile(
+    activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA] <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> [ProfilerActivity.CPU],
+    record_shapes=<span class="hljs-literal">True</span>,
+    profile_memory=<span class="hljs-literal">True</span>,
+    with_stack=<span class="hljs-literal">True</span>
+) <span class="hljs-keyword">as</span> prof:
+    <span class="hljs-keyword">with</span> record_function(<span class="hljs-string">&quot;baseline_training&quot;</span>):
+        <span class="hljs-keyword">for</span> batch_idx, (images, labels) <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(train_loader):
+            <span class="hljs-keyword">if</span> batch_idx &gt;= <span class="hljs-number">10</span>:  <span class="hljs-comment"># Profile first 10 batches</span>
+                <span class="hljs-keyword">break</span>
+
+            images, labels = images.to(device), labels.to(device)
+
+            <span class="hljs-keyword">with</span> record_function(<span class="hljs-string">&quot;forward&quot;</span>):
+                optimizer.zero_grad()
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+
+            <span class="hljs-keyword">with</span> record_function(<span class="hljs-string">&quot;backward&quot;</span>):
+                loss.backward()
+
+            <span class="hljs-keyword">with</span> record_function(<span class="hljs-string">&quot;optimizer_step&quot;</span>):
+                optimizer.step()
+
+            prof.step()
+
+<span class="hljs-comment"># Print profiling results</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\nTop 10 operations by CUDA time:&quot;</span>)
+<span class="hljs-built_in">print</span>(prof.key_averages().table(
+    sort_by=<span class="hljs-string">&quot;cuda_time_total&quot;</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;cpu_time_total&quot;</span>,
+    row_limit=<span class="hljs-number">10</span>
+))
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="9" lang="en-IN">
+<h1 id="exercise-13-continued">Exercise 1.3 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Save trace for TensorBoard visualization</span>
+prof.export_chrome_trace(<span class="hljs-string">&quot;baseline_trace.json&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\nTrace saved to baseline_trace.json&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;To visualize: chrome://tracing in Chrome browser&quot;</span>)
+
+<span class="hljs-comment"># Questions to answer:</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\n&quot;</span> + <span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">50</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;ANALYSIS QUESTIONS:&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">50</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;1. What % of time is spent on data loading vs computation?&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;2. Is the GPU utilization high (&gt;80%) or low (&lt;50%)?&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;3. How much time is spent on memory transfers (HtoD)?&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;4. What are the top 3 slowest operations?&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">50</span>)
+</code></pre>
+<p><strong>Expected observations:</strong></p>
 <ul>
-<li>Table comparing Baseline vs Optimized (Throughput, Memory).</li>
-<li>Screenshots of Profiler trace.</li>
+<li>Low GPU utilization if <code>num_workers=0</code></li>
+<li>Significant time in data loading</li>
+<li>Memory transfers (HtoD) taking noticeable time</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" lang="en-IN">
+<h1 id="part-2-data-loading-optimization-30-min">Part 2: Data Loading Optimization (30 min)</h1>
+<p><strong>Goal</strong>: Optimize CPU-bound data loading bottleneck.</p>
+<p><strong>Exercise 2.1: Experiment with num_workers</strong> (15 min)</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Test different num_workers configurations</span>
+worker_configs = [<span class="hljs-number">0</span>, <span class="hljs-number">2</span>, <span class="hljs-number">4</span>, <span class="hljs-number">8</span>]
+worker_results = []
+
+<span class="hljs-keyword">for</span> num_workers <span class="hljs-keyword">in</span> worker_configs:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\n<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Testing num_workers=<span class="hljs-subst">{num_workers}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+
+    <span class="hljs-comment"># Create dataloader with new config</span>
+    train_loader_test = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=<span class="hljs-literal">True</span>,
+        num_workers=num_workers,
+        pin_memory=<span class="hljs-literal">False</span>  <span class="hljs-comment"># Will add later</span>
+    )
+
+    <span class="hljs-comment"># Warmup</span>
+    <span class="hljs-keyword">for</span> i, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(train_loader_test):
+        <span class="hljs-keyword">if</span> i &gt;= <span class="hljs-number">3</span>:
+            <span class="hljs-keyword">break</span>
+        images, _ = batch
+        images = images.to(device)
+
+    <span class="hljs-comment"># Measure</span>
+    start_time = time.time()
+    metrics = train_epoch(model, train_loader_test, criterion, optimizer, device)
+    epoch_time = time.time() - start_time
+
+    worker_results.append({
+        <span class="hljs-string">&#x27;num_workers&#x27;</span>: num_workers,
+        <span class="hljs-string">&#x27;throughput&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>],
+        <span class="hljs-string">&#x27;epoch_time&#x27;</span>: epoch_time
+    })
+
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Throughput: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> samples/sec&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Epoch time: <span class="hljs-subst">{epoch_time:<span class="hljs-number">.2</span>f}</span>s&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="11" lang="en-IN">
+<h1 id="exercise-21-continued">Exercise 2.1 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Visualize results</span>
+df_workers = pd.DataFrame(worker_results)
+
+fig, (ax1, ax2) = plt.subplots(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, figsize=(<span class="hljs-number">12</span>, <span class="hljs-number">4</span>))
+
+ax1.plot(df_workers[<span class="hljs-string">&#x27;num_workers&#x27;</span>], df_workers[<span class="hljs-string">&#x27;throughput&#x27;</span>], marker=<span class="hljs-string">&#x27;o&#x27;</span>)
+ax1.set_xlabel(<span class="hljs-string">&#x27;num_workers&#x27;</span>)
+ax1.set_ylabel(<span class="hljs-string">&#x27;Throughput (samples/sec)&#x27;</span>)
+ax1.set_title(<span class="hljs-string">&#x27;Throughput vs num_workers&#x27;</span>)
+ax1.grid(<span class="hljs-literal">True</span>)
+
+ax2.plot(df_workers[<span class="hljs-string">&#x27;num_workers&#x27;</span>], df_workers[<span class="hljs-string">&#x27;epoch_time&#x27;</span>], marker=<span class="hljs-string">&#x27;o&#x27;</span>, color=<span class="hljs-string">&#x27;orange&#x27;</span>)
+ax2.set_xlabel(<span class="hljs-string">&#x27;num_workers&#x27;</span>)
+ax2.set_ylabel(<span class="hljs-string">&#x27;Epoch time (s)&#x27;</span>)
+ax2.set_title(<span class="hljs-string">&#x27;Epoch Time vs num_workers&#x27;</span>)
+ax2.grid(<span class="hljs-literal">True</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="hljs-string">&#x27;num_workers_comparison.png&#x27;</span>, dpi=<span class="hljs-number">150</span>)
+plt.show()
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\nBest configuration: num_workers=<span class="hljs-subst">{df_workers.loc[df_workers[<span class="hljs-string">&#x27;throughput&#x27;</span>].idxmax(), <span class="hljs-string">&#x27;num_workers&#x27;</span>]:<span class="hljs-number">.0</span>f}</span>&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Speedup: <span class="hljs-subst">{df_workers[<span class="hljs-string">&#x27;throughput&#x27;</span>].<span class="hljs-built_in">max</span>() / df_workers[<span class="hljs-string">&#x27;throughput&#x27;</span>].<span class="hljs-built_in">min</span>():<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="12" lang="en-IN">
+<h1 id="exercise-22-add-pin_memory-and-persistent_workers-15-min">Exercise 2.2: Add pin_memory and persistent_workers (15 min)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Find optimal num_workers from previous exercise</span>
+optimal_workers = <span class="hljs-built_in">int</span>(df_workers.loc[df_workers[<span class="hljs-string">&#x27;throughput&#x27;</span>].idxmax(), <span class="hljs-string">&#x27;num_workers&#x27;</span>])
+
+<span class="hljs-comment"># Compare configurations</span>
+configs = [
+    {<span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;Baseline&#x27;</span>, <span class="hljs-string">&#x27;num_workers&#x27;</span>: <span class="hljs-number">0</span>, <span class="hljs-string">&#x27;pin_memory&#x27;</span>: <span class="hljs-literal">False</span>, <span class="hljs-string">&#x27;persistent_workers&#x27;</span>: <span class="hljs-literal">False</span>},
+    {<span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;Optimal workers&#x27;</span>, <span class="hljs-string">&#x27;num_workers&#x27;</span>: optimal_workers, <span class="hljs-string">&#x27;pin_memory&#x27;</span>: <span class="hljs-literal">False</span>, <span class="hljs-string">&#x27;persistent_workers&#x27;</span>: <span class="hljs-literal">False</span>},
+    {<span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;+ pin_memory&#x27;</span>, <span class="hljs-string">&#x27;num_workers&#x27;</span>: optimal_workers, <span class="hljs-string">&#x27;pin_memory&#x27;</span>: <span class="hljs-literal">True</span>, <span class="hljs-string">&#x27;persistent_workers&#x27;</span>: <span class="hljs-literal">False</span>},
+    {<span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;+ persistent&#x27;</span>, <span class="hljs-string">&#x27;num_workers&#x27;</span>: optimal_workers, <span class="hljs-string">&#x27;pin_memory&#x27;</span>: <span class="hljs-literal">True</span>, <span class="hljs-string">&#x27;persistent_workers&#x27;</span>: <span class="hljs-literal">True</span>},
+]
+
+dataloader_results = []
+
+<span class="hljs-keyword">for</span> config <span class="hljs-keyword">in</span> configs:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\n<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Testing: <span class="hljs-subst">{config[<span class="hljs-string">&#x27;name&#x27;</span>]}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+
+    train_loader_test = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=<span class="hljs-literal">True</span>,
+        num_workers=config[<span class="hljs-string">&#x27;num_workers&#x27;</span>],
+        pin_memory=config[<span class="hljs-string">&#x27;pin_memory&#x27;</span>],
+        persistent_workers=config[<span class="hljs-string">&#x27;persistent_workers&#x27;</span>] <span class="hljs-keyword">if</span> config[<span class="hljs-string">&#x27;num_workers&#x27;</span>] &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">else</span> <span class="hljs-literal">False</span>
+    )
+
+    <span class="hljs-comment"># Warmup</span>
+    <span class="hljs-keyword">for</span> i, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(train_loader_test):
+        <span class="hljs-keyword">if</span> i &gt;= <span class="hljs-number">3</span>:
+            <span class="hljs-keyword">break</span>
+        images, _ = batch
+        images = images.to(device)
+
+    <span class="hljs-comment"># Measure</span>
+    start_time = time.time()
+    metrics = train_epoch(model, train_loader_test, criterion, optimizer, device)
+    epoch_time = time.time() - start_time
+
+    dataloader_results.append({
+        <span class="hljs-string">&#x27;config&#x27;</span>: config[<span class="hljs-string">&#x27;name&#x27;</span>],
+        <span class="hljs-string">&#x27;throughput&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>],
+        <span class="hljs-string">&#x27;epoch_time&#x27;</span>: epoch_time,
+        <span class="hljs-string">&#x27;speedup&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>] / baseline_metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]
+    })
+
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Throughput: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> samples/sec&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Speedup: <span class="hljs-subst">{dataloader_results[-<span class="hljs-number">1</span>][<span class="hljs-string">&#x27;speedup&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="13" lang="en-IN">
+<h1 id="exercise-22-continued">Exercise 2.2 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Visualize comparison</span>
+df_loaders = pd.DataFrame(dataloader_results)
+
+plt.figure(figsize=(<span class="hljs-number">10</span>, <span class="hljs-number">6</span>))
+bars = plt.bar(df_loaders[<span class="hljs-string">&#x27;config&#x27;</span>], df_loaders[<span class="hljs-string">&#x27;speedup&#x27;</span>], color=[<span class="hljs-string">&#x27;gray&#x27;</span>, <span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>, <span class="hljs-string">&#x27;orange&#x27;</span>])
+plt.axhline(y=<span class="hljs-number">1</span>, color=<span class="hljs-string">&#x27;red&#x27;</span>, linestyle=<span class="hljs-string">&#x27;--&#x27;</span>, label=<span class="hljs-string">&#x27;Baseline&#x27;</span>)
+plt.ylabel(<span class="hljs-string">&#x27;Speedup vs Baseline&#x27;</span>, fontsize=<span class="hljs-number">12</span>)
+plt.title(<span class="hljs-string">&#x27;DataLoader Optimization Impact&#x27;</span>, fontsize=<span class="hljs-number">14</span>)
+plt.xticks(rotation=<span class="hljs-number">15</span>, ha=<span class="hljs-string">&#x27;right&#x27;</span>)
+plt.legend()
+plt.grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+
+<span class="hljs-keyword">for</span> bar <span class="hljs-keyword">in</span> bars:
+    height = bar.get_height()
+    plt.text(bar.get_x() + bar.get_width()/<span class="hljs-number">2.</span>, height,
+             <span class="hljs-string">f&#x27;<span class="hljs-subst">{height:<span class="hljs-number">.2</span>f}</span>x&#x27;</span>,
+             ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>, fontsize=<span class="hljs-number">10</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="hljs-string">&#x27;dataloader_optimization.png&#x27;</span>, dpi=<span class="hljs-number">150</span>)
+plt.show()
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\nFinal speedup from data loading optimizations: <span class="hljs-subst">{df_loaders[<span class="hljs-string">&#x27;speedup&#x27;</span>].<span class="hljs-built_in">max</span>():<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+</code></pre>
+<p><strong>Expected result</strong>: 1.3-1.8x speedup from optimized data loading.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="14" lang="en-IN">
+<h1 id="part-3-mixed-precision-training-40-min">Part 3: Mixed Precision Training (40 min)</h1>
+<p><strong>Goal</strong>: Enable automatic mixed precision (AMP) for faster training.</p>
+<p><strong>Exercise 3.1: Implement AMP</strong> (20 min)</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Create optimized dataloader for remaining experiments</span>
+train_loader_optimized = DataLoader(
+    train_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=<span class="hljs-literal">True</span>,
+    num_workers=optimal_workers,
+    pin_memory=<span class="hljs-literal">True</span>,
+    persistent_workers=<span class="hljs-literal">True</span>
+)
+
+<span class="hljs-comment"># Reload model to reset weights</span>
+model = models.resnet18(pretrained=<span class="hljs-literal">True</span>)
+model.fc = nn.Linear(model.fc.in_features, <span class="hljs-number">10</span>)
+model = model.to(device)
+optimizer = optim.Adam(model.parameters(), lr=<span class="hljs-number">1e-4</span>)
+
+<span class="hljs-comment"># Training function with AMP support</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">train_epoch_amp</span>(<span class="hljs-params">model, dataloader, criterion, optimizer, device, use_amp=<span class="hljs-literal">False</span></span>):
+    <span class="hljs-string">&quot;&quot;&quot;Train for one epoch with optional AMP.&quot;&quot;&quot;</span>
+    model.train()
+    scaler = GradScaler() <span class="hljs-keyword">if</span> use_amp <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span>
+
+    total_loss = <span class="hljs-number">0</span>
+    correct = <span class="hljs-number">0</span>
+    total = <span class="hljs-number">0</span>
+    batch_times = []
+
+    <span class="hljs-keyword">for</span> batch_idx, (images, labels) <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(dataloader):
+        batch_start = time.perf_counter()
+
+        images, labels = images.to(device), labels.to(device)
+        optimizer.zero_grad()
+
+        <span class="hljs-comment"># Forward pass with optional autocast</span>
+        <span class="hljs-keyword">if</span> use_amp:
+            <span class="hljs-keyword">with</span> autocast():
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+        <span class="hljs-keyword">else</span>:
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+
+        <span class="hljs-comment"># Backward pass with optional gradient scaling</span>
+        <span class="hljs-keyword">if</span> use_amp:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        <span class="hljs-keyword">else</span>:
+            loss.backward()
+            optimizer.step()
+
+        <span class="hljs-comment"># Metrics</span>
+        total_loss += loss.item()
+        _, predicted = outputs.<span class="hljs-built_in">max</span>(<span class="hljs-number">1</span>)
+        total += labels.size(<span class="hljs-number">0</span>)
+        correct += predicted.eq(labels).<span class="hljs-built_in">sum</span>().item()
+        batch_times.append(time.perf_counter() - batch_start)
+
+        <span class="hljs-keyword">if</span> batch_idx % <span class="hljs-number">50</span> == <span class="hljs-number">0</span>:
+            <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Batch <span class="hljs-subst">{batch_idx}</span>/<span class="hljs-subst">{<span class="hljs-built_in">len</span>(dataloader)}</span>, Loss: <span class="hljs-subst">{loss.item():<span class="hljs-number">.4</span>f}</span>, &quot;</span>
+                  <span class="hljs-string">f&quot;Acc: <span class="hljs-subst">{<span class="hljs-number">100.</span>*correct/total:<span class="hljs-number">.2</span>f}</span>%&quot;</span>)
+
+    <span class="hljs-keyword">return</span> {
+        <span class="hljs-string">&#x27;loss&#x27;</span>: total_loss / <span class="hljs-built_in">len</span>(dataloader),
+        <span class="hljs-string">&#x27;accuracy&#x27;</span>: <span class="hljs-number">100.</span> * correct / total,
+        <span class="hljs-string">&#x27;throughput&#x27;</span>: total / <span class="hljs-built_in">sum</span>(batch_times)
+    }
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="15" lang="en-IN">
+<h1 id="exercise-31-continued">Exercise 3.1 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Compare FP32 vs AMP</span>
+precision_results = []
+
+<span class="hljs-keyword">for</span> use_amp <span class="hljs-keyword">in</span> [<span class="hljs-literal">False</span>, <span class="hljs-literal">True</span>]:
+    precision_name = <span class="hljs-string">&quot;AMP (FP16)&quot;</span> <span class="hljs-keyword">if</span> use_amp <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;FP32&quot;</span>
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\n<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Training with <span class="hljs-subst">{precision_name}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+
+    <span class="hljs-comment"># Reset model</span>
+    model = models.resnet18(pretrained=<span class="hljs-literal">True</span>)
+    model.fc = nn.Linear(model.fc.in_features, <span class="hljs-number">10</span>)
+    model = model.to(device)
+    optimizer = optim.Adam(model.parameters(), lr=<span class="hljs-number">1e-4</span>)
+
+    <span class="hljs-comment"># Warmup</span>
+    <span class="hljs-keyword">for</span> i, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(train_loader_optimized):
+        <span class="hljs-keyword">if</span> i &gt;= <span class="hljs-number">3</span>:
+            <span class="hljs-keyword">break</span>
+        images, labels = batch
+        images, labels = images.to(device), labels.to(device)
+        <span class="hljs-keyword">with</span> autocast() <span class="hljs-keyword">if</span> use_amp <span class="hljs-keyword">else</span> torch.no_grad():
+            _ = model(images)
+
+    <span class="hljs-comment"># Measure</span>
+    torch.cuda.reset_peak_memory_stats() <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span>
+    start_time = time.time()
+
+    metrics = train_epoch_amp(model, train_loader_optimized, criterion, optimizer, device, use_amp)
+
+    epoch_time = time.time() - start_time
+    peak_memory = torch.cuda.max_memory_allocated() / <span class="hljs-number">1e6</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>
+
+    precision_results.append({
+        <span class="hljs-string">&#x27;precision&#x27;</span>: precision_name,
+        <span class="hljs-string">&#x27;throughput&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>],
+        <span class="hljs-string">&#x27;epoch_time&#x27;</span>: epoch_time,
+        <span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>: peak_memory,
+        <span class="hljs-string">&#x27;accuracy&#x27;</span>: metrics[<span class="hljs-string">&#x27;accuracy&#x27;</span>],
+        <span class="hljs-string">&#x27;speedup&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>] / baseline_metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]
+    })
+
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Throughput: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> samples/sec&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Peak memory: <span class="hljs-subst">{peak_memory:<span class="hljs-number">.2</span>f}</span> MB&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Accuracy: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;accuracy&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>%&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Speedup vs baseline: <span class="hljs-subst">{precision_results[-<span class="hljs-number">1</span>][<span class="hljs-string">&#x27;speedup&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="16" lang="en-IN">
+<h1 id="exercise-32-analyze-amp-impact-20-min">Exercise 3.2: Analyze AMP impact (20 min)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Visualize AMP benefits</span>
+df_precision = pd.DataFrame(precision_results)
+
+fig, axes = plt.subplots(<span class="hljs-number">1</span>, <span class="hljs-number">3</span>, figsize=(<span class="hljs-number">15</span>, <span class="hljs-number">4</span>))
+
+<span class="hljs-comment"># Throughput comparison</span>
+axes[<span class="hljs-number">0</span>].bar(df_precision[<span class="hljs-string">&#x27;precision&#x27;</span>], df_precision[<span class="hljs-string">&#x27;throughput&#x27;</span>], color=[<span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>])
+axes[<span class="hljs-number">0</span>].set_ylabel(<span class="hljs-string">&#x27;Throughput (samples/sec)&#x27;</span>)
+axes[<span class="hljs-number">0</span>].set_title(<span class="hljs-string">&#x27;Training Throughput&#x27;</span>)
+axes[<span class="hljs-number">0</span>].grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+<span class="hljs-keyword">for</span> i, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(df_precision[<span class="hljs-string">&#x27;throughput&#x27;</span>]):
+    axes[<span class="hljs-number">0</span>].text(i, v, <span class="hljs-string">f&#x27;<span class="hljs-subst">{v:<span class="hljs-number">.1</span>f}</span>&#x27;</span>, ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>)
+
+<span class="hljs-comment"># Memory comparison</span>
+axes[<span class="hljs-number">1</span>].bar(df_precision[<span class="hljs-string">&#x27;precision&#x27;</span>], df_precision[<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>], color=[<span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>])
+axes[<span class="hljs-number">1</span>].set_ylabel(<span class="hljs-string">&#x27;Peak Memory (MB)&#x27;</span>)
+axes[<span class="hljs-number">1</span>].set_title(<span class="hljs-string">&#x27;Memory Usage&#x27;</span>)
+axes[<span class="hljs-number">1</span>].grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+<span class="hljs-keyword">for</span> i, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(df_precision[<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>]):
+    axes[<span class="hljs-number">1</span>].text(i, v, <span class="hljs-string">f&#x27;<span class="hljs-subst">{v:<span class="hljs-number">.0</span>f}</span>&#x27;</span>, ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>)
+
+<span class="hljs-comment"># Speedup comparison</span>
+axes[<span class="hljs-number">2</span>].bar(df_precision[<span class="hljs-string">&#x27;precision&#x27;</span>], df_precision[<span class="hljs-string">&#x27;speedup&#x27;</span>], color=[<span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>])
+axes[<span class="hljs-number">2</span>].axhline(y=<span class="hljs-number">1</span>, color=<span class="hljs-string">&#x27;red&#x27;</span>, linestyle=<span class="hljs-string">&#x27;--&#x27;</span>, alpha=<span class="hljs-number">0.5</span>)
+axes[<span class="hljs-number">2</span>].set_ylabel(<span class="hljs-string">&#x27;Speedup vs Baseline&#x27;</span>)
+axes[<span class="hljs-number">2</span>].set_title(<span class="hljs-string">&#x27;Overall Speedup&#x27;</span>)
+axes[<span class="hljs-number">2</span>].grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+<span class="hljs-keyword">for</span> i, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(df_precision[<span class="hljs-string">&#x27;speedup&#x27;</span>]):
+    axes[<span class="hljs-number">2</span>].text(i, v, <span class="hljs-string">f&#x27;<span class="hljs-subst">{v:<span class="hljs-number">.2</span>f}</span>x&#x27;</span>, ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="hljs-string">&#x27;amp_comparison.png&#x27;</span>, dpi=<span class="hljs-number">150</span>)
+plt.show()
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\nAMP Speedup: <span class="hljs-subst">{df_precision.iloc[<span class="hljs-number">1</span>][<span class="hljs-string">&#x27;throughput&#x27;</span>] / df_precision.iloc[<span class="hljs-number">0</span>][<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Memory savings: <span class="hljs-subst">{(<span class="hljs-number">1</span> - df_precision.iloc[<span class="hljs-number">1</span>][<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>] / df_precision.iloc[<span class="hljs-number">0</span>][<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>]) * <span class="hljs-number">100</span>:<span class="hljs-number">.1</span>f}</span>%&quot;</span>)
+</code></pre>
+<p><strong>Expected results</strong>: 1.5-2.5x speedup, 30-40% memory reduction.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="17" lang="en-IN">
+<h1 id="part-4-memory-optimization-40-min">Part 4: Memory Optimization (40 min)</h1>
+<p><strong>Goal</strong>: Use gradient checkpointing and accumulation to fit larger batches.</p>
+<p><strong>Exercise 4.1: Gradient accumulation</strong> (20 min)</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">train_epoch_with_accumulation</span>(<span class="hljs-params">model, dataloader, criterion, optimizer, device,
+                                   accumulation_steps=<span class="hljs-number">1</span>, use_amp=<span class="hljs-literal">False</span></span>):
+    <span class="hljs-string">&quot;&quot;&quot;Train with gradient accumulation.&quot;&quot;&quot;</span>
+    model.train()
+    scaler = GradScaler() <span class="hljs-keyword">if</span> use_amp <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span>
+
+    total_loss = <span class="hljs-number">0</span>
+    correct = <span class="hljs-number">0</span>
+    total = <span class="hljs-number">0</span>
+    batch_times = []
+
+    optimizer.zero_grad()
+
+    <span class="hljs-keyword">for</span> batch_idx, (images, labels) <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(dataloader):
+        batch_start = time.perf_counter()
+
+        images, labels = images.to(device), labels.to(device)
+
+        <span class="hljs-comment"># Forward pass</span>
+        <span class="hljs-keyword">if</span> use_amp:
+            <span class="hljs-keyword">with</span> autocast():
+                outputs = model(images)
+                loss = criterion(outputs, labels) / accumulation_steps
+        <span class="hljs-keyword">else</span>:
+            outputs = model(images)
+            loss = criterion(outputs, labels) / accumulation_steps
+
+        <span class="hljs-comment"># Backward pass</span>
+        <span class="hljs-keyword">if</span> use_amp:
+            scaler.scale(loss).backward()
+        <span class="hljs-keyword">else</span>:
+            loss.backward()
+
+        <span class="hljs-comment"># Update weights every accumulation_steps</span>
+        <span class="hljs-keyword">if</span> (batch_idx + <span class="hljs-number">1</span>) % accumulation_steps == <span class="hljs-number">0</span>:
+            <span class="hljs-keyword">if</span> use_amp:
+                scaler.step(optimizer)
+                scaler.update()
+            <span class="hljs-keyword">else</span>:
+                optimizer.step()
+            optimizer.zero_grad()
+
+        <span class="hljs-comment"># Metrics</span>
+        total_loss += loss.item() * accumulation_steps
+        _, predicted = outputs.<span class="hljs-built_in">max</span>(<span class="hljs-number">1</span>)
+        total += labels.size(<span class="hljs-number">0</span>)
+        correct += predicted.eq(labels).<span class="hljs-built_in">sum</span>().item()
+        batch_times.append(time.perf_counter() - batch_start)
+
+    <span class="hljs-keyword">return</span> {
+        <span class="hljs-string">&#x27;loss&#x27;</span>: total_loss / <span class="hljs-built_in">len</span>(dataloader),
+        <span class="hljs-string">&#x27;accuracy&#x27;</span>: <span class="hljs-number">100.</span> * correct / total,
+        <span class="hljs-string">&#x27;throughput&#x27;</span>: total / <span class="hljs-built_in">sum</span>(batch_times)
+    }
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="18" lang="en-IN">
+<h1 id="exercise-41-continued">Exercise 4.1 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Test gradient accumulation with different steps</span>
+accumulation_configs = [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">4</span>, <span class="hljs-number">8</span>]
+accumulation_results = []
+
+<span class="hljs-keyword">for</span> accum_steps <span class="hljs-keyword">in</span> accumulation_configs:
+    effective_batch = BATCH_SIZE * accum_steps
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\n<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Gradient Accumulation: <span class="hljs-subst">{accum_steps}</span> steps (effective batch: <span class="hljs-subst">{effective_batch}</span>)&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+
+    <span class="hljs-comment"># Reset model</span>
+    model = models.resnet18(pretrained=<span class="hljs-literal">True</span>)
+    model.fc = nn.Linear(model.fc.in_features, <span class="hljs-number">10</span>)
+    model = model.to(device)
+    optimizer = optim.Adam(model.parameters(), lr=<span class="hljs-number">1e-4</span>)
+
+    <span class="hljs-comment"># Measure</span>
+    torch.cuda.reset_peak_memory_stats() <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span>
+    start_time = time.time()
+
+    metrics = train_epoch_with_accumulation(
+        model, train_loader_optimized, criterion, optimizer, device,
+        accumulation_steps=accum_steps, use_amp=<span class="hljs-literal">True</span>
+    )
+
+    epoch_time = time.time() - start_time
+    peak_memory = torch.cuda.max_memory_allocated() / <span class="hljs-number">1e6</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>
+
+    accumulation_results.append({
+        <span class="hljs-string">&#x27;accumulation_steps&#x27;</span>: accum_steps,
+        <span class="hljs-string">&#x27;effective_batch&#x27;</span>: effective_batch,
+        <span class="hljs-string">&#x27;throughput&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>],
+        <span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>: peak_memory,
+        <span class="hljs-string">&#x27;epoch_time&#x27;</span>: epoch_time
+    })
+
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Throughput: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> samples/sec&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Peak memory: <span class="hljs-subst">{peak_memory:<span class="hljs-number">.2</span>f}</span> MB&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Epoch time: <span class="hljs-subst">{epoch_time:<span class="hljs-number">.2</span>f}</span>s&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="19" lang="en-IN">
+<h1 id="exercise-42-gradient-checkpointing-20-min">Exercise 4.2: Gradient checkpointing (20 min)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Create a model with gradient checkpointing</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">ResNet18Checkpointed</span>(nn.Module):
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, num_classes=<span class="hljs-number">10</span></span>):
+        <span class="hljs-built_in">super</span>().__init__()
+        resnet = models.resnet18(pretrained=<span class="hljs-literal">True</span>)
+
+        <span class="hljs-comment"># Split into checkpointed segments</span>
+        <span class="hljs-variable language_">self</span>.layer0 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool)
+        <span class="hljs-variable language_">self</span>.layer1 = resnet.layer1
+        <span class="hljs-variable language_">self</span>.layer2 = resnet.layer2
+        <span class="hljs-variable language_">self</span>.layer3 = resnet.layer3
+        <span class="hljs-variable language_">self</span>.layer4 = resnet.layer4
+        <span class="hljs-variable language_">self</span>.avgpool = resnet.avgpool
+        <span class="hljs-variable language_">self</span>.fc = nn.Linear(resnet.fc.in_features, num_classes)
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">forward</span>(<span class="hljs-params">self, x</span>):
+        <span class="hljs-comment"># Use gradient checkpointing for each layer</span>
+        x = checkpoint.checkpoint(<span class="hljs-variable language_">self</span>.layer0, x, use_reentrant=<span class="hljs-literal">False</span>)
+        x = checkpoint.checkpoint(<span class="hljs-variable language_">self</span>.layer1, x, use_reentrant=<span class="hljs-literal">False</span>)
+        x = checkpoint.checkpoint(<span class="hljs-variable language_">self</span>.layer2, x, use_reentrant=<span class="hljs-literal">False</span>)
+        x = checkpoint.checkpoint(<span class="hljs-variable language_">self</span>.layer3, x, use_reentrant=<span class="hljs-literal">False</span>)
+        x = checkpoint.checkpoint(<span class="hljs-variable language_">self</span>.layer4, x, use_reentrant=<span class="hljs-literal">False</span>)
+        x = <span class="hljs-variable language_">self</span>.avgpool(x)
+        x = torch.flatten(x, <span class="hljs-number">1</span>)
+        x = <span class="hljs-variable language_">self</span>.fc(x)
+        <span class="hljs-keyword">return</span> x
+
+<span class="hljs-comment"># Compare standard vs checkpointed model</span>
+memory_results = []
+
+<span class="hljs-keyword">for</span> use_checkpointing <span class="hljs-keyword">in</span> [<span class="hljs-literal">False</span>, <span class="hljs-literal">True</span>]:
+    model_name = <span class="hljs-string">&quot;With Checkpointing&quot;</span> <span class="hljs-keyword">if</span> use_checkpointing <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;Standard&quot;</span>
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\n<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Model: <span class="hljs-subst">{model_name}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+
+    <span class="hljs-keyword">if</span> use_checkpointing:
+        model = ResNet18Checkpointed(num_classes=<span class="hljs-number">10</span>).to(device)
+    <span class="hljs-keyword">else</span>:
+        model = models.resnet18(pretrained=<span class="hljs-literal">True</span>)
+        model.fc = nn.Linear(model.fc.in_features, <span class="hljs-number">10</span>)
+        model = model.to(device)
+
+    optimizer = optim.Adam(model.parameters(), lr=<span class="hljs-number">1e-4</span>)
+
+    <span class="hljs-comment"># Measure</span>
+    torch.cuda.reset_peak_memory_stats() <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span>
+    start_time = time.time()
+
+    metrics = train_epoch_amp(model, train_loader_optimized, criterion, optimizer, device, use_amp=<span class="hljs-literal">True</span>)
+
+    epoch_time = time.time() - start_time
+    peak_memory = torch.cuda.max_memory_allocated() / <span class="hljs-number">1e6</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>
+
+    memory_results.append({
+        <span class="hljs-string">&#x27;model&#x27;</span>: model_name,
+        <span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>: peak_memory,
+        <span class="hljs-string">&#x27;throughput&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>],
+        <span class="hljs-string">&#x27;epoch_time&#x27;</span>: epoch_time
+    })
+
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Peak memory: <span class="hljs-subst">{peak_memory:<span class="hljs-number">.2</span>f}</span> MB&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Throughput: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> samples/sec&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Epoch time: <span class="hljs-subst">{epoch_time:<span class="hljs-number">.2</span>f}</span>s&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" lang="en-IN">
+<h1 id="exercise-42-continued">Exercise 4.2 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Visualize memory optimization results</span>
+df_memory = pd.DataFrame(memory_results)
+
+fig, (ax1, ax2) = plt.subplots(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, figsize=(<span class="hljs-number">12</span>, <span class="hljs-number">5</span>))
+
+<span class="hljs-comment"># Memory comparison</span>
+ax1.bar(df_memory[<span class="hljs-string">&#x27;model&#x27;</span>], df_memory[<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>], color=[<span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>])
+ax1.set_ylabel(<span class="hljs-string">&#x27;Peak Memory (MB)&#x27;</span>)
+ax1.set_title(<span class="hljs-string">&#x27;Memory Usage Comparison&#x27;</span>)
+ax1.grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+<span class="hljs-keyword">for</span> i, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(df_memory[<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>]):
+    ax1.text(i, v, <span class="hljs-string">f&#x27;<span class="hljs-subst">{v:<span class="hljs-number">.0</span>f}</span> MB&#x27;</span>, ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>)
+
+<span class="hljs-comment"># Speed comparison</span>
+ax2.bar(df_memory[<span class="hljs-string">&#x27;model&#x27;</span>], df_memory[<span class="hljs-string">&#x27;throughput&#x27;</span>], color=[<span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>])
+ax2.set_ylabel(<span class="hljs-string">&#x27;Throughput (samples/sec)&#x27;</span>)
+ax2.set_title(<span class="hljs-string">&#x27;Training Speed Comparison&#x27;</span>)
+ax2.grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+<span class="hljs-keyword">for</span> i, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(df_memory[<span class="hljs-string">&#x27;throughput&#x27;</span>]):
+    ax2.text(i, v, <span class="hljs-string">f&#x27;<span class="hljs-subst">{v:<span class="hljs-number">.1</span>f}</span>&#x27;</span>, ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="hljs-string">&#x27;checkpointing_comparison.png&#x27;</span>, dpi=<span class="hljs-number">150</span>)
+plt.show()
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\nMemory savings: <span class="hljs-subst">{(<span class="hljs-number">1</span> - df_memory.iloc[<span class="hljs-number">1</span>][<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>] / df_memory.iloc[<span class="hljs-number">0</span>][<span class="hljs-string">&#x27;peak_memory_mb&#x27;</span>]) * <span class="hljs-number">100</span>:<span class="hljs-number">.1</span>f}</span>%&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Speed impact: <span class="hljs-subst">{(df_memory.iloc[<span class="hljs-number">1</span>][<span class="hljs-string">&#x27;throughput&#x27;</span>] / df_memory.iloc[<span class="hljs-number">0</span>][<span class="hljs-string">&#x27;throughput&#x27;</span>] - <span class="hljs-number">1</span>) * <span class="hljs-number">100</span>:<span class="hljs-number">.1</span>f}</span>%&quot;</span>)
+</code></pre>
+<p><strong>Expected results</strong>: 30-50% memory reduction, 10-20% slower training.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="21" lang="en-IN">
+<h1 id="part-5-torchcompile-optimization-30-min">Part 5: torch.compile Optimization (30 min)</h1>
+<p><strong>Goal</strong>: Use PyTorch 2.0's compilation for additional speedup.</p>
+<p><strong>Exercise 5.1: Compare compiled vs eager mode</strong> (30 min)</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Check PyTorch version</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;PyTorch version: <span class="hljs-subst">{torch.__version__}</span>&quot;</span>)
+<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-built_in">hasattr</span>(torch, <span class="hljs-string">&#x27;compile&#x27;</span>):
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;Warning: torch.compile requires PyTorch 2.0+&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;Skipping this exercise or upgrade PyTorch&quot;</span>)
+<span class="hljs-keyword">else</span>:
+    compile_results = []
+
+    <span class="hljs-keyword">for</span> use_compile <span class="hljs-keyword">in</span> [<span class="hljs-literal">False</span>, <span class="hljs-literal">True</span>]:
+        mode_name = <span class="hljs-string">&quot;Compiled&quot;</span> <span class="hljs-keyword">if</span> use_compile <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;Eager&quot;</span>
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\n<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Mode: <span class="hljs-subst">{mode_name}</span>&quot;</span>)
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">50</span>}</span>&quot;</span>)
+
+        <span class="hljs-comment"># Create model</span>
+        model = models.resnet18(pretrained=<span class="hljs-literal">True</span>)
+        model.fc = nn.Linear(model.fc.in_features, <span class="hljs-number">10</span>)
+        model = model.to(device)
+
+        <span class="hljs-comment"># Compile if requested</span>
+        <span class="hljs-keyword">if</span> use_compile:
+            model = torch.<span class="hljs-built_in">compile</span>(model, mode=<span class="hljs-string">&#x27;default&#x27;</span>)
+
+        optimizer = optim.Adam(model.parameters(), lr=<span class="hljs-number">1e-4</span>)
+
+        <span class="hljs-comment"># Warmup (important for compiled models!)</span>
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;Warming up...&quot;</span>)
+        <span class="hljs-keyword">for</span> i, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(train_loader_optimized):
+            <span class="hljs-keyword">if</span> i &gt;= <span class="hljs-number">5</span>:
+                <span class="hljs-keyword">break</span>
+            images, labels = batch
+            images, labels = images.to(device), labels.to(device)
+            <span class="hljs-keyword">with</span> autocast():
+                _ = model(images)
+
+        <span class="hljs-comment"># Measure</span>
+        start_time = time.time()
+        metrics = train_epoch_amp(model, train_loader_optimized, criterion, optimizer, device, use_amp=<span class="hljs-literal">True</span>)
+        epoch_time = time.time() - start_time
+
+        compile_results.append({
+            <span class="hljs-string">&#x27;mode&#x27;</span>: mode_name,
+            <span class="hljs-string">&#x27;throughput&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>],
+            <span class="hljs-string">&#x27;epoch_time&#x27;</span>: epoch_time,
+            <span class="hljs-string">&#x27;speedup_vs_baseline&#x27;</span>: metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>] / baseline_metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]
+        })
+
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Throughput: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> samples/sec&quot;</span>)
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Epoch time: <span class="hljs-subst">{epoch_time:<span class="hljs-number">.2</span>f}</span>s&quot;</span>)
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Speedup vs baseline: <span class="hljs-subst">{compile_results[-<span class="hljs-number">1</span>][<span class="hljs-string">&#x27;speedup_vs_baseline&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="22" lang="en-IN">
+<h1 id="exercise-51-continued">Exercise 5.1 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python">    <span class="hljs-comment"># Visualize torch.compile impact</span>
+    df_compile = pd.DataFrame(compile_results)
+
+    fig, (ax1, ax2) = plt.subplots(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, figsize=(<span class="hljs-number">12</span>, <span class="hljs-number">5</span>))
+
+    <span class="hljs-comment"># Throughput</span>
+    ax1.bar(df_compile[<span class="hljs-string">&#x27;mode&#x27;</span>], df_compile[<span class="hljs-string">&#x27;throughput&#x27;</span>], color=[<span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;purple&#x27;</span>])
+    ax1.set_ylabel(<span class="hljs-string">&#x27;Throughput (samples/sec)&#x27;</span>)
+    ax1.set_title(<span class="hljs-string">&#x27;Training Throughput&#x27;</span>)
+    ax1.grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+    <span class="hljs-keyword">for</span> i, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(df_compile[<span class="hljs-string">&#x27;throughput&#x27;</span>]):
+        ax1.text(i, v, <span class="hljs-string">f&#x27;<span class="hljs-subst">{v:<span class="hljs-number">.1</span>f}</span>&#x27;</span>, ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>)
+
+    <span class="hljs-comment"># Speedup</span>
+    ax2.bar(df_compile[<span class="hljs-string">&#x27;mode&#x27;</span>], df_compile[<span class="hljs-string">&#x27;speedup_vs_baseline&#x27;</span>], color=[<span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;purple&#x27;</span>])
+    ax2.axhline(y=<span class="hljs-number">1</span>, color=<span class="hljs-string">&#x27;red&#x27;</span>, linestyle=<span class="hljs-string">&#x27;--&#x27;</span>, alpha=<span class="hljs-number">0.5</span>, label=<span class="hljs-string">&#x27;Baseline&#x27;</span>)
+    ax2.set_ylabel(<span class="hljs-string">&#x27;Speedup vs Baseline&#x27;</span>)
+    ax2.set_title(<span class="hljs-string">&#x27;Overall Speedup&#x27;</span>)
+    ax2.legend()
+    ax2.grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+    <span class="hljs-keyword">for</span> i, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(df_compile[<span class="hljs-string">&#x27;speedup_vs_baseline&#x27;</span>]):
+        ax2.text(i, v, <span class="hljs-string">f&#x27;<span class="hljs-subst">{v:<span class="hljs-number">.2</span>f}</span>x&#x27;</span>, ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>)
+
+    plt.tight_layout()
+    plt.savefig(<span class="hljs-string">&#x27;compile_comparison.png&#x27;</span>, dpi=<span class="hljs-number">150</span>)
+    plt.show()
+
+    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(df_compile) &gt; <span class="hljs-number">1</span>:
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\ntorch.compile speedup: <span class="hljs-subst">{df_compile.iloc[<span class="hljs-number">1</span>][<span class="hljs-string">&#x27;throughput&#x27;</span>] / df_compile.iloc[<span class="hljs-number">0</span>][<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+</code></pre>
+<p><strong>Expected results</strong>: 1.1-1.4x additional speedup from torch.compile.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" lang="en-IN">
+<h1 id="part-6-comprehensive-comparison-20-min">Part 6: Comprehensive Comparison (20 min)</h1>
+<p><strong>Goal</strong>: Compare all optimizations and create final report.</p>
+<p><strong>Exercise 6.1: Final benchmark of all configurations</strong> (20 min)</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Define all configurations to test</span>
+final_configs = [
+    {
+        <span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;Baseline&#x27;</span>,
+        <span class="hljs-string">&#x27;num_workers&#x27;</span>: <span class="hljs-number">0</span>,
+        <span class="hljs-string">&#x27;pin_memory&#x27;</span>: <span class="hljs-literal">False</span>,
+        <span class="hljs-string">&#x27;use_amp&#x27;</span>: <span class="hljs-literal">False</span>,
+        <span class="hljs-string">&#x27;use_compile&#x27;</span>: <span class="hljs-literal">False</span>
+    },
+    {
+        <span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;Optimized DataLoader&#x27;</span>,
+        <span class="hljs-string">&#x27;num_workers&#x27;</span>: optimal_workers,
+        <span class="hljs-string">&#x27;pin_memory&#x27;</span>: <span class="hljs-literal">True</span>,
+        <span class="hljs-string">&#x27;use_amp&#x27;</span>: <span class="hljs-literal">False</span>,
+        <span class="hljs-string">&#x27;use_compile&#x27;</span>: <span class="hljs-literal">False</span>
+    },
+    {
+        <span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;+ AMP&#x27;</span>,
+        <span class="hljs-string">&#x27;num_workers&#x27;</span>: optimal_workers,
+        <span class="hljs-string">&#x27;pin_memory&#x27;</span>: <span class="hljs-literal">True</span>,
+        <span class="hljs-string">&#x27;use_amp&#x27;</span>: <span class="hljs-literal">True</span>,
+        <span class="hljs-string">&#x27;use_compile&#x27;</span>: <span class="hljs-literal">False</span>
+    },
+    {
+        <span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;+ torch.compile&#x27;</span>,
+        <span class="hljs-string">&#x27;num_workers&#x27;</span>: optimal_workers,
+        <span class="hljs-string">&#x27;pin_memory&#x27;</span>: <span class="hljs-literal">True</span>,
+        <span class="hljs-string">&#x27;use_amp&#x27;</span>: <span class="hljs-literal">True</span>,
+        <span class="hljs-string">&#x27;use_compile&#x27;</span>: <span class="hljs-built_in">hasattr</span>(torch, <span class="hljs-string">&#x27;compile&#x27;</span>)
+    }
+]
+
+final_results = []
+
+<span class="hljs-keyword">for</span> config <span class="hljs-keyword">in</span> final_configs:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\n<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">60</span>}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Configuration: <span class="hljs-subst">{config[<span class="hljs-string">&#x27;name&#x27;</span>]}</span>&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{<span class="hljs-string">&#x27;=&#x27;</span>*<span class="hljs-number">60</span>}</span>&quot;</span>)
+
+    <span class="hljs-comment"># Create dataloader</span>
+    dataloader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=<span class="hljs-literal">True</span>,
+        num_workers=config[<span class="hljs-string">&#x27;num_workers&#x27;</span>],
+        pin_memory=config[<span class="hljs-string">&#x27;pin_memory&#x27;</span>],
+        persistent_workers=config[<span class="hljs-string">&#x27;num_workers&#x27;</span>] &gt; <span class="hljs-number">0</span>
+    )
+
+    <span class="hljs-comment"># Create model</span>
+    model = models.resnet18(pretrained=<span class="hljs-literal">True</span>)
+    model.fc = nn.Linear(model.fc.in_features, <span class="hljs-number">10</span>)
+    model = model.to(device)
+
+    <span class="hljs-keyword">if</span> config[<span class="hljs-string">&#x27;use_compile&#x27;</span>]:
+        model = torch.<span class="hljs-built_in">compile</span>(model)
+
+    optimizer = optim.Adam(model.parameters(), lr=<span class="hljs-number">1e-4</span>)
+
+    <span class="hljs-comment"># Warmup</span>
+    <span class="hljs-keyword">for</span> i, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(dataloader):
+        <span class="hljs-keyword">if</span> i &gt;= <span class="hljs-number">5</span>:
+            <span class="hljs-keyword">break</span>
+        images, labels = batch
+        images, labels = images.to(device), labels.to(device)
+        <span class="hljs-keyword">if</span> config[<span class="hljs-string">&#x27;use_amp&#x27;</span>]:
+            <span class="hljs-keyword">with</span> autocast():
+                _ = model(images)
+        <span class="hljs-keyword">else</span>:
+            _ = model(images)
+
+    <span class="hljs-comment"># Measure</span>
+    torch.cuda.reset_peak_memory_stats() <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span>
+    start_time = time.time()
+
+    metrics = train_epoch_amp(model, dataloader, criterion, optimizer, device, use_amp=config[<span class="hljs-string">&#x27;use_amp&#x27;</span>])
+
+    epoch_time = time.time() - start_time
+    peak_memory = torch.cuda.max_memory_allocated() / <span class="hljs-number">1e6</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>
+
+    final_results.append({
+        <span class="hljs-string">&#x27;Configuration&#x27;</span>: config[<span class="hljs-string">&#x27;name&#x27;</span>],
+        <span class="hljs-string">&#x27;Throughput (samples/sec)&#x27;</span>: <span class="hljs-string">f&quot;<span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>&quot;</span>,
+        <span class="hljs-string">&#x27;Epoch Time (s)&#x27;</span>: <span class="hljs-string">f&quot;<span class="hljs-subst">{epoch_time:<span class="hljs-number">.2</span>f}</span>&quot;</span>,
+        <span class="hljs-string">&#x27;Peak Memory (MB)&#x27;</span>: <span class="hljs-string">f&quot;<span class="hljs-subst">{peak_memory:<span class="hljs-number">.0</span>f}</span>&quot;</span>,
+        <span class="hljs-string">&#x27;Speedup&#x27;</span>: <span class="hljs-string">f&quot;<span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>] / baseline_metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>x&quot;</span>,
+        <span class="hljs-string">&#x27;Accuracy (%)&#x27;</span>: <span class="hljs-string">f&quot;<span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;accuracy&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>&quot;</span>
+    })
+
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Throughput: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span> samples/sec&quot;</span>)
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Speedup: <span class="hljs-subst">{metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>] / baseline_metrics[<span class="hljs-string">&#x27;throughput&#x27;</span>]:<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" lang="en-IN">
+<h1 id="exercise-61-continued">Exercise 6.1 (continued)</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Create comprehensive comparison table</span>
+df_final = pd.DataFrame(final_results)
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\n&quot;</span> + <span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">80</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;FINAL OPTIMIZATION SUMMARY&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">80</span>)
+<span class="hljs-built_in">print</span>(df_final.to_string(index=<span class="hljs-literal">False</span>))
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">80</span>)
+
+<span class="hljs-comment"># Save to CSV</span>
+df_final.to_csv(<span class="hljs-string">&#x27;optimization_results.csv&#x27;</span>, index=<span class="hljs-literal">False</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\nResults saved to optimization_results.csv&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="25" lang="en-IN">
+<h1 id="exercise-62-create-visualization-dashboard">Exercise 6.2: Create visualization dashboard</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Extract numeric values for plotting</span>
+df_plot = pd.DataFrame({
+    <span class="hljs-string">&#x27;config&#x27;</span>: [r[<span class="hljs-string">&#x27;Configuration&#x27;</span>] <span class="hljs-keyword">for</span> r <span class="hljs-keyword">in</span> final_results],
+    <span class="hljs-string">&#x27;throughput&#x27;</span>: [<span class="hljs-built_in">float</span>(r[<span class="hljs-string">&#x27;Throughput (samples/sec)&#x27;</span>]) <span class="hljs-keyword">for</span> r <span class="hljs-keyword">in</span> final_results],
+    <span class="hljs-string">&#x27;memory&#x27;</span>: [<span class="hljs-built_in">float</span>(r[<span class="hljs-string">&#x27;Peak Memory (MB)&#x27;</span>]) <span class="hljs-keyword">for</span> r <span class="hljs-keyword">in</span> final_results],
+    <span class="hljs-string">&#x27;speedup&#x27;</span>: [<span class="hljs-built_in">float</span>(r[<span class="hljs-string">&#x27;Speedup&#x27;</span>].replace(<span class="hljs-string">&#x27;x&#x27;</span>, <span class="hljs-string">&#x27;&#x27;</span>)) <span class="hljs-keyword">for</span> r <span class="hljs-keyword">in</span> final_results]
+})
+
+<span class="hljs-comment"># Create comprehensive visualization</span>
+fig = plt.figure(figsize=(<span class="hljs-number">16</span>, <span class="hljs-number">10</span>))
+gs = fig.add_gridspec(<span class="hljs-number">3</span>, <span class="hljs-number">2</span>, hspace=<span class="hljs-number">0.3</span>, wspace=<span class="hljs-number">0.3</span>)
+
+<span class="hljs-comment"># 1. Throughput comparison</span>
+ax1 = fig.add_subplot(gs[<span class="hljs-number">0</span>, :])
+bars = ax1.bar(df_plot[<span class="hljs-string">&#x27;config&#x27;</span>], df_plot[<span class="hljs-string">&#x27;throughput&#x27;</span>], color=[<span class="hljs-string">&#x27;gray&#x27;</span>, <span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>, <span class="hljs-string">&#x27;purple&#x27;</span>])
+ax1.set_ylabel(<span class="hljs-string">&#x27;Throughput (samples/sec)&#x27;</span>, fontsize=<span class="hljs-number">12</span>)
+ax1.set_title(<span class="hljs-string">&#x27;Training Throughput Comparison&#x27;</span>, fontsize=<span class="hljs-number">14</span>, fontweight=<span class="hljs-string">&#x27;bold&#x27;</span>)
+ax1.grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+ax1.tick_params(axis=<span class="hljs-string">&#x27;x&#x27;</span>, rotation=<span class="hljs-number">15</span>)
+<span class="hljs-keyword">for</span> bar <span class="hljs-keyword">in</span> bars:
+    height = bar.get_height()
+    ax1.text(bar.get_x() + bar.get_width()/<span class="hljs-number">2.</span>, height,
+             <span class="hljs-string">f&#x27;<span class="hljs-subst">{height:<span class="hljs-number">.1</span>f}</span>&#x27;</span>,
+             ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>, fontsize=<span class="hljs-number">10</span>)
+
+<span class="hljs-comment"># 2. Speedup progression</span>
+ax2 = fig.add_subplot(gs[<span class="hljs-number">1</span>, <span class="hljs-number">0</span>])
+ax2.plot(<span class="hljs-built_in">range</span>(<span class="hljs-built_in">len</span>(df_plot)), df_plot[<span class="hljs-string">&#x27;speedup&#x27;</span>], marker=<span class="hljs-string">&#x27;o&#x27;</span>, linewidth=<span class="hljs-number">2</span>, markersize=<span class="hljs-number">8</span>, color=<span class="hljs-string">&#x27;green&#x27;</span>)
+ax2.axhline(y=<span class="hljs-number">1</span>, color=<span class="hljs-string">&#x27;red&#x27;</span>, linestyle=<span class="hljs-string">&#x27;--&#x27;</span>, alpha=<span class="hljs-number">0.5</span>, label=<span class="hljs-string">&#x27;Baseline&#x27;</span>)
+ax2.set_xticks(<span class="hljs-built_in">range</span>(<span class="hljs-built_in">len</span>(df_plot)))
+ax2.set_xticklabels(df_plot[<span class="hljs-string">&#x27;config&#x27;</span>], rotation=<span class="hljs-number">15</span>, ha=<span class="hljs-string">&#x27;right&#x27;</span>)
+ax2.set_ylabel(<span class="hljs-string">&#x27;Cumulative Speedup&#x27;</span>, fontsize=<span class="hljs-number">12</span>)
+ax2.set_title(<span class="hljs-string">&#x27;Optimization Progress&#x27;</span>, fontsize=<span class="hljs-number">12</span>, fontweight=<span class="hljs-string">&#x27;bold&#x27;</span>)
+ax2.legend()
+ax2.grid(<span class="hljs-literal">True</span>, alpha=<span class="hljs-number">0.3</span>)
+<span class="hljs-keyword">for</span> i, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(df_plot[<span class="hljs-string">&#x27;speedup&#x27;</span>]):
+    ax2.text(i, v + <span class="hljs-number">0.05</span>, <span class="hljs-string">f&#x27;<span class="hljs-subst">{v:<span class="hljs-number">.2</span>f}</span>x&#x27;</span>, ha=<span class="hljs-string">&#x27;center&#x27;</span>, fontsize=<span class="hljs-number">9</span>)
+
+<span class="hljs-comment"># 3. Memory usage</span>
+ax3 = fig.add_subplot(gs[<span class="hljs-number">1</span>, <span class="hljs-number">1</span>])
+bars = ax3.bar(df_plot[<span class="hljs-string">&#x27;config&#x27;</span>], df_plot[<span class="hljs-string">&#x27;memory&#x27;</span>], color=[<span class="hljs-string">&#x27;gray&#x27;</span>, <span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>, <span class="hljs-string">&#x27;purple&#x27;</span>])
+ax3.set_ylabel(<span class="hljs-string">&#x27;Peak Memory (MB)&#x27;</span>, fontsize=<span class="hljs-number">12</span>)
+ax3.set_title(<span class="hljs-string">&#x27;Memory Usage&#x27;</span>, fontsize=<span class="hljs-number">12</span>, fontweight=<span class="hljs-string">&#x27;bold&#x27;</span>)
+ax3.grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+ax3.tick_params(axis=<span class="hljs-string">&#x27;x&#x27;</span>, rotation=<span class="hljs-number">15</span>)
+<span class="hljs-keyword">for</span> bar <span class="hljs-keyword">in</span> bars:
+    height = bar.get_height()
+    ax3.text(bar.get_x() + bar.get_width()/<span class="hljs-number">2.</span>, height,
+             <span class="hljs-string">f&#x27;<span class="hljs-subst">{height:<span class="hljs-number">.0</span>f}</span>&#x27;</span>,
+             ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>, fontsize=<span class="hljs-number">9</span>)
+
+<span class="hljs-comment"># 4. Incremental speedup</span>
+ax4 = fig.add_subplot(gs[<span class="hljs-number">2</span>, :])
+incremental_speedup = [<span class="hljs-number">1.0</span>]
+<span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">1</span>, <span class="hljs-built_in">len</span>(df_plot)):
+    incremental_speedup.append(df_plot[<span class="hljs-string">&#x27;speedup&#x27;</span>].iloc[i] / df_plot[<span class="hljs-string">&#x27;speedup&#x27;</span>].iloc[i-<span class="hljs-number">1</span>])
+
+bars = ax4.bar(df_plot[<span class="hljs-string">&#x27;config&#x27;</span>], incremental_speedup, color=[<span class="hljs-string">&#x27;gray&#x27;</span>, <span class="hljs-string">&#x27;blue&#x27;</span>, <span class="hljs-string">&#x27;green&#x27;</span>, <span class="hljs-string">&#x27;purple&#x27;</span>])
+ax4.axhline(y=<span class="hljs-number">1</span>, color=<span class="hljs-string">&#x27;red&#x27;</span>, linestyle=<span class="hljs-string">&#x27;--&#x27;</span>, alpha=<span class="hljs-number">0.5</span>, label=<span class="hljs-string">&#x27;No change&#x27;</span>)
+ax4.set_ylabel(<span class="hljs-string">&#x27;Incremental Speedup&#x27;</span>, fontsize=<span class="hljs-number">12</span>)
+ax4.set_title(<span class="hljs-string">&#x27;Speedup from Each Optimization Step&#x27;</span>, fontsize=<span class="hljs-number">12</span>, fontweight=<span class="hljs-string">&#x27;bold&#x27;</span>)
+ax4.grid(axis=<span class="hljs-string">&#x27;y&#x27;</span>, alpha=<span class="hljs-number">0.3</span>)
+ax4.legend()
+ax4.tick_params(axis=<span class="hljs-string">&#x27;x&#x27;</span>, rotation=<span class="hljs-number">15</span>)
+<span class="hljs-keyword">for</span> bar <span class="hljs-keyword">in</span> bars:
+    height = bar.get_height()
+    ax4.text(bar.get_x() + bar.get_width()/<span class="hljs-number">2.</span>, height,
+             <span class="hljs-string">f&#x27;<span class="hljs-subst">{height:<span class="hljs-number">.2</span>f}</span>x&#x27;</span>,
+             ha=<span class="hljs-string">&#x27;center&#x27;</span>, va=<span class="hljs-string">&#x27;bottom&#x27;</span>, fontsize=<span class="hljs-number">9</span>)
+
+plt.suptitle(<span class="hljs-string">&#x27;PyTorch Training Optimization Dashboard&#x27;</span>, fontsize=<span class="hljs-number">16</span>, fontweight=<span class="hljs-string">&#x27;bold&#x27;</span>, y=<span class="hljs-number">0.995</span>)
+plt.savefig(<span class="hljs-string">&#x27;optimization_dashboard.png&#x27;</span>, dpi=<span class="hljs-number">150</span>, bbox_inches=<span class="hljs-string">&#x27;tight&#x27;</span>)
+plt.show()
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\nFinal speedup: <span class="hljs-subst">{df_plot[<span class="hljs-string">&#x27;speedup&#x27;</span>].iloc[-<span class="hljs-number">1</span>]:<span class="hljs-number">.2</span>f}</span>x&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Total time saved per epoch: <span class="hljs-subst">{baseline_metrics[<span class="hljs-string">&#x27;epoch_time&#x27;</span>] - (baseline_metrics[<span class="hljs-string">&#x27;epoch_time&#x27;</span>] / df_plot[<span class="hljs-string">&#x27;speedup&#x27;</span>].iloc[-<span class="hljs-number">1</span>]):<span class="hljs-number">.2</span>f}</span>s&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="26" lang="en-IN">
+<h1 id="deliverables">Deliverables</h1>
+<p><strong>Required files to submit:</strong></p>
+<ol>
+<li>
+<p><strong><code>optimization_report.md</code></strong>:</p>
+<ul>
+<li>Summary of findings</li>
+<li>Table of all configurations tested</li>
+<li>Analysis of bottlenecks identified</li>
+<li>Recommendations for production deployment</li>
 </ul>
 </li>
-<li><code>optimized_train.py</code>: The final script with AMP + Workers.</li>
-<li><code>pruning_demo.py</code>: Script showing sparsity calculation.</li>
+<li>
+<p><strong><code>optimized_training.py</code></strong>:</p>
+<ul>
+<li>Clean, production-ready training script with all optimizations</li>
+</ul>
+</li>
+<li>
+<p><strong>Visualizations</strong>:</p>
+<ul>
+<li><code>optimization_dashboard.png</code></li>
+<li><code>num_workers_comparison.png</code></li>
+<li><code>amp_comparison.png</code></li>
+<li><code>dataloader_optimization.png</code></li>
+</ul>
+</li>
+<li>
+<p><strong><code>optimization_results.csv</code></strong>:</p>
+<ul>
+<li>Detailed metrics for all configurations</li>
+</ul>
+</li>
 </ol>
-<p><strong>Challenge</strong>: Try <code>torch.compile(model)</code> (PyTorch 2.0) and report the speedup!</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="27" lang="en-IN">
+<h1 id="report-template">Report Template</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-markdown"><span class="hljs-section"># Profiling &amp; Optimization Report</span>
+
+<span class="hljs-section">## Executive Summary</span>
+<span class="hljs-bullet">-</span> Baseline throughput: X samples/sec
+<span class="hljs-bullet">-</span> Optimized throughput: Y samples/sec
+<span class="hljs-bullet">-</span> <span class="hljs-strong">**Final speedup: Zx**</span>
+<span class="hljs-bullet">-</span> Total optimization time: N hours
+
+<span class="hljs-section">## Bottlenecks Identified</span>
+<span class="hljs-bullet">1.</span> <span class="hljs-strong">**Data Loading**</span>: [Description and evidence]
+<span class="hljs-bullet">2.</span> <span class="hljs-strong">**GPU Compute**</span>: [Description and evidence]
+<span class="hljs-bullet">3.</span> <span class="hljs-strong">**Memory**</span>: [Description and evidence]
+
+<span class="hljs-section">## Optimizations Applied</span>
+
+<span class="hljs-section">### 1. DataLoader Optimization</span>
+<span class="hljs-bullet">-</span> Configuration: num<span class="hljs-emphasis">_workers=X, pin_</span>memory=True
+<span class="hljs-bullet">-</span> Speedup: Xx
+<span class="hljs-bullet">-</span> Impact: [High/Medium/Low]
+
+<span class="hljs-section">### 2. Mixed Precision (AMP)</span>
+<span class="hljs-bullet">-</span> Speedup: Xx
+<span class="hljs-bullet">-</span> Memory savings: X%
+<span class="hljs-bullet">-</span> Impact: [High/Medium/Low]
+
+<span class="hljs-section">### 3. torch.compile</span>
+<span class="hljs-bullet">-</span> Speedup: Xx
+<span class="hljs-bullet">-</span> Impact: [High/Medium/Low]
+
+<span class="hljs-section">## Production Recommendations</span>
+<span class="hljs-bullet">1.</span> [Recommendation 1]
+<span class="hljs-bullet">2.</span> [Recommendation 2]
+<span class="hljs-bullet">3.</span> [Recommendation 3]
+
+<span class="hljs-section">## Lessons Learned</span>
+<span class="hljs-bullet">-</span> [Lesson 1]
+<span class="hljs-bullet">-</span> [Lesson 2]
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="28" lang="en-IN">
+<h1 id="bonus-challenges-optional">Bonus Challenges (Optional)</h1>
+<p><strong>Challenge 1: Profile on CPU</strong> (30 min)</p>
+<ul>
+<li>Run all experiments on CPU</li>
+<li>Compare optimization strategies (some may not help on CPU!)</li>
+<li>Identify CPU-specific bottlenecks</li>
+</ul>
+<p><strong>Challenge 2: Larger model</strong> (45 min)</p>
+<ul>
+<li>Try ResNet-50 instead of ResNet-18</li>
+<li>Will you run out of memory?</li>
+<li>Which optimizations are most critical?</li>
+</ul>
+<p><strong>Challenge 3: Custom profiling</strong> (60 min)</p>
+<ul>
+<li>Use <code>cProfile</code> to profile Python code</li>
+<li>Use <code>line_profiler</code> for line-level profiling</li>
+<li>Create custom timing decorators</li>
+</ul>
+<p><strong>Challenge 4: Distributed training</strong> (Advanced)</p>
+<ul>
+<li>Use <code>torch.nn.DataParallel</code> for multi-GPU</li>
+<li>Compare single GPU vs multi-GPU speedup</li>
+<li>Measure communication overhead</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="29" lang="en-IN">
+<h1 id="key-takeaways">Key Takeaways</h1>
+<ol>
+<li><strong>Profile first, optimize second</strong> - Don't guess bottlenecks!</li>
+<li><strong>Quick wins matter</strong> - AMP and num_workers give major speedups with minimal effort</li>
+<li><strong>Memory vs speed trade-offs</strong> - Checkpointing saves memory but costs speed</li>
+<li><strong>Measure everything</strong> - Use proper benchmarking (warmup, multiple runs, statistics)</li>
+<li><strong>Cumulative gains</strong> - Small optimizations compound to major improvements</li>
+<li><strong>Production readiness</strong> - Optimized code should be clean and maintainable</li>
+</ol>
+<p><strong>Expected final speedup</strong>: 2-3x with all optimizations combined!</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="30" lang="en-IN">
+<h1 id="additional-resources">Additional Resources</h1>
+<p><strong>PyTorch Documentation:</strong></p>
+<ul>
+<li>Profiler: <a href="https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html">https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html</a></li>
+<li>AMP: <a href="https://pytorch.org/docs/stable/amp.html">https://pytorch.org/docs/stable/amp.html</a></li>
+<li>torch.compile: <a href="https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html">https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html</a></li>
+</ul>
+<p><strong>Profiling Tools:</strong></p>
+<ul>
+<li>TensorBoard: <a href="https://www.tensorflow.org/tensorboard">https://www.tensorflow.org/tensorboard</a></li>
+<li>Chrome Tracing: chrome://tracing</li>
+<li>NVIDIA Nsight Systems: <a href="https://developer.nvidia.com/nsight-systems">https://developer.nvidia.com/nsight-systems</a></li>
+</ul>
+<p><strong>Further Reading:</strong></p>
+<ul>
+<li>&quot;Mixed Precision Training&quot; (Micikevicius et al., 2018)</li>
+<li>&quot;PyTorch 2.0: The Journey to Bringing Compiler Technologies to PyTorch&quot;</li>
+<li>&quot;Training ImageNet in 1 Hour&quot; (Goyal et al., 2017)</li>
+</ul>
 </section>
 <script>!function(){"use strict";const t={h1:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"1"},style:"display: block; font-size: 2em; margin-block-start: 0.67em; margin-block-end: 0.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h2:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"2"},style:"display: block; font-size: 1.5em; margin-block-start: 0.83em; margin-block-end: 0.83em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h3:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"3"},style:"display: block; font-size: 1.17em; margin-block-start: 1em; margin-block-end: 1em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h4:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"4"},style:"display: block; margin-block-start: 1.33em; margin-block-end: 1.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h5:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"5"},style:"display: block; font-size: 0.83em; margin-block-start: 1.67em; margin-block-end: 1.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h6:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"6"},style:"display: block; font-size: 0.67em; margin-block-start: 2.33em; margin-block-end: 2.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},span:{proto:()=>HTMLSpanElement},pre:{proto:()=>HTMLElement,style:"display: block; font-family: monospace; white-space: pre; margin: 1em 0; --marp-auto-scaling-white-space: pre;"}},e="data-marp-auto-scaling-wrapper",i="data-marp-auto-scaling-svg",n="data-marp-auto-scaling-container";class s extends HTMLElement{container;containerSize;containerObserver;svg;svgComputedStyle;svgPreserveAspectRatio="xMinYMid meet";wrapper;wrapperSize;wrapperObserver;constructor(){super();const t=t=>([e])=>{const{width:i,height:n}=e.contentRect;this[t]={width:i,height:n},this.updateSVGRect()};this.attachShadow({mode:"open"}),this.containerObserver=new ResizeObserver(t("containerSize")),this.wrapperObserver=new ResizeObserver((...e)=>{t("wrapperSize")(...e),this.flushSvgDisplay()})}static get observedAttributes(){return["data-downscale-only"]}connectedCallback(){this.shadowRoot.innerHTML=`\n<style>\n  svg[${i}] { display: block; width: 100%; height: auto; vertical-align: top; }\n  span[${n}] { display: table; white-space: var(--marp-auto-scaling-white-space, nowrap); width: max-content; }\n</style>\n<div ${e}>\n  <svg part="svg" ${i}>\n    <foreignObject><span ${n}><slot></slot></span></foreignObject>\n  </svg>\n</div>\n    `.split(/\n\s*/).join(""),this.wrapper=this.shadowRoot.querySelector(`div[${e}]`)??void 0;const t=this.svg;this.svg=this.wrapper?.querySelector(`svg[${i}]`)??void 0,this.svg!==t&&(this.svgComputedStyle=this.svg?window.getComputedStyle(this.svg):void 0),this.container=this.svg?.querySelector(`span[${n}]`)??void 0,this.observe()}disconnectedCallback(){this.svg=void 0,this.svgComputedStyle=void 0,this.wrapper=void 0,this.container=void 0,this.observe()}attributeChangedCallback(){this.observe()}flushSvgDisplay(){const{svg:t}=this;t&&(t.style.display="inline",requestAnimationFrame(()=>{t.style.display=""}))}observe(){this.containerObserver.disconnect(),this.wrapperObserver.disconnect(),this.wrapper&&this.wrapperObserver.observe(this.wrapper),this.container&&this.containerObserver.observe(this.container),this.svgComputedStyle&&this.observeSVGStyle(this.svgComputedStyle)}observeSVGStyle(t){const e=()=>{const i=(()=>{const e=t.getPropertyValue("--preserve-aspect-ratio");if(e)return e.trim();return`x${(({textAlign:t,direction:e})=>{if(t.endsWith("left"))return"Min";if(t.endsWith("right"))return"Max";if("start"===t||"end"===t){let i="rtl"===e;return"end"===t&&(i=!i),i?"Max":"Min"}return"Mid"})(t)}YMid meet`})();i!==this.svgPreserveAspectRatio&&(this.svgPreserveAspectRatio=i,this.updateSVGRect()),t===this.svgComputedStyle&&requestAnimationFrame(e)};e()}updateSVGRect(){let t=Math.ceil(this.containerSize?.width??0);const e=Math.ceil(this.containerSize?.height??0);void 0!==this.dataset.downscaleOnly&&(t=Math.max(t,this.wrapperSize?.width??0));const i=this.svg?.querySelector(":scope > foreignObject");if(i?.setAttribute("width",`${t}`),i?.setAttribute("height",`${e}`),this.svg&&(this.svg.setAttribute("viewBox",`0 0 ${t} ${e}`),this.svg.setAttribute("preserveAspectRatio",this.svgPreserveAspectRatio),this.svg.style.height=t<=0||e<=0?"0":""),this.container){const t=this.svgPreserveAspectRatio.toLowerCase();this.container.style.marginLeft=t.startsWith("xmid")||t.startsWith("xmax")?"auto":"0",this.container.style.marginRight=t.startsWith("xmi")?"auto":"0"}}}const r=(t,{attrs:e={},style:i})=>class extends t{constructor(...t){super(...t);for(const[t,i]of Object.entries(e))this.hasAttribute(t)||this.setAttribute(t,i);this._shadow()}static get observedAttributes(){return["data-auto-scaling"]}connectedCallback(){this._update()}attributeChangedCallback(){this._update()}_shadow(){if(!this.shadowRoot)try{this.attachShadow({mode:"open"})}catch(t){if(!(t instanceof Error&&"NotSupportedError"===t.name))throw t}return this.shadowRoot}_update(){const t=this._shadow();if(t){const e=i?`<style>:host { ${i} }</style>`:"";let n="<slot></slot>";const{autoScaling:s}=this.dataset;if(void 0!==s){n=`<marp-auto-scaling exportparts="svg:auto-scaling" ${"downscale-only"===s?"data-downscale-only":""}>${n}</marp-auto-scaling>`}t.innerHTML=e+n}}};let o;const a=Symbol(),l=()=>o??(o=!!document.createElement("div",{is:"marp-auto-scaling"}).outerHTML.startsWith("<div is"),o);let c;const d="marpitSVGPolyfill:setZoomFactor,",h=Symbol(),g=Symbol();const p=()=>{const t="Apple Computer, Inc."===navigator.vendor,e=t?[v]:[],i={then:e=>(t?(async()=>{if(void 0===c){const t=document.createElement("canvas");t.width=10,t.height=10;const e=t.getContext("2d"),i=new Image(10,10),n=new Promise(t=>{i.addEventListener("load",()=>t())});i.crossOrigin="anonymous",i.src="data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%20viewBox%3D%220%200%201%201%22%3E%3CforeignObject%20width%3D%221%22%20height%3D%221%22%20requiredExtensions%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%3E%3Cdiv%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%20style%3D%22width%3A%201px%3B%20height%3A%201px%3B%20background%3A%20red%3B%20position%3A%20relative%22%3E%3C%2Fdiv%3E%3C%2FforeignObject%3E%3C%2Fsvg%3E",await n,e.drawImage(i,0,0),c=e.getImageData(5,5,1,1).data[3]<128}return c})().then(t=>{null==e||e(t?[v]:[])}):null==e||e([]),i)};return Object.assign(e,i)};let m,u;function v(t){const e="object"==typeof t&&t.target||document,i="object"==typeof t?t.zoom:t;window[g]||(Object.defineProperty(window,g,{configurable:!0,value:!0}),document.body.style.zoom=1.0001,document.body.offsetHeight,document.body.style.zoom=1,window.addEventListener("message",({data:t,origin:e})=>{if(e===window.origin)try{if(t&&"string"==typeof t&&t.startsWith(d)){const[,e]=t.split(","),i=Number.parseFloat(e);Number.isNaN(i)||(u=i)}}catch(t){console.error(t)}}));let n=!1;Array.from(e.querySelectorAll("svg[data-marpit-svg]"),t=>{var e,s,r,o;t.style.transform||(t.style.transform="translateZ(0)");const a=i||u||t.currentScale||1;m!==a&&(m=a,n=a);const l=t.getBoundingClientRect(),{length:c}=t.children;for(let i=0;i<c;i+=1){const n=t.children[i];if(n.getScreenCTM){const t=n.getScreenCTM();if(t){const i=null!==(s=null===(e=n.x)||void 0===e?void 0:e.baseVal.value)&&void 0!==s?s:0,c=null!==(o=null===(r=n.y)||void 0===r?void 0:r.baseVal.value)&&void 0!==o?o:0,d=n.children.length;for(let e=0;e<d;e+=1){const s=n.children[e];if("SECTION"===s.tagName){const{style:e}=s;e.transformOrigin||(e.transformOrigin=`${-i}px ${-c}px`),e.transform=`scale(${a}) matrix(${t.a}, ${t.b}, ${t.c}, ${t.d}, ${t.e-l.left}, ${t.f-l.top}) translateZ(0.0001px)`;break}}}}}}),!1!==n&&Array.from(e.querySelectorAll("iframe"),({contentWindow:t})=>{null==t||t.postMessage(`${d}${n}`,"null"===window.origin?"*":window.origin)})}function w({once:t=!1,target:e=document}={}){const i=function(t=document){if(t[h])return t[h];let e=!0;const i=()=>{e=!1,delete t[h]};Object.defineProperty(t,h,{configurable:!0,value:i});let n=[],s=!1;(async()=>{try{n=await p()}finally{s=!0}})();const r=()=>{for(const e of n)e({target:t});s&&0===n.length||e&&window.requestAnimationFrame(r)};return r(),i}(e);return t?(i(),()=>{}):i}m=1,u=void 0;const b=Symbol(),y=(e=document)=>{if("undefined"==typeof window)throw new Error("Marp Core's browser script is valid only in browser context.");if(((e=document)=>{const i=window[a];i||customElements.define("marp-auto-scaling",s);for(const n of Object.keys(t)){const s=`marp-${n}`,o=t[n].proto();l()&&o!==HTMLElement?i||customElements.define(s,r(o,{style:t[n].style}),{extends:n}):(i||customElements.define(s,r(HTMLElement,t[n])),e.querySelectorAll(`${n}[is="${s}"]`).forEach(t=>{t.outerHTML=t.outerHTML.replace(new RegExp(`^<${n}`,"i"),`<${s}`).replace(new RegExp(`</${n}>$`,"i"),`</${s}>`)}))}window[a]=!0})(e),e[b])return e[b];const i=w({target:e}),n=()=>{i(),delete e[b]},o=Object.assign(n,{cleanup:n,update:()=>y(e)});return Object.defineProperty(e,b,{configurable:!0,value:o}),o},f=document.currentScript;y(f?f.getRootNode():document)}();
 </script></foreignObject></svg></div><script>/*!! License: https://unpkg.com/@marp-team/marp-cli@4.2.3/lib/bespoke.js.LICENSE.txt */

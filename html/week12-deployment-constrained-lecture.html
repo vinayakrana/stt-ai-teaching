@@ -13,7 +13,7 @@
 <p><strong>CS 203: Software Tools and Techniques for AI</strong><br />
 Prof. Nipun Batra, IIT Gandhinagar</p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="2" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="2" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="8">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="2" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="2" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
 <h1 id="the-edge-challenge">The &quot;Edge&quot; Challenge</h1>
 <p><strong>Scenario</strong>: You trained a ResNet-50. It's 100MB.<br />
 You want to run it on a Raspberry Pi or a Mobile Phone.</p>
@@ -26,103 +26,691 @@ You want to run it on a Raspberry Pi or a Mobile Phone.</p>
 </ol>
 <p><strong>Solution</strong>: Model Optimization.</p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="3" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="3" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="8">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="3" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="3" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="edge-vs-cloud-deployment">Edge vs Cloud Deployment</h1>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Aspect</th>
+<th style="text-align:left">Cloud</th>
+<th style="text-align:left">Edge</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Compute</strong></td>
+<td style="text-align:left">Unlimited (scalable)</td>
+<td style="text-align:left">Limited (fixed hardware)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Latency</strong></td>
+<td style="text-align:left">Network + Processing</td>
+<td style="text-align:left">Processing only</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Privacy</strong></td>
+<td style="text-align:left">Data leaves device</td>
+<td style="text-align:left">Data stays local</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Cost</strong></td>
+<td style="text-align:left">Per-request pricing</td>
+<td style="text-align:left">One-time hardware</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Connectivity</strong></td>
+<td style="text-align:left">Requires internet</td>
+<td style="text-align:left">Works offline</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use cases for Edge</strong>:</p>
+<ul>
+<li>Real-time (AR/VR, autonomous vehicles)</li>
+<li>Privacy-sensitive (medical, personal data)</li>
+<li>Offline scenarios (rural areas, airplanes)</li>
+<li>Cost at scale (millions of devices)</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="4" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="4" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="hardware-constraints">Hardware Constraints</h1>
+<p><strong>Mobile devices</strong> (phones, tablets):</p>
+<ul>
+<li>CPU: ARM-based (different instruction set)</li>
+<li>RAM: 2-8GB</li>
+<li>Storage: Limited app size</li>
+<li>Power: Battery-constrained</li>
+</ul>
+<p><strong>IoT devices</strong> (Raspberry Pi, Arduino):</p>
+<ul>
+<li>CPU: Very limited (1-4 cores, &lt; 2GHz)</li>
+<li>RAM: 512MB - 4GB</li>
+<li>No GPU or NPU in many cases</li>
+</ul>
+<p><strong>Edge servers</strong> (NVIDIA Jetson):</p>
+<ul>
+<li>Dedicated ML accelerators</li>
+<li>4-32GB RAM</li>
+<li>Power-efficient GPUs</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="5" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="5" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="model-optimization-taxonomy">Model Optimization Taxonomy</h1>
+<p><strong>Size reduction</strong>:</p>
+<ol>
+<li><strong>Quantization</strong>: Lower precision (FP32 → INT8)</li>
+<li><strong>Pruning</strong>: Remove weights</li>
+<li><strong>Knowledge Distillation</strong>: Train smaller model</li>
+<li><strong>Low-rank factorization</strong>: Decompose weight matrices</li>
+</ol>
+<p><strong>Speed optimization</strong>:<br />
+5. <strong>Operator fusion</strong>: Merge operations<br />
+6. <strong>Graph optimization</strong>: Simplify computation graph<br />
+7. <strong>Hardware acceleration</strong>: Use specialized chips</p>
+<p><strong>Architecture design</strong>:<br />
+8. <strong>Neural Architecture Search (NAS)</strong>: Find efficient architectures<br />
+9. <strong>Efficient architectures</strong>: MobileNet, EfficientNet</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="6" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="6" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
 <h1 id="techniques-overview">Techniques Overview</h1>
-<div class="mermaid">
-graph TD
-    A[Trained Model] --&gt; B[Quantization];
-    A --&gt; C[Pruning];
-    A --&gt; D[Knowledge Distillation];
-    A --&gt; E[Architecture Search];
-    B --&gt; F[Optimized Model];
-    C --&gt; F;
-    D --&gt; F;
-    E --&gt; F;
-</div>
+<p><img src="../figures/week12_optimization_techniques.png" alt="Model Optimization Techniques" /></p>
 <p><strong>Today's Focus</strong>:</p>
 <ol>
-<li><strong>Quantization</strong>: Lower precision math.</li>
-<li><strong>Pruning</strong>: Removing useless connections.</li>
-<li><strong>ONNX</strong>: Efficient Runtime.</li>
+<li><strong>Quantization</strong>: Lower precision math</li>
+<li><strong>Pruning</strong>: Removing useless connections</li>
+<li><strong>Knowledge Distillation</strong>: Train smaller student model</li>
+<li><strong>ONNX</strong>: Efficient cross-platform runtime</li>
 </ol>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="4" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="4" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="8">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="7" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="optimization-techniques-comparison">Optimization Techniques: Comparison</h1>
+<table>
+<thead>
+<tr>
+<th>Technique</th>
+<th>Size Reduction</th>
+<th>Speed Improvement</th>
+<th>Accuracy Impact</th>
+<th>Implementation Complexity</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Quantization (INT8)</strong></td>
+<td>4x (FP32→INT8)</td>
+<td>2-4x faster</td>
+<td>Minimal (&lt;1%)</td>
+<td>Low</td>
+<td>Always (first step)</td>
+</tr>
+<tr>
+<td><strong>Pruning (50%)</strong></td>
+<td>2x (half weights)</td>
+<td>1.5-2x faster</td>
+<td>Small (1-2%)</td>
+<td>Medium</td>
+<td>After quantization</td>
+</tr>
+<tr>
+<td><strong>Knowledge Distillation</strong></td>
+<td>Depends on student size</td>
+<td>Significant</td>
+<td>Can match teacher</td>
+<td>High</td>
+<td>When you can retrain</td>
+</tr>
+<tr>
+<td><strong>NAS</strong></td>
+<td>Variable</td>
+<td>Variable</td>
+<td>Can improve</td>
+<td>Very High</td>
+<td>Research/new domains</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Typical pipeline</strong>: Train → Prune → Quantize → Export (ONNX) → Deploy</p>
+<p><strong>Best bang for buck</strong>: Quantization (easy + effective)</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="8" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
 <h1 id="quantization-theory">Quantization: Theory</h1>
 <p><strong>Standard Training</strong>: Float32 (32-bit floating point).<br />
 <strong>Quantization</strong>: Convert to Int8 (8-bit integer).</p>
 <p><strong>Formula</strong>:</p>
 <p><mjx-container class="MathJax" jax="SVG" display="true" style="margin: 0;"><svg style="vertical-align: -1.602ex; display: block; width: 100%; height: auto; max-height: 4.202ex;" xmlns="http://www.w3.org/2000/svg" width="23.587ex" height="4.202ex" role="img" focusable="false" viewBox="0 -1149.5 10425.7 1857.5"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D444" d="M399 -80Q399 -47 400 -30T402 -11V-7L387 -11Q341 -22 303 -22Q208 -22 138 35T51 201Q50 209 50 244Q50 346 98 438T227 601Q351 704 476 704Q514 704 524 703Q621 689 680 617T740 435Q740 255 592 107Q529 47 461 16L444 8V3Q444 2 449 -24T470 -66T516 -82Q551 -82 583 -60T625 -3Q631 11 638 11Q647 11 649 2Q649 -6 639 -34T611 -100T557 -165T481 -194Q399 -194 399 -87V-80ZM636 468Q636 523 621 564T580 625T530 655T477 665Q429 665 379 640Q277 591 215 464T153 216Q153 110 207 59Q231 38 236 38V46Q236 86 269 120T347 155Q372 155 390 144T417 114T429 82T435 55L448 64Q512 108 557 185T619 334T636 468ZM314 18Q362 18 404 39L403 49Q399 104 366 115Q354 117 347 117Q344 117 341 117T337 118Q317 118 296 98T274 52Q274 18 314 18Z"></path></g><g data-mml-node="mo" transform="translate(791,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(1180,0)"><path data-c="1D465" d="M52 289Q59 331 106 386T222 442Q257 442 286 424T329 379Q371 442 430 442Q467 442 494 420T522 361Q522 332 508 314T481 292T458 288Q439 288 427 299T415 328Q415 374 465 391Q454 404 425 404Q412 404 406 402Q368 386 350 336Q290 115 290 78Q290 50 306 38T341 26Q378 26 414 59T463 140Q466 150 469 151T485 153H489Q504 153 504 145Q504 144 502 134Q486 77 440 33T333 -11Q263 -11 227 52Q186 -10 133 -10H127Q78 -10 57 16T35 71Q35 103 54 123T99 143Q142 143 142 101Q142 81 130 66T107 46T94 41L91 40Q91 39 97 36T113 29T132 26Q168 26 194 71Q203 87 217 139T245 247T261 313Q266 340 266 352Q266 380 251 392T217 404Q177 404 142 372T93 290Q91 281 88 280T72 278H58Q52 284 52 289Z"></path></g><g data-mml-node="mo" transform="translate(1752,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(2418.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="mtext" transform="translate(3474.6,0)"><path data-c="72" d="M36 46H50Q89 46 97 60V68Q97 77 97 91T98 122T98 161T98 203Q98 234 98 269T98 328L97 351Q94 370 83 376T38 385H20V408Q20 431 22 431L32 432Q42 433 60 434T96 436Q112 437 131 438T160 441T171 442H174V373Q213 441 271 441H277Q322 441 343 419T364 373Q364 352 351 337T313 322Q288 322 276 338T263 372Q263 381 265 388T270 400T273 405Q271 407 250 401Q234 393 226 386Q179 341 179 207V154Q179 141 179 127T179 101T180 81T180 66V61Q181 59 183 57T188 54T193 51T200 49T207 48T216 47T225 47T235 46T245 46H276V0H267Q249 3 140 3Q37 3 28 0H20V46H36Z"></path><path data-c="6F" d="M28 214Q28 309 93 378T250 448Q340 448 405 380T471 215Q471 120 407 55T250 -10Q153 -10 91 57T28 214ZM250 30Q372 30 372 193V225V250Q372 272 371 288T364 326T348 362T317 390T268 410Q263 411 252 411Q222 411 195 399Q152 377 139 338T126 246V226Q126 130 145 91Q177 30 250 30Z" transform="translate(392,0)"></path><path data-c="75" d="M383 58Q327 -10 256 -10H249Q124 -10 105 89Q104 96 103 226Q102 335 102 348T96 369Q86 385 36 385H25V408Q25 431 27 431L38 432Q48 433 67 434T105 436Q122 437 142 438T172 441T184 442H187V261Q188 77 190 64Q193 49 204 40Q224 26 264 26Q290 26 311 35T343 58T363 90T375 120T379 144Q379 145 379 161T380 201T380 248V315Q380 361 370 372T320 385H302V431Q304 431 378 436T457 442H464V264Q464 84 465 81Q468 61 479 55T524 46H542V0Q540 0 467 -5T390 -11H383V58Z" transform="translate(892,0)"></path><path data-c="6E" d="M41 46H55Q94 46 102 60V68Q102 77 102 91T102 122T103 161T103 203Q103 234 103 269T102 328V351Q99 370 88 376T43 385H25V408Q25 431 27 431L37 432Q47 433 65 434T102 436Q119 437 138 438T167 441T178 442H181V402Q181 364 182 364T187 369T199 384T218 402T247 421T285 437Q305 442 336 442Q450 438 463 329Q464 322 464 190V104Q464 66 466 59T477 49Q498 46 526 46H542V0H534L510 1Q487 2 460 2T422 3Q319 3 310 0H302V46H318Q379 46 379 62Q380 64 380 200Q379 335 378 343Q372 371 358 385T334 402T308 404Q263 404 229 370Q202 343 195 315T187 232V168V108Q187 78 188 68T191 55T200 49Q221 46 249 46H265V0H257L234 1Q210 2 183 2T145 3Q42 3 33 0H25V46H41Z" transform="translate(1448,0)"></path><path data-c="64" d="M376 495Q376 511 376 535T377 568Q377 613 367 624T316 637H298V660Q298 683 300 683L310 684Q320 685 339 686T376 688Q393 689 413 690T443 693T454 694H457V390Q457 84 458 81Q461 61 472 55T517 46H535V0Q533 0 459 -5T380 -11H373V44L365 37Q307 -11 235 -11Q158 -11 96 50T34 215Q34 315 97 378T244 442Q319 442 376 393V495ZM373 342Q328 405 260 405Q211 405 173 369Q146 341 139 305T131 211Q131 155 138 120T173 59Q203 26 251 26Q322 26 373 103V342Z" transform="translate(2004,0)"></path></g><g data-mml-node="mrow" transform="translate(6201.2,0)"><g data-mml-node="mo" transform="translate(0 -0.5)"><path data-c="28" d="M180 96T180 250T205 541T266 770T353 944T444 1069T527 1150H555Q561 1144 561 1141Q561 1137 545 1120T504 1072T447 995T386 878T330 721T288 513T272 251Q272 133 280 56Q293 -87 326 -209T399 -405T475 -531T536 -609T561 -640Q561 -643 555 -649H527Q483 -612 443 -568T353 -443T266 -270T205 -41Z"></path></g><g data-mml-node="mfrac" transform="translate(597,0)"><g data-mml-node="mi" transform="translate(256.5,676)"><path data-c="1D465" d="M52 289Q59 331 106 386T222 442Q257 442 286 424T329 379Q371 442 430 442Q467 442 494 420T522 361Q522 332 508 314T481 292T458 288Q439 288 427 299T415 328Q415 374 465 391Q454 404 425 404Q412 404 406 402Q368 386 350 336Q290 115 290 78Q290 50 306 38T341 26Q378 26 414 59T463 140Q466 150 469 151T485 153H489Q504 153 504 145Q504 144 502 134Q486 77 440 33T333 -11Q263 -11 227 52Q186 -10 133 -10H127Q78 -10 57 16T35 71Q35 103 54 123T99 143Q142 143 142 101Q142 81 130 66T107 46T94 41L91 40Q91 39 97 36T113 29T132 26Q168 26 194 71Q203 87 217 139T245 247T261 313Q266 340 266 352Q266 380 251 392T217 404Q177 404 142 372T93 290Q91 281 88 280T72 278H58Q52 284 52 289Z"></path></g><g data-mml-node="mi" transform="translate(220,-686)"><path data-c="1D446" d="M308 24Q367 24 416 76T466 197Q466 260 414 284Q308 311 278 321T236 341Q176 383 176 462Q176 523 208 573T273 648Q302 673 343 688T407 704H418H425Q521 704 564 640Q565 640 577 653T603 682T623 704Q624 704 627 704T632 705Q645 705 645 698T617 577T585 459T569 456Q549 456 549 465Q549 471 550 475Q550 478 551 494T553 520Q553 554 544 579T526 616T501 641Q465 662 419 662Q362 662 313 616T263 510Q263 480 278 458T319 427Q323 425 389 408T456 390Q490 379 522 342T554 242Q554 216 546 186Q541 164 528 137T492 78T426 18T332 -20Q320 -22 298 -22Q199 -22 144 33L134 44L106 13Q83 -14 78 -18T65 -22Q52 -22 52 -14Q52 -11 110 221Q112 227 130 227H143Q149 221 149 216Q149 214 148 207T144 186T142 153Q144 114 160 87T203 47T255 29T308 24Z"></path></g><rect width="845" height="60" x="120" y="220"></rect></g><g data-mml-node="mo" transform="translate(1904.2,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="mi" transform="translate(2904.4,0)"><path data-c="1D44D" d="M58 8Q58 23 64 35Q64 36 329 334T596 635L586 637Q575 637 512 637H500H476Q442 637 420 635T365 624T311 598T266 548T228 469Q227 466 226 463T224 458T223 453T222 450L221 448Q218 443 202 443Q185 443 182 453L214 561Q228 606 241 651Q249 679 253 681Q256 683 487 683H718Q723 678 723 675Q723 673 717 649Q189 54 188 52L185 49H274Q369 50 377 51Q452 60 500 100T579 247Q587 272 590 277T603 282H607Q628 282 628 271Q547 5 541 2Q538 0 300 0H124Q58 0 58 8Z"></path></g><g data-mml-node="mo" transform="translate(3627.4,0) translate(0 -0.5)"><path data-c="29" d="M35 1138Q35 1150 51 1150H56H69Q113 1113 153 1069T243 944T330 771T391 541T416 250T391 -40T330 -270T243 -443T152 -568T69 -649H56Q43 -649 39 -647T35 -637Q65 -607 110 -548Q283 -316 316 56Q324 133 324 251Q324 368 316 445Q278 877 48 1123Q36 1137 35 1138Z"></path></g></g></g></g></svg></mjx-container></p><ul>
-<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.05ex;" xmlns="http://www.w3.org/2000/svg" width="1.459ex" height="1.645ex" role="img" focusable="false" viewBox="0 -705 645 727"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D446" d="M308 24Q367 24 416 76T466 197Q466 260 414 284Q308 311 278 321T236 341Q176 383 176 462Q176 523 208 573T273 648Q302 673 343 688T407 704H418H425Q521 704 564 640Q565 640 577 653T603 682T623 704Q624 704 627 704T632 705Q645 705 645 698T617 577T585 459T569 456Q549 456 549 465Q549 471 550 475Q550 478 551 494T553 520Q553 554 544 579T526 616T501 641Q465 662 419 662Q362 662 313 616T263 510Q263 480 278 458T319 427Q323 425 389 408T456 390Q490 379 522 342T554 242Q554 216 546 186Q541 164 528 137T492 78T426 18T332 -20Q320 -22 298 -22Q199 -22 144 33L134 44L106 13Q83 -14 78 -18T65 -22Q52 -22 52 -14Q52 -11 110 221Q112 227 130 227H143Q149 221 149 216Q149 214 148 207T144 186T142 153Q144 114 160 87T203 47T255 29T308 24Z"></path></g></g></g></svg></mjx-container>: Scale</li>
-<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="1.636ex" height="1.545ex" role="img" focusable="false" viewBox="0 -683 723 683"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D44D" d="M58 8Q58 23 64 35Q64 36 329 334T596 635L586 637Q575 637 512 637H500H476Q442 637 420 635T365 624T311 598T266 548T228 469Q227 466 226 463T224 458T223 453T222 450L221 448Q218 443 202 443Q185 443 182 453L214 561Q228 606 241 651Q249 679 253 681Q256 683 487 683H718Q723 678 723 675Q723 673 717 649Q189 54 188 52L185 49H274Q369 50 377 51Q452 60 500 100T579 247Q587 272 590 277T603 282H607Q628 282 628 271Q547 5 541 2Q538 0 300 0H124Q58 0 58 8Z"></path></g></g></g></svg></mjx-container>: Zero-point</li>
+<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.05ex;" xmlns="http://www.w3.org/2000/svg" width="1.459ex" height="1.645ex" role="img" focusable="false" viewBox="0 -705 645 727"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D446" d="M308 24Q367 24 416 76T466 197Q466 260 414 284Q308 311 278 321T236 341Q176 383 176 462Q176 523 208 573T273 648Q302 673 343 688T407 704H418H425Q521 704 564 640Q565 640 577 653T603 682T623 704Q624 704 627 704T632 705Q645 705 645 698T617 577T585 459T569 456Q549 456 549 465Q549 471 550 475Q550 478 551 494T553 520Q553 554 544 579T526 616T501 641Q465 662 419 662Q362 662 313 616T263 510Q263 480 278 458T319 427Q323 425 389 408T456 390Q490 379 522 342T554 242Q554 216 546 186Q541 164 528 137T492 78T426 18T332 -20Q320 -22 298 -22Q199 -22 144 33L134 44L106 13Q83 -14 78 -18T65 -22Q52 -22 52 -14Q52 -11 110 221Q112 227 130 227H143Q149 221 149 216Q149 214 148 207T144 186T142 153Q144 114 160 87T203 47T255 29T308 24Z"></path></g></g></g></svg></mjx-container>: Scale (range / 255)</li>
+<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="1.636ex" height="1.545ex" role="img" focusable="false" viewBox="0 -683 723 683"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D44D" d="M58 8Q58 23 64 35Q64 36 329 334T596 635L586 637Q575 637 512 637H500H476Q442 637 420 635T365 624T311 598T266 548T228 469Q227 466 226 463T224 458T223 453T222 450L221 448Q218 443 202 443Q185 443 182 453L214 561Q228 606 241 651Q249 679 253 681Q256 683 487 683H718Q723 678 723 675Q723 673 717 649Q189 54 188 52L185 49H274Q369 50 377 51Q452 60 500 100T579 247Q587 272 590 277T603 282H607Q628 282 628 271Q547 5 541 2Q538 0 300 0H124Q58 0 58 8Z"></path></g></g></g></svg></mjx-container>: Zero-point (offset)</li>
 </ul>
 <p><strong>Impact</strong>:</p>
 <ul>
-<li><strong>Size</strong>: 32 bits -&gt; 8 bits = <strong>4x reduction</strong>.</li>
-<li><strong>Speed</strong>: Integer math is faster than float math on CPUs.</li>
-<li><strong>Accuracy</strong>: Minimal drop (&lt;1%) for robust models.</li>
+<li><strong>Size</strong>: 32 bits → 8 bits = <strong>4x reduction</strong></li>
+<li><strong>Speed</strong>: Integer math faster on CPUs (2-4x speedup)</li>
+<li><strong>Accuracy</strong>: Minimal drop (&lt;1%) for robust models</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="5" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="5" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="8">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="9" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="9" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="quantization-detailed-example">Quantization: Detailed Example</h1>
+<p><strong>Float32 weights</strong>: <code>[-2.5, -1.0, 0.0, 1.5, 3.0]</code></p>
+<p><strong>Quantization process</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># 1. Find min/max</span>
+min_val, max_val = -<span class="hljs-number">2.5</span>, <span class="hljs-number">3.0</span>
+
+<span class="hljs-comment"># 2. Calculate scale</span>
+scale = (max_val - min_val) / <span class="hljs-number">255</span>  <span class="hljs-comment"># 0.0216</span>
+
+<span class="hljs-comment"># 3. Calculate zero-point</span>
+zero_point = -<span class="hljs-built_in">int</span>(min_val / scale)  <span class="hljs-comment"># 116</span>
+
+<span class="hljs-comment"># 4. Quantize</span>
+quantized = <span class="hljs-built_in">round</span>(weights / scale + zero_point)
+<span class="hljs-comment"># Result: [0, 70, 116, 185, 255]</span>
+</code></pre>
+<p><strong>Dequantize</strong>: <code>(quantized - zero_point) * scale</code></p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="10" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
 <h1 id="types-of-quantization">Types of Quantization</h1>
-<ol>
-<li>
-<p><strong>Post-Training Quantization (PTQ)</strong>:</p>
+<p><strong>1. Post-Training Quantization (PTQ)</strong>:</p>
 <ul>
-<li>Train normal Float32 model.</li>
-<li>Calibrate with small dataset.</li>
-<li>Convert to Int8.</li>
-<li><em>Easiest</em>.</li>
+<li>Train normal FP32 model</li>
+<li>Calibrate with small dataset (~1000 samples)</li>
+<li>Convert to INT8</li>
+<li><strong>Pros</strong>: Easy, no retraining</li>
+<li><strong>Cons</strong>: Slight accuracy drop</li>
 </ul>
-</li>
-<li>
-<p><strong>Quantization-Aware Training (QAT)</strong>:</p>
+<p><strong>2. Quantization-Aware Training (QAT)</strong>:</p>
 <ul>
-<li>Simulate quantization <em>during</em> training.</li>
-<li>Model learns to adapt to lower precision.</li>
-<li><em>Best Accuracy</em>.</li>
+<li>Simulate quantization during training</li>
+<li>Model learns to adapt to lower precision</li>
+<li><strong>Pros</strong>: Best accuracy</li>
+<li><strong>Cons</strong>: Slower training</li>
 </ul>
-</li>
-</ol>
+<p><strong>3. Dynamic Quantization</strong>:</p>
+<ul>
+<li>Weights INT8, activations FP32</li>
+<li>No calibration needed</li>
+<li>Good for RNNs/Transformers</li>
+</ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="6" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="6" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="8">
-<h1 id="pruning-theory">Pruning: Theory</h1>
-<p><strong>Idea</strong>: Neural Networks are over-parameterized. Many weights are near zero.<br />
-<strong>Action</strong>: Set small weights to exactly zero.</p>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="11" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="11" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="quantization-granularity">Quantization Granularity</h1>
+<p><strong>Per-tensor quantization</strong>:</p>
+<ul>
+<li>Single scale for entire tensor</li>
+<li>Faster but less accurate</li>
+</ul>
+<p><strong>Per-channel quantization</strong>:</p>
+<ul>
+<li>Separate scale per conv channel</li>
+<li>Better accuracy</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> torch
+
+<span class="hljs-comment"># Per-tensor</span>
+model_int8 = torch.quantization.quantize_dynamic(
+    model, {torch.nn.Linear}, dtype=torch.qint8
+)
+
+<span class="hljs-comment"># Per-channel (after QAT)</span>
+model.qconfig = torch.quantization.get_default_qconfig(<span class="hljs-string">&#x27;fbgemm&#x27;</span>)
+torch.quantization.prepare_qat(model)
+<span class="hljs-comment"># Train...</span>
+torch.quantization.convert(model)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="12" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="12" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="pruning-theory">Pruning Theory</h1>
+<p><strong>Observation</strong>: Neural networks are over-parameterized.</p>
+<ul>
+<li>Many weights near zero</li>
+<li>Removing them barely affects accuracy</li>
+</ul>
+<p><strong>Magnitude-based pruning</strong>:</p>
+<ol>
+<li>Rank weights by absolute value</li>
+<li>Remove smallest X% (e.g., 50%)</li>
+<li>Fine-tune to recover accuracy</li>
+</ol>
 <p><strong>Structured vs Unstructured</strong>:</p>
 <ul>
-<li><strong>Unstructured</strong>: Random zeros. Good for compression, bad for speed (sparse matrices need hardware support).</li>
-<li><strong>Structured</strong>: Remove entire channels/filters. Good for speed (smaller matrix).</li>
+<li><strong>Unstructured</strong>: Remove individual weights → sparse matrices</li>
+<li><strong>Structured</strong>: Remove entire channels/neurons → smaller dense matrices</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="7" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="8">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="13" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="13" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="pruning-strategies">Pruning Strategies</h1>
+<p><strong>One-shot pruning</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> torch.nn.utils.prune <span class="hljs-keyword">as</span> prune
+
+<span class="hljs-comment"># Prune 30% of weights in layer</span>
+prune.l1_unstructured(module.conv1, name=<span class="hljs-string">&#x27;weight&#x27;</span>, amount=<span class="hljs-number">0.3</span>)
+</code></pre>
+<p><strong>Iterative pruning</strong> (better accuracy):</p>
+<ol>
+<li>Train to convergence</li>
+<li>Prune small %</li>
+<li>Fine-tune</li>
+<li>Repeat</li>
+</ol>
+<p><strong>Lottery Ticket Hypothesis</strong>:</p>
+<ul>
+<li>Subnetwork exists that can train to same accuracy</li>
+<li>Find it by pruning + reset + retrain</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="14" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="14" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="structured-pruning-example">Structured Pruning Example</h1>
+<p><strong>Remove entire filters</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-comment"># Prune 40% of filters in conv layer</span>
+prune.ln_structured(
+    module.conv1,
+    name=<span class="hljs-string">&quot;weight&quot;</span>,
+    amount=<span class="hljs-number">0.4</span>,
+    n=<span class="hljs-number">2</span>,      <span class="hljs-comment"># L2 norm</span>
+    dim=<span class="hljs-number">0</span>     <span class="hljs-comment"># Filter dimension</span>
+)
+</code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Actually reduces computation (not just params)</li>
+<li>No special hardware support needed</li>
+<li>Works well with quantization</li>
+</ul>
+<p><strong>Challenge</strong>: Harder to maintain accuracy than unstructured.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="15" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="15" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="knowledge-distillation">Knowledge Distillation</h1>
+<p><strong>Idea</strong>: Compress knowledge from large &quot;teacher&quot; to small &quot;student&quot;.</p>
+<p><strong>Process</strong>:</p>
+<ol>
+<li>Train large teacher model (high accuracy)</li>
+<li>Use teacher's soft outputs as targets</li>
+<li>Train small student to mimic teacher</li>
+</ol>
+<p><strong>Loss function</strong>:</p>
+<p><mjx-container class="MathJax" jax="SVG" display="true" style="margin: 0;"><svg style="vertical-align: -0.566ex; display: block; width: 100%; height: auto; max-height: 2.398ex;" xmlns="http://www.w3.org/2000/svg" width="49.163ex" height="2.398ex" role="img" focusable="false" viewBox="0 -810 21730.2 1060"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D43F" d="M228 637Q194 637 192 641Q191 643 191 649Q191 673 202 682Q204 683 217 683Q271 680 344 680Q485 680 506 683H518Q524 677 524 674T522 656Q517 641 513 637H475Q406 636 394 628Q387 624 380 600T313 336Q297 271 279 198T252 88L243 52Q243 48 252 48T311 46H328Q360 46 379 47T428 54T478 72T522 106T564 161Q580 191 594 228T611 270Q616 273 628 273H641Q647 264 647 262T627 203T583 83T557 9Q555 4 553 3T537 0T494 -1Q483 -1 418 -1T294 0H116Q32 0 32 10Q32 17 34 24Q39 43 44 45Q48 46 59 46H65Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Q285 635 228 637Z"></path></g><g data-mml-node="mo" transform="translate(958.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="mi" transform="translate(2014.6,0)"><path data-c="1D6FC" d="M34 156Q34 270 120 356T309 442Q379 442 421 402T478 304Q484 275 485 237V208Q534 282 560 374Q564 388 566 390T582 393Q603 393 603 385Q603 376 594 346T558 261T497 161L486 147L487 123Q489 67 495 47T514 26Q528 28 540 37T557 60Q559 67 562 68T577 70Q597 70 597 62Q597 56 591 43Q579 19 556 5T512 -10H505Q438 -10 414 62L411 69L400 61Q390 53 370 41T325 18T267 -2T203 -11Q124 -11 79 39T34 156ZM208 26Q257 26 306 47T379 90L403 112Q401 255 396 290Q382 405 304 405Q235 405 183 332Q156 292 139 224T121 120Q121 71 146 49T208 26Z"></path></g><g data-mml-node="mo" transform="translate(2876.8,0)"><path data-c="22C5" d="M78 250Q78 274 95 292T138 310Q162 310 180 294T199 251Q199 226 182 208T139 190T96 207T78 250Z"></path></g><g data-mml-node="msub" transform="translate(3377,0)"><g data-mml-node="mi"><path data-c="1D43F" d="M228 637Q194 637 192 641Q191 643 191 649Q191 673 202 682Q204 683 217 683Q271 680 344 680Q485 680 506 683H518Q524 677 524 674T522 656Q517 641 513 637H475Q406 636 394 628Q387 624 380 600T313 336Q297 271 279 198T252 88L243 52Q243 48 252 48T311 46H328Q360 46 379 47T428 54T478 72T522 106T564 161Q580 191 594 228T611 270Q616 273 628 273H641Q647 264 647 262T627 203T583 83T557 9Q555 4 553 3T537 0T494 -1Q483 -1 418 -1T294 0H116Q32 0 32 10Q32 17 34 24Q39 43 44 45Q48 46 59 46H65Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Q285 635 228 637Z"></path></g><g data-mml-node="TeXAtom" transform="translate(714,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D436" d="M50 252Q50 367 117 473T286 641T490 704Q580 704 633 653Q642 643 648 636T656 626L657 623Q660 623 684 649Q691 655 699 663T715 679T725 690L740 705H746Q760 705 760 698Q760 694 728 561Q692 422 692 421Q690 416 687 415T669 413H653Q647 419 647 422Q647 423 648 429T650 449T651 481Q651 552 619 605T510 659Q484 659 454 652T382 628T299 572T226 479Q194 422 175 346T156 222Q156 108 232 58Q280 24 350 24Q441 24 512 92T606 240Q610 253 612 255T628 257Q648 257 648 248Q648 243 647 239Q618 132 523 55T319 -22Q206 -22 128 53T50 252Z"></path></g><g data-mml-node="mi" transform="translate(760,0)"><path data-c="1D438" d="M492 213Q472 213 472 226Q472 230 477 250T482 285Q482 316 461 323T364 330H312Q311 328 277 192T243 52Q243 48 254 48T334 46Q428 46 458 48T518 61Q567 77 599 117T670 248Q680 270 683 272Q690 274 698 274Q718 274 718 261Q613 7 608 2Q605 0 322 0H133Q31 0 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q146 66 215 342T285 622Q285 629 281 629Q273 632 228 634H197Q191 640 191 642T193 659Q197 676 203 680H757Q764 676 764 669Q764 664 751 557T737 447Q735 440 717 440H705Q698 445 698 453L701 476Q704 500 704 528Q704 558 697 578T678 609T643 625T596 632T532 634H485Q397 633 392 631Q388 629 386 622Q385 619 355 499T324 377Q347 376 372 376H398Q464 376 489 391T534 472Q538 488 540 490T557 493Q562 493 565 493T570 492T572 491T574 487T577 483L544 351Q511 218 508 216Q505 213 492 213Z"></path></g></g></g><g data-mml-node="mo" transform="translate(5218.6,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(5607.6,0)"><path data-c="1D466" d="M21 287Q21 301 36 335T84 406T158 442Q199 442 224 419T250 355Q248 336 247 334Q247 331 231 288T198 191T182 105Q182 62 196 45T238 27Q261 27 281 38T312 61T339 94Q339 95 344 114T358 173T377 247Q415 397 419 404Q432 431 462 431Q475 431 483 424T494 412T496 403Q496 390 447 193T391 -23Q363 -106 294 -155T156 -205Q111 -205 77 -183T43 -117Q43 -95 50 -80T69 -58T89 -48T106 -45Q150 -45 150 -87Q150 -107 138 -122T115 -142T102 -147L99 -148Q101 -153 118 -160T152 -167H160Q177 -167 186 -165Q219 -156 247 -127T290 -65T313 -9T321 21L315 17Q309 13 296 6T270 -6Q250 -11 231 -11Q185 -11 150 11T104 82Q103 89 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(6097.6,0)"><path data-c="2C" d="M78 35T78 60T94 103T137 121Q165 121 187 96T210 8Q210 -27 201 -60T180 -117T154 -158T130 -185T117 -194Q113 -194 104 -185T95 -172Q95 -168 106 -156T131 -126T157 -76T173 -3V9L172 8Q170 7 167 6T161 3T152 1T140 0Q113 0 96 17Z"></path></g><g data-mml-node="TeXAtom" data-mjx-texclass="ORD" transform="translate(6542.3,0)"><g data-mml-node="mover"><g data-mml-node="mi"><path data-c="1D466" d="M21 287Q21 301 36 335T84 406T158 442Q199 442 224 419T250 355Q248 336 247 334Q247 331 231 288T198 191T182 105Q182 62 196 45T238 27Q261 27 281 38T312 61T339 94Q339 95 344 114T358 173T377 247Q415 397 419 404Q432 431 462 431Q475 431 483 424T494 412T496 403Q496 390 447 193T391 -23Q363 -106 294 -155T156 -205Q111 -205 77 -183T43 -117Q43 -95 50 -80T69 -58T89 -48T106 -45Q150 -45 150 -87Q150 -107 138 -122T115 -142T102 -147L99 -148Q101 -153 118 -160T152 -167H160Q177 -167 186 -165Q219 -156 247 -127T290 -65T313 -9T321 21L315 17Q309 13 296 6T270 -6Q250 -11 231 -11Q185 -11 150 11T104 82Q103 89 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(300.6,16) translate(-250 0)"><path data-c="5E" d="M112 560L249 694L257 686Q387 562 387 560L361 531Q359 532 303 581L250 627L195 580Q182 569 169 557T148 538L140 532Q138 530 125 546L112 560Z"></path></g></g></g><g data-mml-node="mo" transform="translate(7032.3,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(7643.5,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="mo" transform="translate(8643.7,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mn" transform="translate(9032.7,0)"><path data-c="31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path></g><g data-mml-node="mo" transform="translate(9755,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mi" transform="translate(10755.2,0)"><path data-c="1D6FC" d="M34 156Q34 270 120 356T309 442Q379 442 421 402T478 304Q484 275 485 237V208Q534 282 560 374Q564 388 566 390T582 393Q603 393 603 385Q603 376 594 346T558 261T497 161L486 147L487 123Q489 67 495 47T514 26Q528 28 540 37T557 60Q559 67 562 68T577 70Q597 70 597 62Q597 56 591 43Q579 19 556 5T512 -10H505Q438 -10 414 62L411 69L400 61Q390 53 370 41T325 18T267 -2T203 -11Q124 -11 79 39T34 156ZM208 26Q257 26 306 47T379 90L403 112Q401 255 396 290Q382 405 304 405Q235 405 183 332Q156 292 139 224T121 120Q121 71 146 49T208 26Z"></path></g><g data-mml-node="mo" transform="translate(11395.2,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(12006.4,0)"><path data-c="22C5" d="M78 250Q78 274 95 292T138 310Q162 310 180 294T199 251Q199 226 182 208T139 190T96 207T78 250Z"></path></g><g data-mml-node="msub" transform="translate(12506.6,0)"><g data-mml-node="mi"><path data-c="1D43F" d="M228 637Q194 637 192 641Q191 643 191 649Q191 673 202 682Q204 683 217 683Q271 680 344 680Q485 680 506 683H518Q524 677 524 674T522 656Q517 641 513 637H475Q406 636 394 628Q387 624 380 600T313 336Q297 271 279 198T252 88L243 52Q243 48 252 48T311 46H328Q360 46 379 47T428 54T478 72T522 106T564 161Q580 191 594 228T611 270Q616 273 628 273H641Q647 264 647 262T627 203T583 83T557 9Q555 4 553 3T537 0T494 -1Q483 -1 418 -1T294 0H116Q32 0 32 10Q32 17 34 24Q39 43 44 45Q48 46 59 46H65Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Q285 635 228 637Z"></path></g><g data-mml-node="TeXAtom" transform="translate(714,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(889,0)"><path data-c="1D437" d="M287 628Q287 635 230 637Q207 637 200 638T193 647Q193 655 197 667T204 682Q206 683 403 683Q570 682 590 682T630 676Q702 659 752 597T803 431Q803 275 696 151T444 3L430 1L236 0H125H72Q48 0 41 2T33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM703 469Q703 507 692 537T666 584T629 613T590 629T555 636Q553 636 541 636T512 636T479 637H436Q392 637 386 627Q384 623 313 339T242 52Q242 48 253 48T330 47Q335 47 349 47T373 46Q499 46 581 128Q617 164 640 212T683 339T703 469Z"></path></g></g></g><g data-mml-node="mo" transform="translate(14484.7,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="msub" transform="translate(14873.7,0)"><g data-mml-node="mi"><path data-c="1D447" d="M40 437Q21 437 21 445Q21 450 37 501T71 602L88 651Q93 669 101 677H569H659Q691 677 697 676T704 667Q704 661 687 553T668 444Q668 437 649 437Q640 437 637 437T631 442L629 445Q629 451 635 490T641 551Q641 586 628 604T573 629Q568 630 515 631Q469 631 457 630T439 622Q438 621 368 343T298 60Q298 48 386 46Q418 46 427 45T436 36Q436 31 433 22Q429 4 424 1L422 0Q419 0 415 0Q410 0 363 1T228 2Q99 2 64 0H49Q43 6 43 9T45 27Q49 40 55 46H83H94Q174 46 189 55Q190 56 191 56Q196 59 201 76T241 233Q258 301 269 344Q339 619 339 625Q339 630 310 630H279Q212 630 191 624Q146 614 121 583T67 467Q60 445 57 441T43 437H40Z"></path></g><g data-mml-node="TeXAtom" transform="translate(617,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mi" transform="translate(361,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(827,0)"><path data-c="1D44E" d="M33 157Q33 258 109 349T280 441Q331 441 370 392Q386 422 416 422Q429 422 439 414T449 394Q449 381 412 234T374 68Q374 43 381 35T402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487Q506 153 506 144Q506 138 501 117T481 63T449 13Q436 0 417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157ZM351 328Q351 334 346 350T323 385T277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q217 26 254 59T298 110Q300 114 325 217T351 328Z"></path></g><g data-mml-node="mi" transform="translate(1356,0)"><path data-c="1D450" d="M34 159Q34 268 120 355T306 442Q362 442 394 418T427 355Q427 326 408 306T360 285Q341 285 330 295T319 325T330 359T352 380T366 386H367Q367 388 361 392T340 400T306 404Q276 404 249 390Q228 381 206 359Q162 315 142 235T121 119Q121 73 147 50Q169 26 205 26H209Q321 26 394 111Q403 121 406 121Q410 121 419 112T429 98T420 83T391 55T346 25T282 0T202 -11Q127 -11 81 37T34 159Z"></path></g><g data-mml-node="mi" transform="translate(1789,0)"><path data-c="210E" d="M137 683Q138 683 209 688T282 694Q294 694 294 685Q294 674 258 534Q220 386 220 383Q220 381 227 388Q288 442 357 442Q411 442 444 415T478 336Q478 285 440 178T402 50Q403 36 407 31T422 26Q450 26 474 56T513 138Q516 149 519 151T535 153Q555 153 555 145Q555 144 551 130Q535 71 500 33Q466 -10 419 -10H414Q367 -10 346 17T325 74Q325 90 361 192T398 345Q398 404 354 404H349Q266 404 205 306L198 293L164 158Q132 28 127 16Q114 -11 83 -11Q69 -11 59 -2T48 16Q48 30 121 320L195 616Q195 629 188 632T149 637H128Q122 643 122 645T124 664Q129 683 137 683Z"></path></g><g data-mml-node="mi" transform="translate(2365,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(2831,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g></g></g><g data-mml-node="mo" transform="translate(17861.5,0)"><path data-c="2C" d="M78 35T78 60T94 103T137 121Q165 121 187 96T210 8Q210 -27 201 -60T180 -117T154 -158T130 -185T117 -194Q113 -194 104 -185T95 -172Q95 -168 106 -156T131 -126T157 -76T173 -3V9L172 8Q170 7 167 6T161 3T152 1T140 0Q113 0 96 17Z"></path></g><g data-mml-node="msub" transform="translate(18306.1,0)"><g data-mml-node="mi"><path data-c="1D447" d="M40 437Q21 437 21 445Q21 450 37 501T71 602L88 651Q93 669 101 677H569H659Q691 677 697 676T704 667Q704 661 687 553T668 444Q668 437 649 437Q640 437 637 437T631 442L629 445Q629 451 635 490T641 551Q641 586 628 604T573 629Q568 630 515 631Q469 631 457 630T439 622Q438 621 368 343T298 60Q298 48 386 46Q418 46 427 45T436 36Q436 31 433 22Q429 4 424 1L422 0Q419 0 415 0Q410 0 363 1T228 2Q99 2 64 0H49Q43 6 43 9T45 27Q49 40 55 46H83H94Q174 46 189 55Q190 56 191 56Q196 59 201 76T241 233Q258 301 269 344Q339 619 339 625Q339 630 310 630H279Q212 630 191 624Q146 614 121 583T67 467Q60 445 57 441T43 437H40Z"></path></g><g data-mml-node="TeXAtom" transform="translate(617,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="mi" transform="translate(469,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mi" transform="translate(830,0)"><path data-c="1D462" d="M21 287Q21 295 30 318T55 370T99 420T158 442Q204 442 227 417T250 358Q250 340 216 246T182 105Q182 62 196 45T238 27T291 44T328 78L339 95Q341 99 377 247Q407 367 413 387T427 416Q444 431 463 431Q480 431 488 421T496 402L420 84Q419 79 419 68Q419 43 426 35T447 26Q469 29 482 57T512 145Q514 153 532 153Q551 153 551 144Q550 139 549 130T540 98T523 55T498 17T462 -8Q454 -10 438 -10Q372 -10 347 46Q345 45 336 36T318 21T296 6T267 -6T233 -11Q189 -11 155 7Q103 38 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(1402,0)"><path data-c="1D451" d="M366 683Q367 683 438 688T511 694Q523 694 523 686Q523 679 450 384T375 83T374 68Q374 26 402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487H491Q506 153 506 145Q506 140 503 129Q490 79 473 48T445 8T417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157Q33 205 53 255T101 341Q148 398 195 420T280 442Q336 442 364 400Q369 394 369 396Q370 400 396 505T424 616Q424 629 417 632T378 637H357Q351 643 351 645T353 664Q358 683 366 683ZM352 326Q329 405 277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q233 26 290 98L298 109L352 326Z"></path></g><g data-mml-node="mi" transform="translate(1922,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(2388,0)"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(2988,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g></g></g><g data-mml-node="mo" transform="translate(21341.2,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container></p><p><strong>Why it works</strong>:</p>
+<ul>
+<li>Soft targets contain more information than hard labels</li>
+<li>Student learns nuances from teacher</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="16" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="16" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="knowledge-distillation-code">Knowledge Distillation Code</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> torch.nn.functional <span class="hljs-keyword">as</span> F
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">distillation_loss</span>(<span class="hljs-params">student_logits, teacher_logits, labels, T=<span class="hljs-number">3</span>, alpha=<span class="hljs-number">0.5</span></span>):
+    <span class="hljs-comment"># Hard loss (student vs true labels)</span>
+    hard_loss = F.cross_entropy(student_logits, labels)
+
+    <span class="hljs-comment"># Soft loss (student vs teacher)</span>
+    soft_student = F.log_softmax(student_logits / T, dim=<span class="hljs-number">1</span>)
+    soft_teacher = F.softmax(teacher_logits / T, dim=<span class="hljs-number">1</span>)
+    soft_loss = F.kl_div(soft_student, soft_teacher, reduction=<span class="hljs-string">&#x27;batchmean&#x27;</span>) * T*T
+
+    <span class="hljs-comment"># Combined loss</span>
+    <span class="hljs-keyword">return</span> alpha * hard_loss + (<span class="hljs-number">1</span> - alpha) * soft_loss
+</code></pre>
+<p><strong>Temperature (T)</strong>: Higher = softer probabilities.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="17" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="17" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="neural-architecture-search-nas">Neural Architecture Search (NAS)</h1>
+<p><strong>Goal</strong>: Automatically find efficient architectures.</p>
+<p><strong>Search space</strong>:</p>
+<ul>
+<li>Number of layers</li>
+<li>Layer types (conv, pooling, skip)</li>
+<li>Kernel sizes, channels</li>
+</ul>
+<p><strong>Search strategy</strong>:</p>
+<ol>
+<li><strong>Random search</strong>: Try random architectures</li>
+<li><strong>Reinforcement learning</strong>: RL agent proposes architectures</li>
+<li><strong>Gradient-based</strong>: DARTS (differentiable)</li>
+</ol>
+<p><strong>Hardware-aware NAS</strong>: Optimize for specific device constraints.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="18" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="18" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="efficient-architecture-families">Efficient Architecture Families</h1>
+<p><strong>MobileNet</strong> (Google):</p>
+<ul>
+<li>Depthwise separable convolutions</li>
+<li>9x fewer parameters than VGG</li>
+</ul>
+<p><strong>EfficientNet</strong> (Google):</p>
+<ul>
+<li>Compound scaling (depth + width + resolution)</li>
+<li>State-of-art accuracy/efficiency trade-off</li>
+</ul>
+<p><strong>SqueezeNet</strong>:</p>
+<ul>
+<li>Fire modules (squeeze + expand)</li>
+<li>50x smaller than AlexNet</li>
+</ul>
+<p><strong>TinyML architectures</strong>:</p>
+<ul>
+<li>&lt; 1MB models for microcontrollers</li>
+<li>MobileNet-v3, MicroNet</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="19" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="19" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
 <h1 id="onnx-open-neural-network-exchange">ONNX: Open Neural Network Exchange</h1>
 <p><strong>The Universal Bridge</strong></p>
-<div class="mermaid">
-graph LR
-    A[PyTorch] --&gt; D[ONNX Graph];
-    B[TensorFlow] --&gt; D;
-    C[Scikit-Learn] --&gt; D;
-    D --&gt; E[ONNX Runtime (ORT)];
-    E --&gt; F[Android];
-    E --&gt; G[Raspberry Pi];
-    E --&gt; H[Browser (WASM)];
-</div>
+<p><img src="../figures/week12_onnx_ecosystem.png" alt="ONNX Ecosystem" /></p>
 <p><strong>Why use it?</strong></p>
 <ul>
-<li><strong>Interoperability</strong>: Train in PyTorch, deploy in C++.</li>
-<li><strong>Optimization</strong>: ORT applies graph fusions (e.g., Conv+ReLU merging).</li>
+<li><strong>Interoperability</strong>: Train in PyTorch, deploy in C++</li>
+<li><strong>Optimization</strong>: Graph-level optimizations (fusion, constant folding)</li>
+<li><strong>Hardware support</strong>: CPU, GPU, mobile accelerators</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="8" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="8">
-<h1 id="lab-preview">Lab Preview</h1>
-<p><strong>Hands-on Optimization</strong>:</p>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="20" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="onnx-export-example">ONNX Export Example</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">import</span> torch.onnx
+
+<span class="hljs-comment"># Load PyTorch model</span>
+model = torch.load(<span class="hljs-string">&quot;model.pth&quot;</span>)
+model.<span class="hljs-built_in">eval</span>()
+
+<span class="hljs-comment"># Create dummy input</span>
+dummy_input = torch.randn(<span class="hljs-number">1</span>, <span class="hljs-number">3</span>, <span class="hljs-number">224</span>, <span class="hljs-number">224</span>)
+
+<span class="hljs-comment"># Export to ONNX</span>
+torch.onnx.export(
+    model,
+    dummy_input,
+    <span class="hljs-string">&quot;model.onnx&quot;</span>,
+    export_params=<span class="hljs-literal">True</span>,
+    opset_version=<span class="hljs-number">14</span>,
+    input_names=[<span class="hljs-string">&#x27;input&#x27;</span>],
+    output_names=[<span class="hljs-string">&#x27;output&#x27;</span>],
+    dynamic_axes={<span class="hljs-string">&#x27;input&#x27;</span>: {<span class="hljs-number">0</span>: <span class="hljs-string">&#x27;batch_size&#x27;</span>}}  <span class="hljs-comment"># Variable batch size</span>
+)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="21" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="21" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="onnx-runtime-inference">ONNX Runtime Inference</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> onnxruntime <span class="hljs-keyword">as</span> ort
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+
+<span class="hljs-comment"># Load ONNX model</span>
+session = ort.InferenceSession(<span class="hljs-string">&quot;model.onnx&quot;</span>)
+
+<span class="hljs-comment"># Prepare input</span>
+input_data = np.random.randn(<span class="hljs-number">1</span>, <span class="hljs-number">3</span>, <span class="hljs-number">224</span>, <span class="hljs-number">224</span>).astype(np.float32)
+
+<span class="hljs-comment"># Run inference</span>
+outputs = session.run(
+    <span class="hljs-literal">None</span>,  <span class="hljs-comment"># Output names (None = all outputs)</span>
+    {<span class="hljs-string">&#x27;input&#x27;</span>: input_data}
+)
+
+<span class="hljs-built_in">print</span>(outputs[<span class="hljs-number">0</span>])  <span class="hljs-comment"># Prediction</span>
+</code></pre>
+<p><strong>Benefits</strong>: 2-3x faster than PyTorch on CPU.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="22" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="22" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="onnx-graph-optimizations">ONNX Graph Optimizations</h1>
+<p><strong>Operator fusion</strong>:</p>
+<ul>
+<li>Conv + BatchNorm + ReLU → Single fused op</li>
+<li>Reduces memory bandwidth</li>
+</ul>
+<p><strong>Constant folding</strong>:</p>
+<ul>
+<li>Pre-compute constants at export time</li>
+</ul>
+<p><strong>Dead code elimination</strong>:</p>
+<ul>
+<li>Remove unused branches</li>
+</ul>
+<p><strong>Quantization</strong>:</p>
+<ul>
+<li>ONNX Runtime supports INT8 quantization</li>
+</ul>
+<p><strong>Graph example</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code># Before: 3 ops
+Conv → BatchNorm → ReLU
+
+# After: 1 fused op
+ConvBNReLU
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="23" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="hardware-acceleration-options">Hardware Acceleration Options</h1>
+<p><strong>Mobile</strong> (iOS/Android):</p>
+<ul>
+<li><strong>CoreML</strong> (Apple): Optimized for iPhone/iPad</li>
+<li><strong>TensorFlow Lite</strong>: Cross-platform mobile</li>
+<li><strong>ONNX Mobile</strong>: ONNX Runtime for mobile</li>
+</ul>
+<p><strong>Edge TPU</strong> (Google Coral):</p>
+<ul>
+<li>Hardware accelerator for INT8 models</li>
+<li>4 TOPS (trillion operations/sec)</li>
+</ul>
+<p><strong>NVIDIA Jetson</strong>:</p>
+<ul>
+<li>TensorRT for GPU optimization</li>
+<li>Mixed precision (FP16)</li>
+</ul>
+<p><strong>Intel Neural Compute Stick</strong>:</p>
+<ul>
+<li>USB accelerator for edge inference</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="24" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="tensorflow-lite-conversion">TensorFlow Lite Conversion</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> tensorflow <span class="hljs-keyword">as</span> tf
+
+<span class="hljs-comment"># Convert Keras model to TFLite</span>
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+
+<span class="hljs-comment"># Enable optimizations</span>
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+
+<span class="hljs-comment"># Quantize to INT8</span>
+converter.representative_dataset = representative_data_gen
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+
+<span class="hljs-comment"># Convert</span>
+tflite_model = converter.convert()
+
+<span class="hljs-comment"># Save</span>
+<span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;model.tflite&quot;</span>, <span class="hljs-string">&quot;wb&quot;</span>) <span class="hljs-keyword">as</span> f:
+    f.write(tflite_model)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="25" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="25" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="tensorrt-nvidia-overview">TensorRT (NVIDIA): Overview</h1>
+<p><strong>High-performance inference engine for NVIDIA GPUs</strong></p>
+<p><strong>Key optimizations</strong>:</p>
+<ul>
+<li><strong>Layer fusion</strong>: Combine operations (Conv+BN+ReLU → single kernel)</li>
+<li><strong>Precision calibration</strong>: Automatic FP32 → FP16 → INT8 conversion</li>
+<li><strong>Kernel auto-tuning</strong>: Select fastest GPU kernels for your model</li>
+<li><strong>Memory optimization</strong>: Reduce memory footprint</li>
+</ul>
+<p><strong>Performance gains</strong>:</p>
+<ul>
+<li>Typical speedup: 2-5x over PyTorch</li>
+<li>Latency reduction: 50-80% for large models</li>
+<li>Best for production deployment on NVIDIA GPUs</li>
+</ul>
+<p><strong>Use cases</strong>: Real-time inference, video processing, autonomous vehicles</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="26" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="26" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="tensorrt-implementation">TensorRT: Implementation</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> tensorrt <span class="hljs-keyword">as</span> trt
+
+<span class="hljs-comment"># 1. Create builder and network</span>
+builder = trt.Builder(TRT_LOGGER)
+network = builder.create_network()
+
+<span class="hljs-comment"># 2. Parse ONNX model</span>
+parser = trt.OnnxParser(network, TRT_LOGGER)
+parser.parse_from_file(<span class="hljs-string">&quot;model.onnx&quot;</span>)
+
+<span class="hljs-comment"># 3. Configure optimization</span>
+config = builder.create_builder_config()
+config.set_flag(trt.BuilderFlag.FP16)  <span class="hljs-comment"># Enable FP16</span>
+
+<span class="hljs-comment"># 4. Build optimized engine</span>
+engine = builder.build_engine(network, config)
+</code></pre>
+<p><strong>Next step</strong>: Save engine and load for inference</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="27" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="27" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="benchmarking-models">Benchmarking Models</h1>
+<p><strong>Metrics to measure</strong>:</p>
 <ol>
-<li><strong>Baseline</strong>: Measure size/speed of ResNet-18.</li>
-<li><strong>Pruning</strong>: Use <code>torch.nn.utils.prune</code> to remove 30% of weights.</li>
-<li><strong>Quantization</strong>: Apply PyTorch dynamic quantization.</li>
-<li><strong>ONNX Export</strong>: Convert and run with ONNX Runtime.</li>
+<li><strong>Latency</strong>: Time per inference (ms)</li>
+<li><strong>Throughput</strong>: Inferences per second</li>
+<li><strong>Memory usage</strong>: Peak RAM (MB)</li>
+<li><strong>Model size</strong>: Disk space (MB)</li>
+<li><strong>Energy consumption</strong>: Battery drain (mAh)</li>
 </ol>
-<p><strong>Goal</strong>: Make the model 2x faster and 4x smaller!</p>
+<p><strong>Tools</strong>:</p>
+<ul>
+<li><code>torch.utils.benchmark</code> (PyTorch)</li>
+<li><code>time</code> module (simple timing)</li>
+<li><code>memory_profiler</code> (RAM usage)</li>
+<li>Device-specific profilers (Android Profiler, Xcode Instruments)</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="28" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="28" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="latency-benchmarking-code">Latency Benchmarking Code</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> time
+<span class="hljs-keyword">import</span> torch
+
+model.<span class="hljs-built_in">eval</span>()
+input_data = torch.randn(<span class="hljs-number">1</span>, <span class="hljs-number">3</span>, <span class="hljs-number">224</span>, <span class="hljs-number">224</span>)
+
+<span class="hljs-comment"># Warmup (JIT compilation, cache warming)</span>
+<span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">10</span>):
+    _ = model(input_data)
+
+<span class="hljs-comment"># Benchmark</span>
+times = []
+<span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">100</span>):
+    start = time.time()
+    <span class="hljs-keyword">with</span> torch.no_grad():
+        _ = model(input_data)
+    times.append(time.time() - start)
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Mean latency: <span class="hljs-subst">{np.mean(times)*<span class="hljs-number">1000</span>:<span class="hljs-number">.2</span>f}</span> ms&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Std latency: <span class="hljs-subst">{np.std(times)*<span class="hljs-number">1000</span>:<span class="hljs-number">.2</span>f}</span> ms&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;P95 latency: <span class="hljs-subst">{np.percentile(times, <span class="hljs-number">95</span>)*<span class="hljs-number">1000</span>:<span class="hljs-number">.2</span>f}</span> ms&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="29" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="29" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="accuracy-vs-efficiency-trade-off">Accuracy vs Efficiency Trade-off</h1>
+<p><strong>Pareto frontier</strong>: No single &quot;best&quot; model.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Model</th>
+<th style="text-align:center">Size</th>
+<th style="text-align:center">Latency</th>
+<th style="text-align:center">Accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">ResNet-50</td>
+<td style="text-align:center">98MB</td>
+<td style="text-align:center">50ms</td>
+<td style="text-align:center">76%</td>
+</tr>
+<tr>
+<td style="text-align:left">+ Pruning 50%</td>
+<td style="text-align:center">49MB</td>
+<td style="text-align:center">40ms</td>
+<td style="text-align:center">75%</td>
+</tr>
+<tr>
+<td style="text-align:left">+ Quantization INT8</td>
+<td style="text-align:center">12MB</td>
+<td style="text-align:center">15ms</td>
+<td style="text-align:center">74%</td>
+</tr>
+<tr>
+<td style="text-align:left">MobileNet-v2</td>
+<td style="text-align:center">14MB</td>
+<td style="text-align:center">10ms</td>
+<td style="text-align:center">72%</td>
+</tr>
+<tr>
+<td style="text-align:left">+ Quantization</td>
+<td style="text-align:center">3.5MB</td>
+<td style="text-align:center">5ms</td>
+<td style="text-align:center">71%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Choose based on constraints</strong>:</p>
+<ul>
+<li>Strict latency → MobileNet quantized</li>
+<li>High accuracy needed → ResNet pruned</li>
+<li>Smallest size → MobileNet quantized</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="30" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="30" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="deployment-checklist">Deployment Checklist</h1>
+<p><strong>Pre-deployment</strong>:</p>
+<ul>
+<li>[ ] Model optimized (quantized/pruned)</li>
+<li>[ ] Benchmarked on target device</li>
+<li>[ ] Accuracy validated</li>
+<li>[ ] Error handling implemented</li>
+</ul>
+<p><strong>Deployment</strong>:</p>
+<ul>
+<li>[ ] Model packaged (ONNX, TFLite, etc.)</li>
+<li>[ ] Inference code tested</li>
+<li>[ ] Fallback strategy (cloud API)</li>
+</ul>
+<p><strong>Post-deployment</strong>:</p>
+<ul>
+<li>[ ] Monitor latency in production</li>
+<li>[ ] Track accuracy degradation</li>
+<li>[ ] A/B test optimizations</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="31" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="31" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="summary">Summary</h1>
+<p><strong>Key techniques</strong>:</p>
+<ol>
+<li><strong>Quantization</strong>: 4x smaller, 2-4x faster</li>
+<li><strong>Pruning</strong>: Remove redundant weights</li>
+<li><strong>Knowledge Distillation</strong>: Train small student model</li>
+<li><strong>ONNX</strong>: Universal deployment format</li>
+<li><strong>Hardware acceleration</strong>: TensorRT, CoreML, TFLite</li>
+</ol>
+<p><strong>Typical pipeline</strong>:<br />
+Train (FP32) → Prune → Quantize (INT8) → Export (ONNX) → Deploy</p>
+<p><strong>Lab</strong>: Hands-on optimization and benchmarking!</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="32" data-paginate="true" data-theme="default" data-style="@import &quot;custom.css&quot;;" lang="en-IN" data-marpit-pagination="32" style="--paginate:true;--theme:default;--style:@import &quot;custom.css&quot;;;" data-marpit-pagination-total="32">
+<h1 id="additional-resources">Additional Resources</h1>
+<p><strong>Libraries</strong>:</p>
+<ul>
+<li>PyTorch quantization: <a href="https://pytorch.org/docs/stable/quantization.html">https://pytorch.org/docs/stable/quantization.html</a></li>
+<li>ONNX: <a href="https://onnx.ai/">https://onnx.ai/</a></li>
+<li>TensorFlow Lite: <a href="https://www.tensorflow.org/lite">https://www.tensorflow.org/lite</a></li>
+</ul>
+<p><strong>Papers</strong>:</p>
+<ul>
+<li>&quot;Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference&quot; (Google)</li>
+<li>&quot;The Lottery Ticket Hypothesis&quot; (MIT)</li>
+<li>&quot;Distilling the Knowledge in a Neural Network&quot; (Hinton et al.)</li>
+</ul>
+<p><strong>Hardware</strong>:</p>
+<ul>
+<li>NVIDIA Jetson: <a href="https://www.nvidia.com/en-us/autonomous-machines/jetson-store/">https://www.nvidia.com/en-us/autonomous-machines/jetson-store/</a></li>
+<li>Google Coral: <a href="https://coral.ai/">https://coral.ai/</a></li>
+</ul>
 </section>
 <script>!function(){"use strict";const t={h1:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"1"},style:"display: block; font-size: 2em; margin-block-start: 0.67em; margin-block-end: 0.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h2:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"2"},style:"display: block; font-size: 1.5em; margin-block-start: 0.83em; margin-block-end: 0.83em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h3:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"3"},style:"display: block; font-size: 1.17em; margin-block-start: 1em; margin-block-end: 1em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h4:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"4"},style:"display: block; margin-block-start: 1.33em; margin-block-end: 1.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h5:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"5"},style:"display: block; font-size: 0.83em; margin-block-start: 1.67em; margin-block-end: 1.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h6:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"6"},style:"display: block; font-size: 0.67em; margin-block-start: 2.33em; margin-block-end: 2.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},span:{proto:()=>HTMLSpanElement},pre:{proto:()=>HTMLElement,style:"display: block; font-family: monospace; white-space: pre; margin: 1em 0; --marp-auto-scaling-white-space: pre;"}},e="data-marp-auto-scaling-wrapper",i="data-marp-auto-scaling-svg",n="data-marp-auto-scaling-container";class s extends HTMLElement{container;containerSize;containerObserver;svg;svgComputedStyle;svgPreserveAspectRatio="xMinYMid meet";wrapper;wrapperSize;wrapperObserver;constructor(){super();const t=t=>([e])=>{const{width:i,height:n}=e.contentRect;this[t]={width:i,height:n},this.updateSVGRect()};this.attachShadow({mode:"open"}),this.containerObserver=new ResizeObserver(t("containerSize")),this.wrapperObserver=new ResizeObserver((...e)=>{t("wrapperSize")(...e),this.flushSvgDisplay()})}static get observedAttributes(){return["data-downscale-only"]}connectedCallback(){this.shadowRoot.innerHTML=`\n<style>\n  svg[${i}] { display: block; width: 100%; height: auto; vertical-align: top; }\n  span[${n}] { display: table; white-space: var(--marp-auto-scaling-white-space, nowrap); width: max-content; }\n</style>\n<div ${e}>\n  <svg part="svg" ${i}>\n    <foreignObject><span ${n}><slot></slot></span></foreignObject>\n  </svg>\n</div>\n    `.split(/\n\s*/).join(""),this.wrapper=this.shadowRoot.querySelector(`div[${e}]`)??void 0;const t=this.svg;this.svg=this.wrapper?.querySelector(`svg[${i}]`)??void 0,this.svg!==t&&(this.svgComputedStyle=this.svg?window.getComputedStyle(this.svg):void 0),this.container=this.svg?.querySelector(`span[${n}]`)??void 0,this.observe()}disconnectedCallback(){this.svg=void 0,this.svgComputedStyle=void 0,this.wrapper=void 0,this.container=void 0,this.observe()}attributeChangedCallback(){this.observe()}flushSvgDisplay(){const{svg:t}=this;t&&(t.style.display="inline",requestAnimationFrame(()=>{t.style.display=""}))}observe(){this.containerObserver.disconnect(),this.wrapperObserver.disconnect(),this.wrapper&&this.wrapperObserver.observe(this.wrapper),this.container&&this.containerObserver.observe(this.container),this.svgComputedStyle&&this.observeSVGStyle(this.svgComputedStyle)}observeSVGStyle(t){const e=()=>{const i=(()=>{const e=t.getPropertyValue("--preserve-aspect-ratio");if(e)return e.trim();return`x${(({textAlign:t,direction:e})=>{if(t.endsWith("left"))return"Min";if(t.endsWith("right"))return"Max";if("start"===t||"end"===t){let i="rtl"===e;return"end"===t&&(i=!i),i?"Max":"Min"}return"Mid"})(t)}YMid meet`})();i!==this.svgPreserveAspectRatio&&(this.svgPreserveAspectRatio=i,this.updateSVGRect()),t===this.svgComputedStyle&&requestAnimationFrame(e)};e()}updateSVGRect(){let t=Math.ceil(this.containerSize?.width??0);const e=Math.ceil(this.containerSize?.height??0);void 0!==this.dataset.downscaleOnly&&(t=Math.max(t,this.wrapperSize?.width??0));const i=this.svg?.querySelector(":scope > foreignObject");if(i?.setAttribute("width",`${t}`),i?.setAttribute("height",`${e}`),this.svg&&(this.svg.setAttribute("viewBox",`0 0 ${t} ${e}`),this.svg.setAttribute("preserveAspectRatio",this.svgPreserveAspectRatio),this.svg.style.height=t<=0||e<=0?"0":""),this.container){const t=this.svgPreserveAspectRatio.toLowerCase();this.container.style.marginLeft=t.startsWith("xmid")||t.startsWith("xmax")?"auto":"0",this.container.style.marginRight=t.startsWith("xmi")?"auto":"0"}}}const r=(t,{attrs:e={},style:i})=>class extends t{constructor(...t){super(...t);for(const[t,i]of Object.entries(e))this.hasAttribute(t)||this.setAttribute(t,i);this._shadow()}static get observedAttributes(){return["data-auto-scaling"]}connectedCallback(){this._update()}attributeChangedCallback(){this._update()}_shadow(){if(!this.shadowRoot)try{this.attachShadow({mode:"open"})}catch(t){if(!(t instanceof Error&&"NotSupportedError"===t.name))throw t}return this.shadowRoot}_update(){const t=this._shadow();if(t){const e=i?`<style>:host { ${i} }</style>`:"";let n="<slot></slot>";const{autoScaling:s}=this.dataset;if(void 0!==s){n=`<marp-auto-scaling exportparts="svg:auto-scaling" ${"downscale-only"===s?"data-downscale-only":""}>${n}</marp-auto-scaling>`}t.innerHTML=e+n}}};let o;const a=Symbol(),l=()=>o??(o=!!document.createElement("div",{is:"marp-auto-scaling"}).outerHTML.startsWith("<div is"),o);let c;const d="marpitSVGPolyfill:setZoomFactor,",h=Symbol(),g=Symbol();const p=()=>{const t="Apple Computer, Inc."===navigator.vendor,e=t?[v]:[],i={then:e=>(t?(async()=>{if(void 0===c){const t=document.createElement("canvas");t.width=10,t.height=10;const e=t.getContext("2d"),i=new Image(10,10),n=new Promise(t=>{i.addEventListener("load",()=>t())});i.crossOrigin="anonymous",i.src="data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%20viewBox%3D%220%200%201%201%22%3E%3CforeignObject%20width%3D%221%22%20height%3D%221%22%20requiredExtensions%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%3E%3Cdiv%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%20style%3D%22width%3A%201px%3B%20height%3A%201px%3B%20background%3A%20red%3B%20position%3A%20relative%22%3E%3C%2Fdiv%3E%3C%2FforeignObject%3E%3C%2Fsvg%3E",await n,e.drawImage(i,0,0),c=e.getImageData(5,5,1,1).data[3]<128}return c})().then(t=>{null==e||e(t?[v]:[])}):null==e||e([]),i)};return Object.assign(e,i)};let m,u;function v(t){const e="object"==typeof t&&t.target||document,i="object"==typeof t?t.zoom:t;window[g]||(Object.defineProperty(window,g,{configurable:!0,value:!0}),document.body.style.zoom=1.0001,document.body.offsetHeight,document.body.style.zoom=1,window.addEventListener("message",({data:t,origin:e})=>{if(e===window.origin)try{if(t&&"string"==typeof t&&t.startsWith(d)){const[,e]=t.split(","),i=Number.parseFloat(e);Number.isNaN(i)||(u=i)}}catch(t){console.error(t)}}));let n=!1;Array.from(e.querySelectorAll("svg[data-marpit-svg]"),t=>{var e,s,r,o;t.style.transform||(t.style.transform="translateZ(0)");const a=i||u||t.currentScale||1;m!==a&&(m=a,n=a);const l=t.getBoundingClientRect(),{length:c}=t.children;for(let i=0;i<c;i+=1){const n=t.children[i];if(n.getScreenCTM){const t=n.getScreenCTM();if(t){const i=null!==(s=null===(e=n.x)||void 0===e?void 0:e.baseVal.value)&&void 0!==s?s:0,c=null!==(o=null===(r=n.y)||void 0===r?void 0:r.baseVal.value)&&void 0!==o?o:0,d=n.children.length;for(let e=0;e<d;e+=1){const s=n.children[e];if("SECTION"===s.tagName){const{style:e}=s;e.transformOrigin||(e.transformOrigin=`${-i}px ${-c}px`),e.transform=`scale(${a}) matrix(${t.a}, ${t.b}, ${t.c}, ${t.d}, ${t.e-l.left}, ${t.f-l.top}) translateZ(0.0001px)`;break}}}}}}),!1!==n&&Array.from(e.querySelectorAll("iframe"),({contentWindow:t})=>{null==t||t.postMessage(`${d}${n}`,"null"===window.origin?"*":window.origin)})}function w({once:t=!1,target:e=document}={}){const i=function(t=document){if(t[h])return t[h];let e=!0;const i=()=>{e=!1,delete t[h]};Object.defineProperty(t,h,{configurable:!0,value:i});let n=[],s=!1;(async()=>{try{n=await p()}finally{s=!0}})();const r=()=>{for(const e of n)e({target:t});s&&0===n.length||e&&window.requestAnimationFrame(r)};return r(),i}(e);return t?(i(),()=>{}):i}m=1,u=void 0;const b=Symbol(),y=(e=document)=>{if("undefined"==typeof window)throw new Error("Marp Core's browser script is valid only in browser context.");if(((e=document)=>{const i=window[a];i||customElements.define("marp-auto-scaling",s);for(const n of Object.keys(t)){const s=`marp-${n}`,o=t[n].proto();l()&&o!==HTMLElement?i||customElements.define(s,r(o,{style:t[n].style}),{extends:n}):(i||customElements.define(s,r(HTMLElement,t[n])),e.querySelectorAll(`${n}[is="${s}"]`).forEach(t=>{t.outerHTML=t.outerHTML.replace(new RegExp(`^<${n}`,"i"),`<${s}`).replace(new RegExp(`</${n}>$`,"i"),`</${s}>`)}))}window[a]=!0})(e),e[b])return e[b];const i=w({target:e}),n=()=>{i(),delete e[b]},o=Object.assign(n,{cleanup:n,update:()=>y(e)});return Object.defineProperty(e,b,{configurable:!0,value:o}),o},f=document.currentScript;y(f?f.getRootNode():document)}();
 </script></foreignObject></svg></div><script>/*!! License: https://unpkg.com/@marp-team/marp-cli@4.2.3/lib/bespoke.js.LICENSE.txt */

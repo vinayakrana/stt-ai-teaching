@@ -14,172 +14,1140 @@
 Prof. Nipun Batra, IIT Gandhinagar</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="2" lang="en-IN">
-<h1 id="the-silent-failure-of-ml">The &quot;Silent Failure&quot; of ML</h1>
-<p><strong>Traditional Software fails loudly</strong>:</p>
-<ul>
-<li><code>NullPointerException</code>, <code>500 Internal Server Error</code>.</li>
-<li>You know immediately.</li>
-</ul>
-<p><strong>ML Models fail silently</strong>:</p>
-<ul>
-<li>The API returns <code>200 OK</code>.</li>
-<li>The prediction is <code>0.85</code>.</li>
-<li>But the prediction is <strong>wrong</strong> because the world has changed.</li>
-</ul>
-<p><strong>Monitoring</strong> is how we detect silent failures.</p>
+<h1 id="the-silent-failure-problem">The &quot;Silent Failure&quot; Problem</h1>
+<p><strong>Traditional software fails loudly:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-meta">&gt;&gt;&gt; </span>items[<span class="hljs-number">10</span>]  <span class="hljs-comment"># List has 5 items</span>
+IndexError: <span class="hljs-built_in">list</span> index out of <span class="hljs-built_in">range</span>
+
+<span class="hljs-meta">&gt;&gt;&gt; </span>response = requests.get(bad_url)
+<span class="hljs-meta">&gt;&gt;&gt; </span>response.status_code
+<span class="hljs-number">500</span>
+</code></pre>
+<p><strong>You know immediately something is wrong.</strong></p>
+<p><strong>ML models fail silently:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-meta">&gt;&gt;&gt; </span>prediction = model.predict(new_data)
+<span class="hljs-meta">&gt;&gt;&gt; </span>prediction
+<span class="hljs-number">0.85</span>  <span class="hljs-comment"># Looks fine!</span>
+
+<span class="hljs-comment"># But the model was trained 6 months ago</span>
+<span class="hljs-comment"># The world has changed</span>
+<span class="hljs-comment"># The prediction is actually garbage</span>
+</code></pre>
+<p><strong>Problem</strong>: The API returns <code>200 OK</code>, but predictions are wrong.</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="3" lang="en-IN">
-<h1 id="types-of-drift">Types of Drift</h1>
-<ol>
-<li>
-<p><strong>Data Drift</strong> (Input changes):</p>
+<h1 id="real-world-monitoring-failures">Real-World Monitoring Failures</h1>
+<p><strong>Case 1: Amazon's Recruiting AI (2018)</strong></p>
 <ul>
-<li>Training data: High quality images.</li>
-<li>Production data: Blurry, dark images.</li>
-<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="5.387ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 2381 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mo" transform="translate(751,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(1140,0)"><path data-c="1D44B" d="M42 0H40Q26 0 26 11Q26 15 29 27Q33 41 36 43T55 46Q141 49 190 98Q200 108 306 224T411 342Q302 620 297 625Q288 636 234 637H206Q200 643 200 645T202 664Q206 677 212 683H226Q260 681 347 681Q380 681 408 681T453 682T473 682Q490 682 490 671Q490 670 488 658Q484 643 481 640T465 637Q434 634 411 620L488 426L541 485Q646 598 646 610Q646 628 622 635Q617 635 609 637Q594 637 594 648Q594 650 596 664Q600 677 606 683H618Q619 683 643 683T697 681T738 680Q828 680 837 683H845Q852 676 852 672Q850 647 840 637H824Q790 636 763 628T722 611T698 593L687 584Q687 585 592 480L505 384Q505 383 536 304T601 142T638 56Q648 47 699 46Q734 46 734 37Q734 35 732 23Q728 7 725 4T711 1Q708 1 678 1T589 2Q528 2 496 2T461 1Q444 1 444 10Q444 11 446 25Q448 35 450 39T455 44T464 46T480 47T506 54Q523 62 523 64Q522 64 476 181L429 299Q241 95 236 84Q232 76 232 72Q232 53 261 47Q262 47 267 47T273 46Q276 46 277 46T280 45T283 42T284 35Q284 26 282 19Q279 6 276 4T261 1Q258 1 243 1T201 2T142 2Q64 2 42 0Z"></path></g><g data-mml-node="mo" transform="translate(1992,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container> changes.</li>
+<li>Trained on historical resumes (mostly male)</li>
+<li>Model learned gender bias</li>
+<li>Penalized resumes containing &quot;women's&quot;</li>
+<li><strong>Failure</strong>: No monitoring of prediction patterns</li>
+<li><strong>Cost</strong>: Reputational damage, project scrapped</li>
 </ul>
-</li>
-<li>
-<p><strong>Concept Drift</strong> (Relationship changes):</p>
+<p><strong>Case 2: Zillow's Zestimate (2021)</strong></p>
 <ul>
-<li>Housing Price Model trained in 2019.</li>
-<li>2020: COVID hits, market behavior changes.</li>
-<li>Inputs (<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="1.928ex" height="1.545ex" role="img" focusable="false" viewBox="0 -683 852 683"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D44B" d="M42 0H40Q26 0 26 11Q26 15 29 27Q33 41 36 43T55 46Q141 49 190 98Q200 108 306 224T411 342Q302 620 297 625Q288 636 234 637H206Q200 643 200 645T202 664Q206 677 212 683H226Q260 681 347 681Q380 681 408 681T453 682T473 682Q490 682 490 671Q490 670 488 658Q484 643 481 640T465 637Q434 634 411 620L488 426L541 485Q646 598 646 610Q646 628 622 635Q617 635 609 637Q594 637 594 648Q594 650 596 664Q600 677 606 683H618Q619 683 643 683T697 681T738 680Q828 680 837 683H845Q852 676 852 672Q850 647 840 637H824Q790 636 763 628T722 611T698 593L687 584Q687 585 592 480L505 384Q505 383 536 304T601 142T638 56Q648 47 699 46Q734 46 734 37Q734 35 732 23Q728 7 725 4T711 1Q708 1 678 1T589 2Q528 2 496 2T461 1Q444 1 444 10Q444 11 446 25Q448 35 450 39T455 44T464 46T480 47T506 54Q523 62 523 64Q522 64 476 181L429 299Q241 95 236 84Q232 76 232 72Q232 53 261 47Q262 47 267 47T273 46Q276 46 277 46T280 45T283 42T284 35Q284 26 282 19Q279 6 276 4T261 1Q258 1 243 1T201 2T142 2Q64 2 42 0Z"></path></g></g></g></svg></mjx-container>) are same (sq ft, rooms), but Output (<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="1.726ex" height="1.545ex" role="img" focusable="false" viewBox="0 -683 763 683"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D44C" d="M66 637Q54 637 49 637T39 638T32 641T30 647T33 664T42 682Q44 683 56 683Q104 680 165 680Q288 680 306 683H316Q322 677 322 674T320 656Q316 643 310 637H298Q242 637 242 624Q242 619 292 477T343 333L346 336Q350 340 358 349T379 373T411 410T454 461Q546 568 561 587T577 618Q577 634 545 637Q528 637 528 647Q528 649 530 661Q533 676 535 679T549 683Q551 683 578 682T657 680Q684 680 713 681T746 682Q763 682 763 673Q763 669 760 657T755 643Q753 637 734 637Q662 632 617 587Q608 578 477 424L348 273L322 169Q295 62 295 57Q295 46 363 46Q379 46 384 45T390 35Q390 33 388 23Q384 6 382 4T366 1Q361 1 324 1T232 2Q170 2 138 2T102 1Q84 1 84 9Q84 14 87 24Q88 27 89 30T90 35T91 39T93 42T96 44T101 45T107 45T116 46T129 46Q168 47 180 50T198 63Q201 68 227 171L252 274L129 623Q128 624 127 625T125 627T122 629T118 631T113 633T105 634T96 635T83 636T66 637Z"></path></g></g></g></svg></mjx-container>) relation changes.</li>
-<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="7.742ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 3422 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mo" transform="translate(751,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(1140,0)"><path data-c="1D44C" d="M66 637Q54 637 49 637T39 638T32 641T30 647T33 664T42 682Q44 683 56 683Q104 680 165 680Q288 680 306 683H316Q322 677 322 674T320 656Q316 643 310 637H298Q242 637 242 624Q242 619 292 477T343 333L346 336Q350 340 358 349T379 373T411 410T454 461Q546 568 561 587T577 618Q577 634 545 637Q528 637 528 647Q528 649 530 661Q533 676 535 679T549 683Q551 683 578 682T657 680Q684 680 713 681T746 682Q763 682 763 673Q763 669 760 657T755 643Q753 637 734 637Q662 632 617 587Q608 578 477 424L348 273L322 169Q295 62 295 57Q295 46 363 46Q379 46 384 45T390 35Q390 33 388 23Q384 6 382 4T366 1Q361 1 324 1T232 2Q170 2 138 2T102 1Q84 1 84 9Q84 14 87 24Q88 27 89 30T90 35T91 39T93 42T96 44T101 45T107 45T116 46T129 46Q168 47 180 50T198 63Q201 68 227 171L252 274L129 623Q128 624 127 625T125 627T122 629T118 631T113 633T105 634T96 635T83 636T66 637Z"></path></g><g data-mml-node="mo" transform="translate(1903,0) translate(0 -0.5)"><path data-c="7C" d="M139 -249H137Q125 -249 119 -235V251L120 737Q130 750 139 750Q152 750 159 735V-235Q151 -249 141 -249H139Z"></path></g><g data-mml-node="mi" transform="translate(2181,0)"><path data-c="1D44B" d="M42 0H40Q26 0 26 11Q26 15 29 27Q33 41 36 43T55 46Q141 49 190 98Q200 108 306 224T411 342Q302 620 297 625Q288 636 234 637H206Q200 643 200 645T202 664Q206 677 212 683H226Q260 681 347 681Q380 681 408 681T453 682T473 682Q490 682 490 671Q490 670 488 658Q484 643 481 640T465 637Q434 634 411 620L488 426L541 485Q646 598 646 610Q646 628 622 635Q617 635 609 637Q594 637 594 648Q594 650 596 664Q600 677 606 683H618Q619 683 643 683T697 681T738 680Q828 680 837 683H845Q852 676 852 672Q850 647 840 637H824Q790 636 763 628T722 611T698 593L687 584Q687 585 592 480L505 384Q505 383 536 304T601 142T638 56Q648 47 699 46Q734 46 734 37Q734 35 732 23Q728 7 725 4T711 1Q708 1 678 1T589 2Q528 2 496 2T461 1Q444 1 444 10Q444 11 446 25Q448 35 450 39T455 44T464 46T480 47T506 54Q523 62 523 64Q522 64 476 181L429 299Q241 95 236 84Q232 76 232 72Q232 53 261 47Q262 47 267 47T273 46Q276 46 277 46T280 45T283 42T284 35Q284 26 282 19Q279 6 276 4T261 1Q258 1 243 1T201 2T142 2Q64 2 42 0Z"></path></g><g data-mml-node="mo" transform="translate(3033,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container> changes.</li>
+<li>Housing price prediction model</li>
+<li>COVID-19 changed market dynamics</li>
+<li>Model overpaid for homes</li>
+<li><strong>Failure</strong>: No drift detection on price distributions</li>
+<li><strong>Cost</strong>: $880M loss, shut down home-buying business</li>
 </ul>
-</li>
-<li>
-<p><strong>Label Drift</strong> (Target changes):</p>
+<p><strong>Case 3: Fraud Detection Drift</strong></p>
 <ul>
-<li>Distribution of ground truth labels changes.</li>
+<li>Model trained in 2019</li>
+<li>2020: COVID → new fraud patterns (online shopping surge)</li>
+<li>Model missed new fraud types</li>
+<li><strong>Failure</strong>: No monitoring of false negative rate</li>
+<li><strong>Cost</strong>: Millions in fraud losses</li>
 </ul>
-</li>
-</ol>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="4" lang="en-IN">
-<h1 id="detection-strategies">Detection Strategies</h1>
-<p><strong>1. Reference vs. Current Distribution</strong></p>
+<h1 id="why-ml-models-degrade">Why ML Models Degrade</h1>
+<p><strong>1. Data drift</strong> (X changes)</p>
 <ul>
-<li>Compare <code>Training Set</code> (Reference) vs <code>Last 24h Production Data</code> (Current).</li>
+<li>User demographics shift</li>
+<li>New product categories appear</li>
+<li>Image quality degrades</li>
+<li>Seasonal patterns change</li>
 </ul>
-<p><strong>2. Statistical Tests</strong>:</p>
+<p><strong>2. Concept drift</strong> (P(Y|X) changes)</p>
 <ul>
-<li><strong>Numerical</strong>: Kolmogorov-Smirnov (KS) test, Wasserstein Distance, KL Divergence.</li>
-<li><strong>Categorical</strong>: Chi-Square test, Population Stability Index (PSI).</li>
+<li>COVID changes consumer behavior</li>
+<li>Regulations change (GDPR affects marketing)</li>
+<li>Competitor enters market</li>
+<li>Economic recession alters patterns</li>
 </ul>
-<p><strong>3. Rule-based</strong>:</p>
+<p><strong>3. Operational issues</strong></p>
 <ul>
-<li>&quot;If percentage of nulls &gt; 10% -&gt; Alert&quot;</li>
-<li>&quot;If mean input value &gt; 5 std dev from train mean -&gt; Alert&quot;</li>
+<li>Upstream data pipeline breaks</li>
+<li>Feature encoding changes</li>
+<li>Missing value handling differs</li>
+<li>Training/serving skew</li>
+</ul>
+<p><strong>4. Adversarial drift</strong></p>
+<ul>
+<li>Spammers adapt to spam filter</li>
+<li>Fraudsters evade detection</li>
+<li>Click farms mimic real users</li>
 </ul>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="5" lang="en-IN">
-<h1 id="tooling-evidently-ai">Tooling: Evidently AI</h1>
-<p>Open-source Python library for evaluating, testing, and monitoring data/models.</p>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">pip install evidently
-</code></pre>
-<p><strong>Generate a Dashboard</strong>:</p>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
-<span class="hljs-keyword">from</span> evidently.report <span class="hljs-keyword">import</span> Report
-<span class="hljs-keyword">from</span> evidently.metric_preset <span class="hljs-keyword">import</span> DataDriftPreset
-
-ref_data = pd.read_csv(<span class="hljs-string">&quot;train.csv&quot;</span>)
-curr_data = pd.read_csv(<span class="hljs-string">&quot;production_log.csv&quot;</span>)
-
-report = Report(metrics=[
-    DataDriftPreset(),
-])
-
-report.run(reference_data=ref_data, current_data=curr_data)
-report.save_html(<span class="hljs-string">&quot;drift_report.html&quot;</span>)
-</code></pre>
+<h1 id="the-ml-monitoring-stack">The ML Monitoring Stack</h1>
+<p><strong>What to monitor:</strong></p>
+<p><strong>1. Model Performance Metrics</strong></p>
+<ul>
+<li>Accuracy, precision, recall, F1</li>
+<li>Latency (p50, p95, p99)</li>
+<li>Throughput (predictions/sec)</li>
+<li>Error rate</li>
+</ul>
+<p><strong>2. Data Quality Metrics</strong></p>
+<ul>
+<li>Missing values %</li>
+<li>Out-of-range values</li>
+<li>Cardinality changes</li>
+<li>Schema violations</li>
+</ul>
+<p><strong>3. Data Drift Metrics</strong></p>
+<ul>
+<li>Distribution shifts (KS test, PSI)</li>
+<li>Feature correlations</li>
+<li>Statistical properties (mean, std, quantiles)</li>
+</ul>
+<p><strong>4. System Health</strong></p>
+<ul>
+<li>CPU/GPU utilization</li>
+<li>Memory usage</li>
+<li>Request queue depth</li>
+<li>Dependency health</li>
+</ul>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="6" lang="en-IN">
-<h1 id="tooling-alibi-detect">Tooling: Alibi Detect</h1>
-<p>Focused on outlier detection, adversarial detection, and drift detection.</p>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> alibi_detect.cd <span class="hljs-keyword">import</span> KSDrift
-
-<span class="hljs-comment"># Initialize drift detector with reference data</span>
-cd = KSDrift(X_ref, p_val=<span class="hljs-number">0.05</span>)
-
-<span class="hljs-comment"># Predict drift on new batch</span>
-preds = cd.predict(X_new)
-
-<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Drift detected: <span class="hljs-subst">{preds[<span class="hljs-string">&#x27;data&#x27;</span>][<span class="hljs-string">&#x27;is_drift&#x27;</span>]}</span>&quot;</span>)
-</code></pre>
+<h1 id="types-of-drift-deep-dive">Types of Drift: Deep Dive</h1>
+<p><strong>1. Covariate Shift (Data Drift)</strong></p>
+<ul>
+<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="5.387ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 2381 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mo" transform="translate(751,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(1140,0)"><path data-c="1D44B" d="M42 0H40Q26 0 26 11Q26 15 29 27Q33 41 36 43T55 46Q141 49 190 98Q200 108 306 224T411 342Q302 620 297 625Q288 636 234 637H206Q200 643 200 645T202 664Q206 677 212 683H226Q260 681 347 681Q380 681 408 681T453 682T473 682Q490 682 490 671Q490 670 488 658Q484 643 481 640T465 637Q434 634 411 620L488 426L541 485Q646 598 646 610Q646 628 622 635Q617 635 609 637Q594 637 594 648Q594 650 596 664Q600 677 606 683H618Q619 683 643 683T697 681T738 680Q828 680 837 683H845Q852 676 852 672Q850 647 840 637H824Q790 636 763 628T722 611T698 593L687 584Q687 585 592 480L505 384Q505 383 536 304T601 142T638 56Q648 47 699 46Q734 46 734 37Q734 35 732 23Q728 7 725 4T711 1Q708 1 678 1T589 2Q528 2 496 2T461 1Q444 1 444 10Q444 11 446 25Q448 35 450 39T455 44T464 46T480 47T506 54Q523 62 523 64Q522 64 476 181L429 299Q241 95 236 84Q232 76 232 72Q232 53 261 47Q262 47 267 47T273 46Q276 46 277 46T280 45T283 42T284 35Q284 26 282 19Q279 6 276 4T261 1Q258 1 243 1T201 2T142 2Q64 2 42 0Z"></path></g><g data-mml-node="mo" transform="translate(1992,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container> changes, but <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="7.742ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 3422 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mo" transform="translate(751,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(1140,0)"><path data-c="1D44C" d="M66 637Q54 637 49 637T39 638T32 641T30 647T33 664T42 682Q44 683 56 683Q104 680 165 680Q288 680 306 683H316Q322 677 322 674T320 656Q316 643 310 637H298Q242 637 242 624Q242 619 292 477T343 333L346 336Q350 340 358 349T379 373T411 410T454 461Q546 568 561 587T577 618Q577 634 545 637Q528 637 528 647Q528 649 530 661Q533 676 535 679T549 683Q551 683 578 682T657 680Q684 680 713 681T746 682Q763 682 763 673Q763 669 760 657T755 643Q753 637 734 637Q662 632 617 587Q608 578 477 424L348 273L322 169Q295 62 295 57Q295 46 363 46Q379 46 384 45T390 35Q390 33 388 23Q384 6 382 4T366 1Q361 1 324 1T232 2Q170 2 138 2T102 1Q84 1 84 9Q84 14 87 24Q88 27 89 30T90 35T91 39T93 42T96 44T101 45T107 45T116 46T129 46Q168 47 180 50T198 63Q201 68 227 171L252 274L129 623Q128 624 127 625T125 627T122 629T118 631T113 633T105 634T96 635T83 636T66 637Z"></path></g><g data-mml-node="mo" transform="translate(1903,0) translate(0 -0.5)"><path data-c="7C" d="M139 -249H137Q125 -249 119 -235V251L120 737Q130 750 139 750Q152 750 159 735V-235Q151 -249 141 -249H139Z"></path></g><g data-mml-node="mi" transform="translate(2181,0)"><path data-c="1D44B" d="M42 0H40Q26 0 26 11Q26 15 29 27Q33 41 36 43T55 46Q141 49 190 98Q200 108 306 224T411 342Q302 620 297 625Q288 636 234 637H206Q200 643 200 645T202 664Q206 677 212 683H226Q260 681 347 681Q380 681 408 681T453 682T473 682Q490 682 490 671Q490 670 488 658Q484 643 481 640T465 637Q434 634 411 620L488 426L541 485Q646 598 646 610Q646 628 622 635Q617 635 609 637Q594 637 594 648Q594 650 596 664Q600 677 606 683H618Q619 683 643 683T697 681T738 680Q828 680 837 683H845Q852 676 852 672Q850 647 840 637H824Q790 636 763 628T722 611T698 593L687 584Q687 585 592 480L505 384Q505 383 536 304T601 142T638 56Q648 47 699 46Q734 46 734 37Q734 35 732 23Q728 7 725 4T711 1Q708 1 678 1T589 2Q528 2 496 2T461 1Q444 1 444 10Q444 11 446 25Q448 35 450 39T455 44T464 46T480 47T506 54Q523 62 523 64Q522 64 476 181L429 299Q241 95 236 84Q232 76 232 72Q232 53 261 47Q262 47 267 47T273 46Q276 46 277 46T280 45T283 42T284 35Q284 26 282 19Q279 6 276 4T261 1Q258 1 243 1T201 2T142 2Q64 2 42 0Z"></path></g><g data-mml-node="mo" transform="translate(3033,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container> stays the same</li>
+<li><strong>Example</strong>: Image classifier trained on daylight photos, deployed on nighttime photos</li>
+<li><strong>Detection</strong>: Compare input distributions</li>
+<li><strong>Fix</strong>: Retrain with new data or use domain adaptation</li>
+</ul>
+<p><strong>2. Prior Probability Shift (Label Drift)</strong></p>
+<ul>
+<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="5.186ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 2292 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mo" transform="translate(751,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(1140,0)"><path data-c="1D44C" d="M66 637Q54 637 49 637T39 638T32 641T30 647T33 664T42 682Q44 683 56 683Q104 680 165 680Q288 680 306 683H316Q322 677 322 674T320 656Q316 643 310 637H298Q242 637 242 624Q242 619 292 477T343 333L346 336Q350 340 358 349T379 373T411 410T454 461Q546 568 561 587T577 618Q577 634 545 637Q528 637 528 647Q528 649 530 661Q533 676 535 679T549 683Q551 683 578 682T657 680Q684 680 713 681T746 682Q763 682 763 673Q763 669 760 657T755 643Q753 637 734 637Q662 632 617 587Q608 578 477 424L348 273L322 169Q295 62 295 57Q295 46 363 46Q379 46 384 45T390 35Q390 33 388 23Q384 6 382 4T366 1Q361 1 324 1T232 2Q170 2 138 2T102 1Q84 1 84 9Q84 14 87 24Q88 27 89 30T90 35T91 39T93 42T96 44T101 45T107 45T116 46T129 46Q168 47 180 50T198 63Q201 68 227 171L252 274L129 623Q128 624 127 625T125 627T122 629T118 631T113 633T105 634T96 635T83 636T66 637Z"></path></g><g data-mml-node="mo" transform="translate(1903,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container> changes, but <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="7.742ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 3422 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mo" transform="translate(751,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(1140,0)"><path data-c="1D44B" d="M42 0H40Q26 0 26 11Q26 15 29 27Q33 41 36 43T55 46Q141 49 190 98Q200 108 306 224T411 342Q302 620 297 625Q288 636 234 637H206Q200 643 200 645T202 664Q206 677 212 683H226Q260 681 347 681Q380 681 408 681T453 682T473 682Q490 682 490 671Q490 670 488 658Q484 643 481 640T465 637Q434 634 411 620L488 426L541 485Q646 598 646 610Q646 628 622 635Q617 635 609 637Q594 637 594 648Q594 650 596 664Q600 677 606 683H618Q619 683 643 683T697 681T738 680Q828 680 837 683H845Q852 676 852 672Q850 647 840 637H824Q790 636 763 628T722 611T698 593L687 584Q687 585 592 480L505 384Q505 383 536 304T601 142T638 56Q648 47 699 46Q734 46 734 37Q734 35 732 23Q728 7 725 4T711 1Q708 1 678 1T589 2Q528 2 496 2T461 1Q444 1 444 10Q444 11 446 25Q448 35 450 39T455 44T464 46T480 47T506 54Q523 62 523 64Q522 64 476 181L429 299Q241 95 236 84Q232 76 232 72Q232 53 261 47Q262 47 267 47T273 46Q276 46 277 46T280 45T283 42T284 35Q284 26 282 19Q279 6 276 4T261 1Q258 1 243 1T201 2T142 2Q64 2 42 0Z"></path></g><g data-mml-node="mo" transform="translate(1992,0) translate(0 -0.5)"><path data-c="7C" d="M139 -249H137Q125 -249 119 -235V251L120 737Q130 750 139 750Q152 750 159 735V-235Q151 -249 141 -249H139Z"></path></g><g data-mml-node="mi" transform="translate(2270,0)"><path data-c="1D44C" d="M66 637Q54 637 49 637T39 638T32 641T30 647T33 664T42 682Q44 683 56 683Q104 680 165 680Q288 680 306 683H316Q322 677 322 674T320 656Q316 643 310 637H298Q242 637 242 624Q242 619 292 477T343 333L346 336Q350 340 358 349T379 373T411 410T454 461Q546 568 561 587T577 618Q577 634 545 637Q528 637 528 647Q528 649 530 661Q533 676 535 679T549 683Q551 683 578 682T657 680Q684 680 713 681T746 682Q763 682 763 673Q763 669 760 657T755 643Q753 637 734 637Q662 632 617 587Q608 578 477 424L348 273L322 169Q295 62 295 57Q295 46 363 46Q379 46 384 45T390 35Q390 33 388 23Q384 6 382 4T366 1Q361 1 324 1T232 2Q170 2 138 2T102 1Q84 1 84 9Q84 14 87 24Q88 27 89 30T90 35T91 39T93 42T96 44T101 45T107 45T116 46T129 46Q168 47 180 50T198 63Q201 68 227 171L252 274L129 623Q128 624 127 625T125 627T122 629T118 631T113 633T105 634T96 635T83 636T66 637Z"></path></g><g data-mml-node="mo" transform="translate(3033,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container> stays the same</li>
+<li><strong>Example</strong>: Fraud rate increases from 1% to 5%</li>
+<li><strong>Detection</strong>: Monitor label distribution</li>
+<li><strong>Fix</strong>: Adjust decision threshold or retrain</li>
+</ul>
+<p><strong>3. Concept Drift</strong></p>
+<ul>
+<li><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="7.742ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 3422 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mo" transform="translate(751,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(1140,0)"><path data-c="1D44C" d="M66 637Q54 637 49 637T39 638T32 641T30 647T33 664T42 682Q44 683 56 683Q104 680 165 680Q288 680 306 683H316Q322 677 322 674T320 656Q316 643 310 637H298Q242 637 242 624Q242 619 292 477T343 333L346 336Q350 340 358 349T379 373T411 410T454 461Q546 568 561 587T577 618Q577 634 545 637Q528 637 528 647Q528 649 530 661Q533 676 535 679T549 683Q551 683 578 682T657 680Q684 680 713 681T746 682Q763 682 763 673Q763 669 760 657T755 643Q753 637 734 637Q662 632 617 587Q608 578 477 424L348 273L322 169Q295 62 295 57Q295 46 363 46Q379 46 384 45T390 35Q390 33 388 23Q384 6 382 4T366 1Q361 1 324 1T232 2Q170 2 138 2T102 1Q84 1 84 9Q84 14 87 24Q88 27 89 30T90 35T91 39T93 42T96 44T101 45T107 45T116 46T129 46Q168 47 180 50T198 63Q201 68 227 171L252 274L129 623Q128 624 127 625T125 627T122 629T118 631T113 633T105 634T96 635T83 636T66 637Z"></path></g><g data-mml-node="mo" transform="translate(1903,0) translate(0 -0.5)"><path data-c="7C" d="M139 -249H137Q125 -249 119 -235V251L120 737Q130 750 139 750Q152 750 159 735V-235Q151 -249 141 -249H139Z"></path></g><g data-mml-node="mi" transform="translate(2181,0)"><path data-c="1D44B" d="M42 0H40Q26 0 26 11Q26 15 29 27Q33 41 36 43T55 46Q141 49 190 98Q200 108 306 224T411 342Q302 620 297 625Q288 636 234 637H206Q200 643 200 645T202 664Q206 677 212 683H226Q260 681 347 681Q380 681 408 681T453 682T473 682Q490 682 490 671Q490 670 488 658Q484 643 481 640T465 637Q434 634 411 620L488 426L541 485Q646 598 646 610Q646 628 622 635Q617 635 609 637Q594 637 594 648Q594 650 596 664Q600 677 606 683H618Q619 683 643 683T697 681T738 680Q828 680 837 683H845Q852 676 852 672Q850 647 840 637H824Q790 636 763 628T722 611T698 593L687 584Q687 585 592 480L505 384Q505 383 536 304T601 142T638 56Q648 47 699 46Q734 46 734 37Q734 35 732 23Q728 7 725 4T711 1Q708 1 678 1T589 2Q528 2 496 2T461 1Q444 1 444 10Q444 11 446 25Q448 35 450 39T455 44T464 46T480 47T506 54Q523 62 523 64Q522 64 476 181L429 299Q241 95 236 84Q232 76 232 72Q232 53 261 47Q262 47 267 47T273 46Q276 46 277 46T280 45T283 42T284 35Q284 26 282 19Q279 6 276 4T261 1Q258 1 243 1T201 2T142 2Q64 2 42 0Z"></path></g><g data-mml-node="mo" transform="translate(3033,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container> changes</li>
+<li><strong>Example</strong>: &quot;Good credit risk&quot; definition changes during recession</li>
+<li><strong>Detection</strong>: Monitor model performance on labeled data</li>
+<li><strong>Fix</strong>: Retrain model</li>
+</ul>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" lang="en-IN">
-<h1 id="monitoring-architecture">Monitoring Architecture</h1>
-<ol>
-<li><strong>Prediction Service</strong>: Logs inputs/outputs (async) to storage.</li>
-<li><strong>Storage</strong>: Logs stored in Data Warehouse (BigQuery/Postgres) or Object Store (S3).</li>
-<li><strong>Analyzer</strong>: Scheduled job (Airflow) runs daily.
+<h1 id="types-of-drift-continued">Types of Drift (continued)</h1>
+<p><strong>4. Upstream Data Changes</strong></p>
 <ul>
-<li>Pulls logs.</li>
-<li>Calculates drift metrics.</li>
-<li>Stores metrics in Time Series DB (Prometheus).</li>
+<li>Data pipeline modification</li>
+<li><strong>Example</strong>: Feature scaling changed from [0,1] to [-1,1]</li>
+<li><strong>Detection</strong>: Data schema validation</li>
+<li><strong>Fix</strong>: Fix pipeline or retrain</li>
 </ul>
-</li>
-<li><strong>Dashboard</strong>: Grafana visualizes metrics over time.</li>
-<li><strong>Alerter</strong>: Slack/Email alert if drift &gt; threshold.</li>
-</ol>
+<p><strong>5. Virtual Drift (False Alarm)</strong></p>
+<ul>
+<li>Statistical tests flag drift, but performance unchanged</li>
+<li><strong>Example</strong>: Slight shift in feature with low importance</li>
+<li><strong>Detection</strong>: Correlate drift with performance degradation</li>
+<li><strong>Fix</strong>: Ignore or adjust detection threshold</li>
+</ul>
+<p><strong>Drift patterns:</strong></p>
+<ul>
+<li><strong>Sudden</strong>: Abrupt change (system upgrade, policy change)</li>
+<li><strong>Gradual</strong>: Slow shift over time (seasonal trends)</li>
+<li><strong>Recurring</strong>: Periodic patterns (weekday vs weekend)</li>
+<li><strong>Incremental</strong>: Step-by-step changes</li>
+</ul>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" lang="en-IN">
-<h1 id="prometheus--grafana">Prometheus &amp; Grafana</h1>
-<p><strong>Prometheus</strong>: Time-series database designed for monitoring.<br />
-<strong>Grafana</strong>: Visualization UI.</p>
-<p><strong>Exposing Metrics in Python</strong>:</p>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> prometheus_client <span class="hljs-keyword">import</span> start_http_server, Summary, Counter
-
-REQUEST_TIME = Summary(<span class="hljs-string">&#x27;request_processing_seconds&#x27;</span>, <span class="hljs-string">&#x27;Time spent processing request&#x27;</span>)
-PREDICTION_COUNTER = Counter(<span class="hljs-string">&#x27;predictions_total&#x27;</span>, <span class="hljs-string">&#x27;Total predictions&#x27;</span>)
-
-<span class="hljs-meta">@REQUEST_TIME.time()</span>
-<span class="hljs-keyword">def</span> <span class="hljs-title function_">process_request</span>(<span class="hljs-params">t</span>):
-    PREDICTION_COUNTER.inc()
-    <span class="hljs-comment"># ... logic</span>
-</code></pre>
+<h1 id="drift-detection-statistical-tests">Drift Detection: Statistical Tests</h1>
+<p><strong>For numerical features:</strong></p>
+<p><strong>1. Kolmogorov-Smirnov (KS) Test</strong></p>
+<ul>
+<li>Measures maximum distance between CDFs</li>
+<li><strong>Null hypothesis</strong>: Both samples from same distribution</li>
+<li><strong>Usage</strong>: <code>scipy.stats.ks_2samp(reference, current)</code></li>
+<li><strong>Interpretation</strong>: p-value &lt; 0.05 → drift detected</li>
+</ul>
+<p><strong>2. Wasserstein Distance (Earth Mover's Distance)</strong></p>
+<ul>
+<li>Measures &quot;cost&quot; to transform one distribution into another</li>
+<li><strong>Advantage</strong>: Interpretable (same units as feature)</li>
+<li><strong>Usage</strong>: <code>scipy.stats.wasserstein_distance(reference, current)</code></li>
+</ul>
+<p><strong>3. KL Divergence (Kullback-Leibler)</strong></p>
+<ul>
+<li>Measures how one distribution differs from another</li>
+<li><strong>Note</strong>: Not symmetric (KL(P||Q) ≠ KL(Q||P))</li>
+<li><strong>Advantage</strong>: Information-theoretic interpretation</li>
+</ul>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="9" lang="en-IN">
-<h1 id="feedback-loops">Feedback Loops</h1>
-<p>Drift detection is a proxy. The <em>gold standard</em> is actual performance.</p>
-<p><strong>Challenge</strong>: Ground truth comes late (delayed labels).</p>
+<h1 id="drift-detection-statistical-tests-2">Drift Detection: Statistical Tests (2)</h1>
+<p><strong>For categorical features:</strong></p>
+<p><strong>1. Chi-Square Test</strong></p>
 <ul>
-<li>Credit Risk: Know default status after months.</li>
-<li>E-commerce Recs: Know click/purchase immediately.</li>
+<li>Tests if category frequencies differ</li>
+<li><strong>Example</strong>: Distribution of [&quot;mobile&quot;, &quot;desktop&quot;, &quot;tablet&quot;]</li>
+<li><strong>Usage</strong>: <code>scipy.stats.chisquare(observed, expected)</code></li>
 </ul>
-<p><strong>Logging Feedback</strong>:</p>
+<p><strong>2. Population Stability Index (PSI)</strong></p>
 <ul>
-<li>Log <code>prediction_id</code> with prediction.</li>
-<li>Later, log <code>prediction_id</code> + <code>actual_outcome</code>.</li>
-<li>Join them to calculate Accuracy/F1 over time.</li>
-</ul>
-</section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" lang="en-IN">
-<h1 id="lab-drift-detection-dashboard">Lab: Drift Detection Dashboard</h1>
-<p><strong>Objective</strong>: Simulate model decay and detect it.</p>
-<p><strong>Steps</strong>:</p>
-<ol>
-<li><strong>Train</strong>: Train a model on &quot;Old&quot; data (e.g., Bike Sharing 2011).</li>
-<li><strong>Simulate Serving</strong>: Predict on &quot;New&quot; data (Bike Sharing 2012) batch by batch.</li>
-<li><strong>Monitor</strong>:
+<li>Industry standard for monitoring scorecards</li>
+<li><strong>Formula</strong>: <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="31.218ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 13798.3 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mi" transform="translate(751,0)"><path data-c="1D446" d="M308 24Q367 24 416 76T466 197Q466 260 414 284Q308 311 278 321T236 341Q176 383 176 462Q176 523 208 573T273 648Q302 673 343 688T407 704H418H425Q521 704 564 640Q565 640 577 653T603 682T623 704Q624 704 627 704T632 705Q645 705 645 698T617 577T585 459T569 456Q549 456 549 465Q549 471 550 475Q550 478 551 494T553 520Q553 554 544 579T526 616T501 641Q465 662 419 662Q362 662 313 616T263 510Q263 480 278 458T319 427Q323 425 389 408T456 390Q490 379 522 342T554 242Q554 216 546 186Q541 164 528 137T492 78T426 18T332 -20Q320 -22 298 -22Q199 -22 144 33L134 44L106 13Q83 -14 78 -18T65 -22Q52 -22 52 -14Q52 -11 110 221Q112 227 130 227H143Q149 221 149 216Q149 214 148 207T144 186T142 153Q144 114 160 87T203 47T255 29T308 24Z"></path></g><g data-mml-node="mi" transform="translate(1396,0)"><path data-c="1D43C" d="M43 1Q26 1 26 10Q26 12 29 24Q34 43 39 45Q42 46 54 46H60Q120 46 136 53Q137 53 138 54Q143 56 149 77T198 273Q210 318 216 344Q286 624 286 626Q284 630 284 631Q274 637 213 637H193Q184 643 189 662Q193 677 195 680T209 683H213Q285 681 359 681Q481 681 487 683H497Q504 676 504 672T501 655T494 639Q491 637 471 637Q440 637 407 634Q393 631 388 623Q381 609 337 432Q326 385 315 341Q245 65 245 59Q245 52 255 50T307 46H339Q345 38 345 37T342 19Q338 6 332 0H316Q279 2 179 2Q143 2 113 2T65 2T43 1Z"></path></g><g data-mml-node="mo" transform="translate(2177.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="mo" transform="translate(3233.6,0)"><path data-c="2211" d="M61 748Q64 750 489 750H913L954 640Q965 609 976 579T993 533T999 516H979L959 517Q936 579 886 621T777 682Q724 700 655 705T436 710H319Q183 710 183 709Q186 706 348 484T511 259Q517 250 513 244L490 216Q466 188 420 134T330 27L149 -187Q149 -188 362 -188Q388 -188 436 -188T506 -189Q679 -189 778 -162T936 -43Q946 -27 959 6H999L913 -249L489 -250Q65 -250 62 -248Q56 -246 56 -239Q56 -234 118 -161Q186 -81 245 -11L428 206Q428 207 242 462L57 717L56 728Q56 744 61 748Z"></path></g><g data-mml-node="mo" transform="translate(4289.6,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="msub" transform="translate(4678.6,0)"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mi" transform="translate(675,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g><g data-mml-node="mo" transform="translate(5869.7,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="msub" transform="translate(6870,0)"><g data-mml-node="mi"><path data-c="1D444" d="M399 -80Q399 -47 400 -30T402 -11V-7L387 -11Q341 -22 303 -22Q208 -22 138 35T51 201Q50 209 50 244Q50 346 98 438T227 601Q351 704 476 704Q514 704 524 703Q621 689 680 617T740 435Q740 255 592 107Q529 47 461 16L444 8V3Q444 2 449 -24T470 -66T516 -82Q551 -82 583 -60T625 -3Q631 11 638 11Q647 11 649 2Q649 -6 639 -34T611 -100T557 -165T481 -194Q399 -194 399 -87V-80ZM636 468Q636 523 621 564T580 625T530 655T477 665Q429 665 379 640Q277 591 215 464T153 216Q153 110 207 59Q231 38 236 38V46Q236 86 269 120T347 155Q372 155 390 144T417 114T429 82T435 55L448 64Q512 108 557 185T619 334T636 468ZM314 18Q362 18 404 39L403 49Q399 104 366 115Q354 117 347 117Q344 117 341 117T337 118Q317 118 296 98T274 52Q274 18 314 18Z"></path></g><g data-mml-node="mi" transform="translate(824,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g><g data-mml-node="mo" transform="translate(7987.9,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(8599.1,0)"><path data-c="D7" d="M630 29Q630 9 609 9Q604 9 587 25T493 118L389 222L284 117Q178 13 175 11Q171 9 168 9Q160 9 154 15T147 29Q147 36 161 51T255 146L359 250L255 354Q174 435 161 449T147 471Q147 480 153 485T168 490Q173 490 175 489Q178 487 284 383L389 278L493 382Q570 459 587 475T609 491Q630 491 630 471Q630 464 620 453T522 355L418 250L522 145Q606 61 618 48T630 29Z"></path></g><g data-mml-node="mi" transform="translate(9599.3,0)"><path data-c="6C" d="M42 46H56Q95 46 103 60V68Q103 77 103 91T103 124T104 167T104 217T104 272T104 329Q104 366 104 407T104 482T104 542T103 586T103 603Q100 622 89 628T44 637H26V660Q26 683 28 683L38 684Q48 685 67 686T104 688Q121 689 141 690T171 693T182 694H185V379Q185 62 186 60Q190 52 198 49Q219 46 247 46H263V0H255L232 1Q209 2 183 2T145 3T107 3T57 1L34 0H26V46H42Z"></path><path data-c="6E" d="M41 46H55Q94 46 102 60V68Q102 77 102 91T102 122T103 161T103 203Q103 234 103 269T102 328V351Q99 370 88 376T43 385H25V408Q25 431 27 431L37 432Q47 433 65 434T102 436Q119 437 138 438T167 441T178 442H181V402Q181 364 182 364T187 369T199 384T218 402T247 421T285 437Q305 442 336 442Q450 438 463 329Q464 322 464 190V104Q464 66 466 59T477 49Q498 46 526 46H542V0H534L510 1Q487 2 460 2T422 3Q319 3 310 0H302V46H318Q379 46 379 62Q380 64 380 200Q379 335 378 343Q372 371 358 385T334 402T308 404Q263 404 229 370Q202 343 195 315T187 232V168V108Q187 78 188 68T191 55T200 49Q221 46 249 46H265V0H257L234 1Q210 2 183 2T145 3Q42 3 33 0H25V46H41Z" transform="translate(278,0)"></path></g><g data-mml-node="mo" transform="translate(10433.3,0)"><path data-c="2061" d=""></path></g><g data-mml-node="mo" transform="translate(10433.3,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="msub" transform="translate(10822.3,0)"><g data-mml-node="mi"><path data-c="1D443" d="M287 628Q287 635 230 637Q206 637 199 638T192 648Q192 649 194 659Q200 679 203 681T397 683Q587 682 600 680Q664 669 707 631T751 530Q751 453 685 389Q616 321 507 303Q500 302 402 301H307L277 182Q247 66 247 59Q247 55 248 54T255 50T272 48T305 46H336Q342 37 342 35Q342 19 335 5Q330 0 319 0Q316 0 282 1T182 2Q120 2 87 2T51 1Q33 1 33 11Q33 13 36 25Q40 41 44 43T67 46Q94 46 127 49Q141 52 146 61Q149 65 218 339T287 628ZM645 554Q645 567 643 575T634 597T609 619T560 635Q553 636 480 637Q463 637 445 637T416 636T404 636Q391 635 386 627Q384 621 367 550T332 412T314 344Q314 342 395 342H407H430Q542 342 590 392Q617 419 631 471T645 554Z"></path></g><g data-mml-node="mi" transform="translate(675,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g><g data-mml-node="TeXAtom" data-mjx-texclass="ORD" transform="translate(11791.3,0)"><g data-mml-node="mo"><path data-c="2F" d="M423 750Q432 750 438 744T444 730Q444 725 271 248T92 -240Q85 -250 75 -250Q68 -250 62 -245T56 -231Q56 -221 230 257T407 740Q411 750 423 750Z"></path></g></g><g data-mml-node="msub" transform="translate(12291.3,0)"><g data-mml-node="mi"><path data-c="1D444" d="M399 -80Q399 -47 400 -30T402 -11V-7L387 -11Q341 -22 303 -22Q208 -22 138 35T51 201Q50 209 50 244Q50 346 98 438T227 601Q351 704 476 704Q514 704 524 703Q621 689 680 617T740 435Q740 255 592 107Q529 47 461 16L444 8V3Q444 2 449 -24T470 -66T516 -82Q551 -82 583 -60T625 -3Q631 11 638 11Q647 11 649 2Q649 -6 639 -34T611 -100T557 -165T481 -194Q399 -194 399 -87V-80ZM636 468Q636 523 621 564T580 625T530 655T477 665Q429 665 379 640Q277 591 215 464T153 216Q153 110 207 59Q231 38 236 38V46Q236 86 269 120T347 155Q372 155 390 144T417 114T429 82T435 55L448 64Q512 108 557 185T619 334T636 468ZM314 18Q362 18 404 39L403 49Q399 104 366 115Q354 117 347 117Q344 117 341 117T337 118Q317 118 296 98T274 52Q274 18 314 18Z"></path></g><g data-mml-node="mi" transform="translate(824,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g><g data-mml-node="mo" transform="translate(13409.3,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container></li>
+<li><strong>Interpretation</strong>:
 <ul>
-<li>Calculate KS-test p-values for key features for each batch.</li>
-<li>Use <strong>Evidently AI</strong> to generate HTML reports.</li>
+<li>PSI &lt; 0.1: No significant change</li>
+<li>0.1 &lt; PSI &lt; 0.2: Moderate change</li>
+<li>PSI &gt; 0.2: Significant change</li>
 </ul>
 </li>
-<li><strong>Visualize</strong>: Plot drift scores over time.</li>
-</ol>
+</ul>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">calculate_psi</span>(<span class="hljs-params">reference, current, bins=<span class="hljs-number">10</span></span>):
+    ref_counts, _ = np.histogram(reference, bins=bins)
+    curr_counts, _ = np.histogram(current, bins=bins)
+    ref_freq = ref_counts / <span class="hljs-built_in">len</span>(reference)
+    curr_freq = curr_counts / <span class="hljs-built_in">len</span>(current)
+    psi = np.<span class="hljs-built_in">sum</span>((curr_freq - ref_freq) * np.log(curr_freq / ref_freq))
+    <span class="hljs-keyword">return</span> psi
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" lang="en-IN">
+<h1 id="drift-detection-example">Drift Detection Example</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">from</span> scipy.stats <span class="hljs-keyword">import</span> ks_2samp
+
+<span class="hljs-comment"># Reference distribution (training data)</span>
+reference = np.random.normal(loc=<span class="hljs-number">0</span>, scale=<span class="hljs-number">1</span>, size=<span class="hljs-number">10000</span>)
+
+<span class="hljs-comment"># Current distribution (production, shifted)</span>
+current = np.random.normal(loc=<span class="hljs-number">0.5</span>, scale=<span class="hljs-number">1.2</span>, size=<span class="hljs-number">1000</span>)
+
+<span class="hljs-comment"># Perform KS test</span>
+statistic, p_value = ks_2samp(reference, current)
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;KS Statistic: <span class="hljs-subst">{statistic:<span class="hljs-number">.4</span>f}</span>&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;P-value: <span class="hljs-subst">{p_value:<span class="hljs-number">.4</span>f}</span>&quot;</span>)
+
+<span class="hljs-keyword">if</span> p_value &lt; <span class="hljs-number">0.05</span>:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;<img class="emoji" draggable="false" alt="⚠" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" data-marp-twemoji=""/> Drift detected!&quot;</span>)
+<span class="hljs-keyword">else</span>:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;✓ No significant drift&quot;</span>)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code>KS Statistic: 0.1234
+P-value: 0.0001
+<img class="emoji" draggable="false" alt="⚠" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" data-marp-twemoji=""/> Drift detected!
+</code></pre>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="11" lang="en-IN">
-<h1 id="resources">Resources</h1>
+<h1 id="monitoring-tools-ecosystem">Monitoring Tools Ecosystem</h1>
+<p><strong>Open-Source:</strong></p>
 <ul>
-<li><strong>Evidently AI Tutorials</strong>: evidentlyai.com</li>
-<li><strong>Made With ML (Monitoring)</strong>: madewithml.com/courses/mlops/monitoring/</li>
-<li><strong>Google Cloud Architecture</strong>: &quot;Architecture for MLOps using TFX, Kubeflow Pipelines, and Cloud Build&quot;</li>
+<li><strong>Evidently AI</strong>: Drift reports, monitoring dashboard</li>
+<li><strong>Alibi Detect</strong>: Outlier/adversarial/drift detection</li>
+<li><strong>Great Expectations</strong>: Data validation and profiling</li>
+<li><strong>Deepchecks</strong>: Testing for ML models &amp; data</li>
+<li><strong>WhyLabs</strong> (community): Data logging and monitoring</li>
+</ul>
+<p><strong>Commercial:</strong></p>
+<ul>
+<li><strong>Arize AI</strong>: Model observability platform</li>
+<li><strong>Fiddler AI</strong>: Explainability + monitoring</li>
+<li><strong>Arthur AI</strong>: Model monitoring + bias detection</li>
+<li><strong>WhyLabs</strong> (enterprise): Production monitoring</li>
+<li><strong>Datadog ML Monitoring</strong>: APM + ML metrics</li>
+</ul>
+<p><strong>DIY Stack:</strong></p>
+<ul>
+<li><strong>Prometheus</strong>: Time-series metrics database</li>
+<li><strong>Grafana</strong>: Visualization dashboards</li>
+<li><strong>ELK Stack</strong>: Logging (Elasticsearch, Logstash, Kibana)</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="12" data-class="lead" lang="en-IN" class="lead" style="--class:lead;">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="12" lang="en-IN">
+<h1 id="evidently-ai-quick-start">Evidently AI: Quick Start</h1>
+<p><strong>Installation:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">pip install evidently
+</code></pre>
+<p><strong>Generate drift report:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> evidently.report <span class="hljs-keyword">import</span> Report
+<span class="hljs-keyword">from</span> evidently.metric_preset <span class="hljs-keyword">import</span> DataDriftPreset, TargetDriftPreset
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+
+<span class="hljs-comment"># Load data</span>
+reference_data = pd.read_csv(<span class="hljs-string">&quot;train.csv&quot;</span>)
+current_data = pd.read_csv(<span class="hljs-string">&quot;production_last_week.csv&quot;</span>)
+
+<span class="hljs-comment"># Create report</span>
+report = Report(metrics=[
+    DataDriftPreset(),
+    TargetDriftPreset()
+])
+
+report.run(
+    reference_data=reference_data,
+    current_data=current_data,
+    column_mapping=<span class="hljs-literal">None</span>  <span class="hljs-comment"># Auto-detect or specify target</span>
+)
+
+<span class="hljs-comment"># Save as HTML</span>
+report.save_html(<span class="hljs-string">&quot;drift_report.html&quot;</span>)
+</code></pre>
+<p><strong>Output</strong>: Interactive HTML dashboard with drift analysis per feature.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="13" lang="en-IN">
+<h1 id="evidently-ai-test-suites">Evidently AI: Test Suites</h1>
+<p><strong>Automated testing for data/model:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> evidently.test_suite <span class="hljs-keyword">import</span> TestSuite
+<span class="hljs-keyword">from</span> evidently.test_preset <span class="hljs-keyword">import</span> DataDriftTestPreset, DataQualityTestPreset
+
+<span class="hljs-comment"># Define tests</span>
+tests = TestSuite(tests=[
+    DataDriftTestPreset(),
+    DataQualityTestPreset(),
+])
+
+tests.run(reference_data=ref_df, current_data=curr_df)
+
+<span class="hljs-comment"># Check if tests passed</span>
+result = tests.as_dict()
+<span class="hljs-keyword">if</span> result[<span class="hljs-string">&#x27;summary&#x27;</span>][<span class="hljs-string">&#x27;failed_tests&#x27;</span>] &gt; <span class="hljs-number">0</span>:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;<img class="emoji" draggable="false" alt="⚠" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" data-marp-twemoji=""/> Tests failed!&quot;</span>)
+    <span class="hljs-comment"># Send alert</span>
+<span class="hljs-keyword">else</span>:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;✓ All tests passed&quot;</span>)
+</code></pre>
+<p><strong>Use case</strong>: Run in CI/CD pipeline or scheduled job.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="14" lang="en-IN">
+<h1 id="alibi-detect-advanced-drift-detection">Alibi Detect: Advanced Drift Detection</h1>
+<p><strong>Multivariate drift detection:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> alibi_detect.cd <span class="hljs-keyword">import</span> MMDDrift
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+
+<span class="hljs-comment"># Reference data (training set)</span>
+X_ref = np.random.randn(<span class="hljs-number">1000</span>, <span class="hljs-number">10</span>)  <span class="hljs-comment"># 1000 samples, 10 features</span>
+
+<span class="hljs-comment"># Initialize detector</span>
+drift_detector = MMDDrift(
+    X_ref,
+    p_val=<span class="hljs-number">0.05</span>,
+    n_permutations=<span class="hljs-number">100</span>
+)
+
+<span class="hljs-comment"># Production data</span>
+X_prod = np.random.randn(<span class="hljs-number">200</span>, <span class="hljs-number">10</span>) + <span class="hljs-number">0.5</span>  <span class="hljs-comment"># Shifted</span>
+
+<span class="hljs-comment"># Detect drift</span>
+prediction = drift_detector.predict(X_prod)
+
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Drift detected: <span class="hljs-subst">{prediction[<span class="hljs-string">&#x27;data&#x27;</span>][<span class="hljs-string">&#x27;is_drift&#x27;</span>]}</span>&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;P-value: <span class="hljs-subst">{prediction[<span class="hljs-string">&#x27;data&#x27;</span>][<span class="hljs-string">&#x27;p_val&#x27;</span>]:<span class="hljs-number">.4</span>f}</span>&quot;</span>)
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Distance: <span class="hljs-subst">{prediction[<span class="hljs-string">&#x27;data&#x27;</span>][<span class="hljs-string">&#x27;distance&#x27;</span>]:<span class="hljs-number">.4</span>f}</span>&quot;</span>)
+</code></pre>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Multivariate (considers feature interactions)</li>
+<li>Kernel-based (can detect complex shifts)</li>
+<li>Online updates possible</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="15" lang="en-IN">
+<h1 id="model-performance-monitoring">Model Performance Monitoring</h1>
+<p><strong>Metrics to track:</strong></p>
+<p><strong>Classification:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> sklearn.metrics <span class="hljs-keyword">import</span> accuracy_score, precision_score, recall_score, f1_score
+
+<span class="hljs-comment"># Per-day metrics</span>
+daily_metrics = {
+    <span class="hljs-string">&#x27;accuracy&#x27;</span>: [],
+    <span class="hljs-string">&#x27;precision&#x27;</span>: [],
+    <span class="hljs-string">&#x27;recall&#x27;</span>: [],
+    <span class="hljs-string">&#x27;f1&#x27;</span>: []
+}
+
+<span class="hljs-keyword">for</span> day <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">30</span>):
+    y_true = get_labels_for_day(day)  <span class="hljs-comment"># Ground truth (delayed)</span>
+    y_pred = get_predictions_for_day(day)
+
+    daily_metrics[<span class="hljs-string">&#x27;accuracy&#x27;</span>].append(accuracy_score(y_true, y_pred))
+    daily_metrics[<span class="hljs-string">&#x27;precision&#x27;</span>].append(precision_score(y_true, y_pred))
+    daily_metrics[<span class="hljs-string">&#x27;recall&#x27;</span>].append(recall_score(y_true, y_pred))
+    daily_metrics[<span class="hljs-string">&#x27;f1&#x27;</span>].append(f1_score(y_true, y_pred))
+
+<span class="hljs-comment"># Alert if degradation</span>
+<span class="hljs-keyword">if</span> daily_metrics[<span class="hljs-string">&#x27;f1&#x27;</span>][-<span class="hljs-number">1</span>] &lt; <span class="hljs-number">0.75</span>:  <span class="hljs-comment"># Below threshold</span>
+    send_alert(<span class="hljs-string">&quot;Model F1 dropped below 0.75!&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="16" lang="en-IN">
+<h1 id="model-performance-monitoring-2">Model Performance Monitoring (2)</h1>
+<p><strong>Regression:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> sklearn.metrics <span class="hljs-keyword">import</span> mean_absolute_error, mean_squared_error, r2_score
+
+<span class="hljs-comment"># Monitor residuals</span>
+residuals = y_true - y_pred
+
+<span class="hljs-comment"># Track over time</span>
+metrics = {
+    <span class="hljs-string">&#x27;mae&#x27;</span>: mean_absolute_error(y_true, y_pred),
+    <span class="hljs-string">&#x27;rmse&#x27;</span>: np.sqrt(mean_squared_error(y_true, y_pred)),
+    <span class="hljs-string">&#x27;r2&#x27;</span>: r2_score(y_true, y_pred),
+    <span class="hljs-string">&#x27;mean_residual&#x27;</span>: np.mean(residuals),
+    <span class="hljs-string">&#x27;std_residual&#x27;</span>: np.std(residuals)
+}
+
+<span class="hljs-comment"># Detect drift in residuals</span>
+<span class="hljs-keyword">if</span> <span class="hljs-built_in">abs</span>(metrics[<span class="hljs-string">&#x27;mean_residual&#x27;</span>]) &gt; threshold:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;<img class="emoji" draggable="false" alt="⚠" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" data-marp-twemoji=""/> Systematic bias detected!&quot;</span>)
+</code></pre>
+<p><strong>Key insight</strong>: Monitor residual distribution, not just aggregates.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="17" lang="en-IN">
+<h1 id="prediction-distribution-monitoring">Prediction Distribution Monitoring</h1>
+<p><strong>Monitor prediction distribution (even without labels!):</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> matplotlib.pyplot <span class="hljs-keyword">as</span> plt
+
+<span class="hljs-comment"># Collect predictions over time</span>
+predictions_week1 = model.predict(X_week1)
+predictions_week2 = model.predict(X_week2)
+
+<span class="hljs-comment"># Compare distributions</span>
+<span class="hljs-keyword">from</span> scipy.stats <span class="hljs-keyword">import</span> ks_2samp
+stat, p_val = ks_2samp(predictions_week1, predictions_week2)
+
+<span class="hljs-keyword">if</span> p_val &lt; <span class="hljs-number">0.05</span>:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;<img class="emoji" draggable="false" alt="⚠" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" data-marp-twemoji=""/> Prediction distribution changed!&quot;</span>)
+
+<span class="hljs-comment"># Visualize</span>
+plt.figure(figsize=(<span class="hljs-number">10</span>, <span class="hljs-number">4</span>))
+plt.hist(predictions_week1, bins=<span class="hljs-number">30</span>, alpha=<span class="hljs-number">0.5</span>, label=<span class="hljs-string">&#x27;Week 1&#x27;</span>)
+plt.hist(predictions_week2, bins=<span class="hljs-number">30</span>, alpha=<span class="hljs-number">0.5</span>, label=<span class="hljs-string">&#x27;Week 2&#x27;</span>)
+plt.xlabel(<span class="hljs-string">&#x27;Prediction Score&#x27;</span>)
+plt.ylabel(<span class="hljs-string">&#x27;Frequency&#x27;</span>)
+plt.legend()
+plt.title(<span class="hljs-string">&#x27;Prediction Distribution Drift&#x27;</span>)
+plt.show()
+</code></pre>
+<p><strong>Use case</strong>: Detect drift before labels arrive.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="18" lang="en-IN">
+<h1 id="delayed-labels-problem">Delayed Labels Problem</h1>
+<p><strong>Challenge</strong>: Ground truth arrives late.</p>
+<p><strong>Examples:</strong></p>
+<ul>
+<li><strong>Credit default</strong>: 30-180 days delay</li>
+<li><strong>Medical diagnosis</strong>: Days to weeks</li>
+<li><strong>Customer churn</strong>: 30-90 days</li>
+<li><strong>Ad click</strong>: Minutes (fast!)</li>
+<li><strong>Purchase conversion</strong>: Hours to days</li>
+</ul>
+<p><strong>Strategies:</strong></p>
+<p><strong>1. Use proxy metrics</strong> (fast feedback):</p>
+<ul>
+<li>Click-through rate (proxy for conversion)</li>
+<li>User engagement (proxy for satisfaction)</li>
+<li>Prediction confidence (proxy for accuracy)</li>
+</ul>
+<p><strong>2. Sample labeling</strong>:</p>
+<ul>
+<li>Label 1% of predictions manually</li>
+<li>Use for quick performance estimates</li>
+</ul>
+<p><strong>3. Model-based imputation</strong>:</p>
+<ul>
+<li>Train secondary model to predict labels</li>
+<li>Use for intermediate monitoring</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="19" lang="en-IN">
+<h1 id="logging-architecture">Logging Architecture</h1>
+<p><strong>What to log:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> uuid
+<span class="hljs-keyword">from</span> datetime <span class="hljs-keyword">import</span> datetime
+<span class="hljs-keyword">import</span> json
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">log_prediction</span>(<span class="hljs-params">model_id, features, prediction, metadata=<span class="hljs-literal">None</span></span>):
+    <span class="hljs-string">&quot;&quot;&quot;Log prediction for monitoring.&quot;&quot;&quot;</span>
+    prediction_id = <span class="hljs-built_in">str</span>(uuid.uuid4())
+
+    log_entry = {
+        <span class="hljs-string">&#x27;prediction_id&#x27;</span>: prediction_id,
+        <span class="hljs-string">&#x27;timestamp&#x27;</span>: datetime.utcnow().isoformat(),
+        <span class="hljs-string">&#x27;model_id&#x27;</span>: model_id,
+        <span class="hljs-string">&#x27;model_version&#x27;</span>: <span class="hljs-string">&#x27;1.2.3&#x27;</span>,
+        <span class="hljs-string">&#x27;features&#x27;</span>: features.tolist(),  <span class="hljs-comment"># Input features</span>
+        <span class="hljs-string">&#x27;prediction&#x27;</span>: prediction,
+        <span class="hljs-string">&#x27;prediction_probability&#x27;</span>: model.predict_proba(features)[<span class="hljs-number">0</span>].tolist(),
+        <span class="hljs-string">&#x27;metadata&#x27;</span>: metadata <span class="hljs-keyword">or</span> {}
+    }
+
+    <span class="hljs-comment"># Write to storage (S3, BigQuery, Postgres)</span>
+    write_to_storage(log_entry)
+
+    <span class="hljs-keyword">return</span> prediction_id
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">log_feedback</span>(<span class="hljs-params">prediction_id, actual_label</span>):
+    <span class="hljs-string">&quot;&quot;&quot;Log ground truth when available.&quot;&quot;&quot;</span>
+    feedback_entry = {
+        <span class="hljs-string">&#x27;prediction_id&#x27;</span>: prediction_id,
+        <span class="hljs-string">&#x27;timestamp&#x27;</span>: datetime.utcnow().isoformat(),
+        <span class="hljs-string">&#x27;actual_label&#x27;</span>: actual_label
+    }
+
+    write_to_storage(feedback_entry)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" lang="en-IN">
+<h1 id="logging-best-practices">Logging Best Practices</h1>
+<p><strong>1. Log asynchronously</strong> (don't block predictions):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> threading
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">async_log</span>(<span class="hljs-params">log_entry</span>):
+    thread = threading.Thread(target=write_to_storage, args=(log_entry,))
+    thread.start()
+
+<span class="hljs-comment"># Or use queue</span>
+<span class="hljs-keyword">from</span> queue <span class="hljs-keyword">import</span> Queue
+log_queue = Queue()
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">log_worker</span>():
+    <span class="hljs-keyword">while</span> <span class="hljs-literal">True</span>:
+        entry = log_queue.get()
+        write_to_storage(entry)
+        log_queue.task_done()
+
+<span class="hljs-comment"># Start worker</span>
+threading.Thread(target=log_worker, daemon=<span class="hljs-literal">True</span>).start()
+
+<span class="hljs-comment"># Log</span>
+log_queue.put(log_entry)
+</code></pre>
+<p><strong>2. Sample for high-volume systems</strong>:</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> random
+
+SAMPLE_RATE = <span class="hljs-number">0.1</span>  <span class="hljs-comment"># Log 10% of predictions</span>
+
+<span class="hljs-keyword">if</span> random.random() &lt; SAMPLE_RATE:
+    log_prediction(features, prediction)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="21" lang="en-IN">
+<h1 id="monitoring-architecture">Monitoring Architecture</h1>
+<p><img src="../figures/week14_monitoring_architecture_graphviz.png" alt="ML Monitoring Architecture" /></p>
+<p><strong>Architecture components:</strong></p>
+<ul>
+<li><strong>Logger</strong>: Asynchronous logging of predictions</li>
+<li><strong>Storage</strong>: S3/GCS for raw data</li>
+<li><strong>ETL</strong>: Daily/hourly processing (Airflow, dbt)</li>
+<li><strong>Drift Analysis</strong>: Evidently AI or custom metrics</li>
+<li><strong>Metrics DB</strong>: Prometheus or InfluxDB</li>
+<li><strong>Dashboard</strong>: Grafana or Tableau</li>
+<li><strong>Alerts</strong>: PagerDuty or Slack integration</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="22" lang="en-IN">
+<h1 id="prometheus-integration">Prometheus Integration</h1>
+<p><strong>Expose ML metrics:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> prometheus_client <span class="hljs-keyword">import</span> Counter, Histogram, Gauge, start_http_server
+
+<span class="hljs-comment"># Define metrics</span>
+PREDICTIONS_TOTAL = Counter(
+    <span class="hljs-string">&#x27;ml_predictions_total&#x27;</span>,
+    <span class="hljs-string">&#x27;Total number of predictions&#x27;</span>,
+    [<span class="hljs-string">&#x27;model_version&#x27;</span>, <span class="hljs-string">&#x27;endpoint&#x27;</span>]
+)
+
+PREDICTION_LATENCY = Histogram(
+    <span class="hljs-string">&#x27;ml_prediction_latency_seconds&#x27;</span>,
+    <span class="hljs-string">&#x27;Prediction latency in seconds&#x27;</span>
+)
+
+PREDICTION_SCORE = Histogram(
+    <span class="hljs-string">&#x27;ml_prediction_score&#x27;</span>,
+    <span class="hljs-string">&#x27;Distribution of prediction scores&#x27;</span>,
+    buckets=[<span class="hljs-number">0</span>, <span class="hljs-number">0.1</span>, <span class="hljs-number">0.2</span>, <span class="hljs-number">0.3</span>, <span class="hljs-number">0.4</span>, <span class="hljs-number">0.5</span>, <span class="hljs-number">0.6</span>, <span class="hljs-number">0.7</span>, <span class="hljs-number">0.8</span>, <span class="hljs-number">0.9</span>, <span class="hljs-number">1.0</span>]
+)
+
+MODEL_ACCURACY = Gauge(
+    <span class="hljs-string">&#x27;ml_model_accuracy&#x27;</span>,
+    <span class="hljs-string">&#x27;Current model accuracy&#x27;</span>
+)
+
+<span class="hljs-comment"># Start metrics server</span>
+start_http_server(<span class="hljs-number">8000</span>)  <span class="hljs-comment"># Metrics at http://localhost:8000/metrics</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" lang="en-IN">
+<h1 id="prometheus-integration-2">Prometheus Integration (2)</h1>
+<p><strong>Instrument prediction function:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> time
+
+<span class="hljs-meta">@PREDICTION_LATENCY.time()</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">predict</span>(<span class="hljs-params">features</span>):
+    <span class="hljs-comment"># Make prediction</span>
+    prediction = model.predict(features)
+    score = model.predict_proba(features)[<span class="hljs-number">0</span>, <span class="hljs-number">1</span>]
+
+    <span class="hljs-comment"># Record metrics</span>
+    PREDICTIONS_TOTAL.labels(
+        model_version=<span class="hljs-string">&#x27;v1.2.3&#x27;</span>,
+        endpoint=<span class="hljs-string">&#x27;/predict&#x27;</span>
+    ).inc()
+
+    PREDICTION_SCORE.observe(score)
+
+    <span class="hljs-keyword">return</span> prediction, score
+
+<span class="hljs-comment"># Update accuracy periodically (in background job)</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">update_accuracy</span>():
+    y_true, y_pred = get_recent_predictions_with_labels()
+    accuracy = accuracy_score(y_true, y_pred)
+    MODEL_ACCURACY.<span class="hljs-built_in">set</span>(accuracy)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" lang="en-IN">
+<h1 id="grafana-dashboards">Grafana Dashboards</h1>
+<p><strong>Prometheus queries (PromQL):</strong></p>
+<p><strong>1. Prediction rate:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-promql">rate(ml_predictions_total[5m])
+</code></pre>
+<p><strong>2. P95 latency:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-promql">histogram_quantile(0.95,
+  rate(ml_prediction_latency_seconds_bucket[5m])
+)
+</code></pre>
+<p><strong>3. Accuracy over time:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-promql">ml_model_accuracy
+</code></pre>
+<p><strong>4. Prediction score distribution:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-promql">rate(ml_prediction_score_bucket[5m])
+</code></pre>
+<p><strong>Grafana</strong>: Connect to Prometheus, create dashboards with these queries.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="25" lang="en-IN">
+<h1 id="alerting-rules">Alerting Rules</h1>
+<p><strong>Prometheus alerting rules</strong> (<code>alerts.yml</code>):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">groups:</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">ml_model_alerts</span>
+  <span class="hljs-attr">interval:</span> <span class="hljs-string">30s</span>
+  <span class="hljs-attr">rules:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">alert:</span> <span class="hljs-string">ModelAccuracyLow</span>
+    <span class="hljs-attr">expr:</span> <span class="hljs-string">ml_model_accuracy</span> <span class="hljs-string">&lt;</span> <span class="hljs-number">0.85</span>
+    <span class="hljs-attr">for:</span> <span class="hljs-string">10m</span>
+    <span class="hljs-attr">labels:</span>
+      <span class="hljs-attr">severity:</span> <span class="hljs-string">warning</span>
+    <span class="hljs-attr">annotations:</span>
+      <span class="hljs-attr">summary:</span> <span class="hljs-string">&quot;Model accuracy below threshold&quot;</span>
+      <span class="hljs-attr">description:</span> <span class="hljs-string">&quot;Accuracy is <span class="hljs-template-variable">{{ $value }}</span>, threshold is 0.85&quot;</span>
+
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">alert:</span> <span class="hljs-string">HighPredictionLatency</span>
+    <span class="hljs-attr">expr:</span> <span class="hljs-string">histogram_quantile(0.95,</span> <span class="hljs-string">rate(ml_prediction_latency_seconds_bucket[5m]))</span> <span class="hljs-string">&gt;</span> <span class="hljs-number">0.5</span>
+    <span class="hljs-attr">for:</span> <span class="hljs-string">5m</span>
+    <span class="hljs-attr">labels:</span>
+      <span class="hljs-attr">severity:</span> <span class="hljs-string">critical</span>
+    <span class="hljs-attr">annotations:</span>
+      <span class="hljs-attr">summary:</span> <span class="hljs-string">&quot;P95 latency above 500ms&quot;</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="26" lang="en-IN">
+<h1 id="alerting-integration">Alerting Integration</h1>
+<p><strong>Send alerts to Slack:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> requests
+<span class="hljs-keyword">import</span> json
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">send_slack_alert</span>(<span class="hljs-params">message</span>):
+    webhook_url = os.getenv(<span class="hljs-string">&quot;SLACK_WEBHOOK_URL&quot;</span>)
+
+    payload = {
+        <span class="hljs-string">&quot;text&quot;</span>: <span class="hljs-string">f&quot;<img class="emoji" draggable="false" alt="🚨" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f6a8.svg" data-marp-twemoji=""/> ML Model Alert: <span class="hljs-subst">{message}</span>&quot;</span>,
+        <span class="hljs-string">&quot;channel&quot;</span>: <span class="hljs-string">&quot;#ml-monitoring&quot;</span>,
+        <span class="hljs-string">&quot;username&quot;</span>: <span class="hljs-string">&quot;ML Monitor Bot&quot;</span>
+    }
+
+    response = requests.post(
+        webhook_url,
+        data=json.dumps(payload),
+        headers={<span class="hljs-string">&#x27;Content-Type&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>}
+    )
+
+    <span class="hljs-keyword">return</span> response.status_code == <span class="hljs-number">200</span>
+
+<span class="hljs-comment"># Usage</span>
+<span class="hljs-keyword">if</span> drift_detected:
+    send_slack_alert(
+        <span class="hljs-string">f&quot;Data drift detected in feature &#x27;<span class="hljs-subst">{feature_name}</span>&#x27; &quot;</span>
+        <span class="hljs-string">f&quot;(p-value: <span class="hljs-subst">{p_value:<span class="hljs-number">.4</span>f}</span>)&quot;</span>
+    )
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="27" lang="en-IN">
+<h1 id="ab-testing-for-models">A/B Testing for Models</h1>
+<p><strong>Shadow deployment</strong> (run new model alongside old):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">predict_with_shadow</span>(<span class="hljs-params">features</span>):
+    <span class="hljs-comment"># Production model (served to user)</span>
+    prediction_v1 = model_v1.predict(features)
+
+    <span class="hljs-comment"># Shadow model (logged but not served)</span>
+    prediction_v2 = model_v2.predict(features)
+
+    <span class="hljs-comment"># Log both for comparison</span>
+    log_predictions(
+        features=features,
+        v1_prediction=prediction_v1,
+        v2_prediction=prediction_v2,
+        served=<span class="hljs-string">&#x27;v1&#x27;</span>
+    )
+
+    <span class="hljs-comment"># Return production prediction</span>
+    <span class="hljs-keyword">return</span> prediction_v1
+</code></pre>
+<p><strong>A/B test</strong> (split traffic):</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">predict_with_ab_test</span>(<span class="hljs-params">features, user_id</span>):
+    <span class="hljs-comment"># Deterministic assignment (consistent per user)</span>
+    variant = <span class="hljs-string">&#x27;A&#x27;</span> <span class="hljs-keyword">if</span> <span class="hljs-built_in">hash</span>(user_id) % <span class="hljs-number">2</span> == <span class="hljs-number">0</span> <span class="hljs-keyword">else</span> <span class="hljs-string">&#x27;B&#x27;</span>
+
+    <span class="hljs-keyword">if</span> variant == <span class="hljs-string">&#x27;A&#x27;</span>:
+        prediction = model_a.predict(features)
+    <span class="hljs-keyword">else</span>:
+        prediction = model_b.predict(features)
+
+    log_prediction(features, prediction, variant=variant)
+    <span class="hljs-keyword">return</span> prediction
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="28" lang="en-IN">
+<h1 id="model-retraining-triggers">Model Retraining Triggers</h1>
+<p><strong>When to retrain:</strong></p>
+<p><strong>1. Performance-based:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">if</span> current_f1 &lt; baseline_f1 * <span class="hljs-number">0.95</span>:  <span class="hljs-comment"># 5% degradation</span>
+    trigger_retraining()
+</code></pre>
+<p><strong>2. Drift-based:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">if</span> psi_score &gt; <span class="hljs-number">0.2</span>:  <span class="hljs-comment"># Significant drift</span>
+    trigger_retraining()
+</code></pre>
+<p><strong>3. Time-based:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">if</span> days_since_last_training &gt; <span class="hljs-number">30</span>:
+    trigger_retraining()
+</code></pre>
+<p><strong>4. Data-based:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">if</span> num_new_labeled_samples &gt; <span class="hljs-number">10000</span>:
+    trigger_retraining()
+</code></pre>
+<p><strong>Best practice</strong>: Combine multiple triggers with OR logic.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="29" lang="en-IN">
+<h1 id="continuous-training-pipeline">Continuous Training Pipeline</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> airflow <span class="hljs-keyword">import</span> DAG
+<span class="hljs-keyword">from</span> airflow.operators.python_operator <span class="hljs-keyword">import</span> PythonOperator
+<span class="hljs-keyword">from</span> datetime <span class="hljs-keyword">import</span> datetime, timedelta
+
+default_args = {
+    <span class="hljs-string">&#x27;owner&#x27;</span>: <span class="hljs-string">&#x27;ml-team&#x27;</span>,
+    <span class="hljs-string">&#x27;depends_on_past&#x27;</span>: <span class="hljs-literal">False</span>,
+    <span class="hljs-string">&#x27;start_date&#x27;</span>: datetime(<span class="hljs-number">2024</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>),
+    <span class="hljs-string">&#x27;retries&#x27;</span>: <span class="hljs-number">1</span>,
+}
+
+dag = DAG(
+    <span class="hljs-string">&#x27;model_monitoring_and_retraining&#x27;</span>,
+    default_args=default_args,
+    schedule_interval=<span class="hljs-string">&#x27;@daily&#x27;</span>,
+)
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">check_drift</span>():
+    <span class="hljs-comment"># Run drift analysis</span>
+    drift_detected = analyze_drift()
+    <span class="hljs-keyword">if</span> drift_detected:
+        <span class="hljs-keyword">return</span> <span class="hljs-string">&#x27;retrain_model&#x27;</span>
+    <span class="hljs-keyword">else</span>:
+        <span class="hljs-keyword">return</span> <span class="hljs-string">&#x27;skip_retraining&#x27;</span>
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">retrain_model</span>():
+    <span class="hljs-comment"># Retrain model with new data</span>
+    new_model = train(get_recent_data())
+    <span class="hljs-comment"># Evaluate</span>
+    <span class="hljs-keyword">if</span> evaluate(new_model) &gt; current_model_score:
+        deploy(new_model)
+
+check_drift_task = PythonOperator(
+    task_id=<span class="hljs-string">&#x27;check_drift&#x27;</span>,
+    python_callable=check_drift,
+    dag=dag,
+)
+
+retrain_task = PythonOperator(
+    task_id=<span class="hljs-string">&#x27;retrain_model&#x27;</span>,
+    python_callable=retrain_model,
+    dag=dag,
+)
+
+check_drift_task &gt;&gt; retrain_task
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="30" lang="en-IN">
+<h1 id="model-versioning-and-rollback">Model Versioning and Rollback</h1>
+<p><strong>Track model versions:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> mlflow
+
+<span class="hljs-comment"># Log model</span>
+<span class="hljs-keyword">with</span> mlflow.start_run():
+    mlflow.log_params(hyperparameters)
+    mlflow.log_metrics({<span class="hljs-string">&quot;accuracy&quot;</span>: accuracy, <span class="hljs-string">&quot;f1&quot;</span>: f1})
+    mlflow.sklearn.log_model(model, <span class="hljs-string">&quot;model&quot;</span>)
+
+    <span class="hljs-comment"># Tag</span>
+    mlflow.set_tag(<span class="hljs-string">&quot;stage&quot;</span>, <span class="hljs-string">&quot;production&quot;</span>)
+    mlflow.set_tag(<span class="hljs-string">&quot;deployed_at&quot;</span>, datetime.now().isoformat())
+
+<span class="hljs-comment"># Load specific version</span>
+model_uri = <span class="hljs-string">&quot;models:/my-model/production&quot;</span>
+model = mlflow.sklearn.load_model(model_uri)
+</code></pre>
+<p><strong>Rollback strategy:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">rollback_to_previous_version</span>():
+    <span class="hljs-comment"># Load previous model</span>
+    previous_model = load_model_version(<span class="hljs-string">&#x27;v1.2.2&#x27;</span>)
+
+    <span class="hljs-comment"># Deploy</span>
+    deploy_model(previous_model)
+
+    <span class="hljs-comment"># Alert</span>
+    send_alert(<span class="hljs-string">&quot;Rolled back to v1.2.2 due to performance issues&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="31" lang="en-IN">
+<h1 id="feature-store-monitoring">Feature Store Monitoring</h1>
+<p><strong>Monitor feature statistics:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> feast <span class="hljs-keyword">import</span> FeatureStore
+
+store = FeatureStore(repo_path=<span class="hljs-string">&quot;.&quot;</span>)
+
+<span class="hljs-comment"># Monitor feature freshness</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">check_feature_freshness</span>():
+    features = store.get_online_features(
+        features=[<span class="hljs-string">&#x27;driver:avg_rating&#x27;</span>, <span class="hljs-string">&#x27;driver:completed_trips&#x27;</span>],
+        entity_rows=[{<span class="hljs-string">&#x27;driver_id&#x27;</span>: <span class="hljs-number">123</span>}]
+    )
+
+    last_updated = features.metadata.feature_timestamps[<span class="hljs-string">&#x27;driver:avg_rating&#x27;</span>]
+    age_hours = (datetime.now() - last_updated).total_seconds() / <span class="hljs-number">3600</span>
+
+    <span class="hljs-keyword">if</span> age_hours &gt; <span class="hljs-number">24</span>:
+        send_alert(<span class="hljs-string">f&quot;Feature driver:avg_rating is <span class="hljs-subst">{age_hours:<span class="hljs-number">.1</span>f}</span> hours old!&quot;</span>)
+
+<span class="hljs-comment"># Monitor feature distributions</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">monitor_feature_distribution</span>(<span class="hljs-params">feature_name</span>):
+    values = get_feature_values_last_24h(feature_name)
+
+    ref_mean = REFERENCE_STATS[feature_name][<span class="hljs-string">&#x27;mean&#x27;</span>]
+    ref_std = REFERENCE_STATS[feature_name][<span class="hljs-string">&#x27;std&#x27;</span>]
+
+    current_mean = np.mean(values)
+
+    <span class="hljs-comment"># Z-score</span>
+    z_score = <span class="hljs-built_in">abs</span>(current_mean - ref_mean) / ref_std
+
+    <span class="hljs-keyword">if</span> z_score &gt; <span class="hljs-number">3</span>:  <span class="hljs-comment"># 3 standard deviations</span>
+        send_alert(<span class="hljs-string">f&quot;Feature <span class="hljs-subst">{feature_name}</span> mean shifted significantly!&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="32" lang="en-IN">
+<h1 id="bias-and-fairness-monitoring">Bias and Fairness Monitoring</h1>
+<p><strong>Monitor predictions across demographic groups:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> fairlearn.metrics <span class="hljs-keyword">import</span> MetricFrame, selection_rate, false_positive_rate
+
+<span class="hljs-comment"># Compute metrics per group</span>
+metric_frame = MetricFrame(
+    metrics={
+        <span class="hljs-string">&#x27;accuracy&#x27;</span>: accuracy_score,
+        <span class="hljs-string">&#x27;fpr&#x27;</span>: false_positive_rate,
+        <span class="hljs-string">&#x27;selection_rate&#x27;</span>: selection_rate
+    },
+    y_true=y_true,
+    y_pred=y_pred,
+    sensitive_features=df[<span class="hljs-string">&#x27;gender&#x27;</span>]  <span class="hljs-comment"># Protected attribute</span>
+)
+
+<span class="hljs-built_in">print</span>(metric_frame.by_group)
+
+<span class="hljs-comment"># Alert if disparity</span>
+accuracy_ratio = (
+    metric_frame.by_group[<span class="hljs-string">&#x27;accuracy&#x27;</span>].<span class="hljs-built_in">min</span>() /
+    metric_frame.by_group[<span class="hljs-string">&#x27;accuracy&#x27;</span>].<span class="hljs-built_in">max</span>()
+)
+
+<span class="hljs-keyword">if</span> accuracy_ratio &lt; <span class="hljs-number">0.8</span>:  <span class="hljs-comment"># 80% rule</span>
+    send_alert(<span class="hljs-string">f&quot;Fairness violation: accuracy ratio = <span class="hljs-subst">{accuracy_ratio:<span class="hljs-number">.2</span>f}</span>&quot;</span>)
+</code></pre>
+<p><strong>Track over time</strong>: Log disparities daily, visualize trends.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="33" lang="en-IN">
+<h1 id="explainability-monitoring">Explainability Monitoring</h1>
+<p><strong>Monitor feature importance drift:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">from</span> sklearn.inspection <span class="hljs-keyword">import</span> permutation_importance
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+
+<span class="hljs-comment"># Compute importance on reference data</span>
+ref_importance = permutation_importance(
+    model, X_ref, y_ref, n_repeats=<span class="hljs-number">10</span>
+).importances_mean
+
+<span class="hljs-comment"># Compute importance on current data</span>
+curr_importance = permutation_importance(
+    model, X_curr, y_curr, n_repeats=<span class="hljs-number">10</span>
+).importances_mean
+
+<span class="hljs-comment"># Compare</span>
+importance_diff = np.<span class="hljs-built_in">abs</span>(ref_importance - curr_importance)
+
+<span class="hljs-comment"># Alert if top features changed significantly</span>
+<span class="hljs-keyword">if</span> np.<span class="hljs-built_in">max</span>(importance_diff) &gt; <span class="hljs-number">0.1</span>:
+    send_alert(<span class="hljs-string">&quot;Feature importance shifted!&quot;</span>)
+</code></pre>
+<p><strong>SHAP values monitoring:</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-python"><span class="hljs-keyword">import</span> shap
+
+<span class="hljs-comment"># Track mean SHAP values over time</span>
+explainer = shap.Explainer(model)
+shap_values = explainer(X_prod)
+
+mean_shap = shap_values.values.mean(axis=<span class="hljs-number">0</span>)
+
+<span class="hljs-comment"># Compare to baseline</span>
+<span class="hljs-keyword">if</span> np.linalg.norm(mean_shap - baseline_mean_shap) &gt; threshold:
+    send_alert(<span class="hljs-string">&quot;Model behavior changed (SHAP drift)&quot;</span>)
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="34" lang="en-IN">
+<h1 id="monitoring-dashboard-design">Monitoring Dashboard Design</h1>
+<p><strong>Key dashboard sections:</strong></p>
+<p><strong>1. Executive Summary</strong></p>
+<ul>
+<li>Model accuracy (current vs baseline)</li>
+<li>Predictions served today</li>
+<li>Active alerts</li>
+<li>Drift status (✓ / <img class="emoji" draggable="false" alt="⚠️" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" data-marp-twemoji=""/> / <img class="emoji" draggable="false" alt="❌" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" data-marp-twemoji=""/>)</li>
+</ul>
+<p><strong>2. Model Performance</strong></p>
+<ul>
+<li>Accuracy/F1 over time (line chart)</li>
+<li>Confusion matrix (heatmap)</li>
+<li>Error rate by category</li>
+</ul>
+<p><strong>3. Data Quality</strong></p>
+<ul>
+<li>Missing values % per feature</li>
+<li>Out-of-range values</li>
+<li>Feature correlation heatmap</li>
+</ul>
+<p><strong>4. Drift Analysis</strong></p>
+<ul>
+<li>Drift score per feature (bar chart)</li>
+<li>Feature distributions (before/after)</li>
+<li>P-values heatmap</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="35" lang="en-IN">
+<h1 id="monitoring-dashboard-design-2">Monitoring Dashboard Design (2)</h1>
+<p><strong>5. System Health</strong></p>
+<ul>
+<li>Prediction latency (P50, P95, P99)</li>
+<li>Throughput (predictions/sec)</li>
+<li>Error rate (4xx, 5xx)</li>
+<li>CPU/Memory usage</li>
+</ul>
+<p><strong>6. Prediction Analysis</strong></p>
+<ul>
+<li>Prediction distribution</li>
+<li>Confidence score histogram</li>
+<li>Prediction volume by hour/day</li>
+</ul>
+<p><strong>7. Business Metrics</strong></p>
+<ul>
+<li>Conversion rate (if applicable)</li>
+<li>Revenue impact</li>
+<li>User engagement</li>
+</ul>
+<p><strong>Tools</strong>: Grafana, Tableau, Streamlit, custom React dashboard</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="36" lang="en-IN">
+<h1 id="incident-response-playbook">Incident Response Playbook</h1>
+<p><strong>When alert fires:</strong></p>
+<p><strong>1. Assess severity</strong> (5 min)</p>
+<ul>
+<li>Critical: Model down, severe accuracy drop (&gt;20%)</li>
+<li>High: Moderate accuracy drop (10-20%), high latency</li>
+<li>Medium: Data drift detected, minor accuracy drop (&lt;10%)</li>
+<li>Low: Feature freshness issues</li>
+</ul>
+<p><strong>2. Initial investigation</strong> (15 min)</p>
+<ul>
+<li>Check recent deployments</li>
+<li>Review upstream data pipelines</li>
+<li>Examine input distribution changes</li>
+<li>Check system health (CPU, memory, errors)</li>
+</ul>
+<p><strong>3. Mitigation</strong> (30 min)</p>
+<ul>
+<li>Rollback to previous model version</li>
+<li>Apply hotfix (e.g., adjust threshold)</li>
+<li>Route traffic to backup model</li>
+</ul>
+<p><strong>4. Root cause analysis</strong> (1-2 hours)</p>
+<ul>
+<li>Analyze logs and metrics</li>
+<li>Reproduce issue in staging</li>
+<li>Document findings</li>
+</ul>
+<p><strong>5. Permanent fix</strong> (varies)</p>
+<ul>
+<li>Retrain model with new data</li>
+<li>Fix data pipeline</li>
+<li>Update monitoring thresholds</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="37" lang="en-IN">
+<h1 id="best-practices-summary">Best Practices Summary</h1>
+<p><strong>1. Start simple</strong></p>
+<ul>
+<li>Begin with basic metrics (accuracy, latency)</li>
+<li>Add complexity as needed</li>
+</ul>
+<p><strong>2. Monitor early and often</strong></p>
+<ul>
+<li>Start monitoring from day 1 of deployment</li>
+<li>Don't wait for problems</li>
+</ul>
+<p><strong>3. Automate everything</strong></p>
+<ul>
+<li>Automated drift detection</li>
+<li>Automated retraining pipelines</li>
+<li>Automated alerts</li>
+</ul>
+<p><strong>4. Combine multiple signals</strong></p>
+<ul>
+<li>Don't rely on single metric</li>
+<li>Correlate drift with performance</li>
+</ul>
+<p><strong>5. Set realistic thresholds</strong></p>
+<ul>
+<li>Avoid alert fatigue</li>
+<li>Use percentile-based thresholds</li>
+</ul>
+<p><strong>6. Document and iterate</strong></p>
+<ul>
+<li>Maintain runbooks</li>
+<li>Learn from incidents</li>
+<li>Refine monitoring over time</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="38" lang="en-IN">
+<h1 id="common-pitfalls">Common Pitfalls</h1>
+<p><strong>1. Alert fatigue</strong></p>
+<ul>
+<li>Too many false positives → people ignore alerts</li>
+<li><strong>Fix</strong>: Tune thresholds, use multi-signal alerts</li>
+</ul>
+<p><strong>2. Over-monitoring</strong></p>
+<ul>
+<li>Monitoring everything → hard to find signal in noise</li>
+<li><strong>Fix</strong>: Focus on business-critical metrics</li>
+</ul>
+<p><strong>3. Ignoring data quality</strong></p>
+<ul>
+<li>Monitoring only model performance → miss root cause</li>
+<li><strong>Fix</strong>: Monitor data quality upstream</li>
+</ul>
+<p><strong>4. No baseline</strong></p>
+<ul>
+<li>Can't detect drift without reference</li>
+<li><strong>Fix</strong>: Establish baseline during model training</li>
+</ul>
+<p><strong>5. Delayed action</strong></p>
+<ul>
+<li>Detecting drift but not acting → why monitor?</li>
+<li><strong>Fix</strong>: Automate retraining or have clear escalation</li>
+</ul>
+<p><strong>6. Production-training skew</strong></p>
+<ul>
+<li>Different preprocessing in training vs serving</li>
+<li><strong>Fix</strong>: Use same feature engineering code</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="39" lang="en-IN">
+<h1 id="lab-preview">Lab Preview</h1>
+<p><strong>Today's lab:</strong></p>
+<ol>
+<li><strong>Part 1</strong>: Train baseline model on &quot;clean&quot; data (30 min)</li>
+<li><strong>Part 2</strong>: Simulate production drift (gradual shift) (20 min)</li>
+<li><strong>Part 3</strong>: Implement drift detection with Evidently (40 min)</li>
+<li><strong>Part 4</strong>: Create monitoring dashboard (40 min)</li>
+<li><strong>Part 5</strong>: Set up automated alerts (30 min)</li>
+<li><strong>Part 6</strong>: Analyze performance degradation (30 min)</li>
+</ol>
+<p><strong>Dataset</strong>: Bike sharing data (weather features → demand)</p>
+<p><strong>Deliverable</strong>:</p>
+<ul>
+<li>Drift detection reports</li>
+<li>Monitoring dashboard</li>
+<li>Alert system</li>
+<li>Analysis of when/why model failed</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="40" lang="en-IN">
+<h1 id="key-takeaways">Key Takeaways</h1>
+<ol>
+<li><strong>ML models degrade silently</strong> - monitoring is essential</li>
+<li><strong>Monitor multiple dimensions</strong> - performance, drift, data quality, system health</li>
+<li><strong>Use statistical tests</strong> - KS test, PSI, Wasserstein distance</li>
+<li><strong>Log everything</strong> - inputs, outputs, metadata, feedback</li>
+<li><strong>Automate detection and response</strong> - don't rely on manual checks</li>
+<li><strong>Start simple, iterate</strong> - basic monitoring &gt; no monitoring</li>
+<li><strong>Combine monitoring with CI/CD</strong> - continuous training pipelines</li>
+</ol>
+<p><strong>Remember</strong>: &quot;You can't improve what you don't measure&quot; - Peter Drucker</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="41" lang="en-IN">
+<h1 id="additional-resources">Additional Resources</h1>
+<p><strong>Libraries and Tools:</strong></p>
+<ul>
+<li>Evidently AI: <a href="https://evidentlyai.com/">https://evidentlyai.com/</a></li>
+<li>Alibi Detect: <a href="https://github.com/SeldonIO/alibi-detect">https://github.com/SeldonIO/alibi-detect</a></li>
+<li>Great Expectations: <a href="https://greatexpectations.io/">https://greatexpectations.io/</a></li>
+<li>Deepchecks: <a href="https://deepchecks.com/">https://deepchecks.com/</a></li>
+<li>Prometheus: <a href="https://prometheus.io/">https://prometheus.io/</a></li>
+<li>Grafana: <a href="https://grafana.com/">https://grafana.com/</a></li>
+</ul>
+<p><strong>Reading:</strong></p>
+<ul>
+<li>&quot;Machine Learning Monitoring&quot; (Chip Huyen): <a href="https://huyenchip.com/">https://huyenchip.com/</a></li>
+<li>&quot;Monitoring Machine Learning Models in Production&quot; (Google Cloud)</li>
+<li>&quot;Made With ML - Monitoring&quot;: <a href="https://madewithml.com/courses/mlops/monitoring/">https://madewithml.com/courses/mlops/monitoring/</a></li>
+<li>&quot;The ML Test Score&quot; (Breck et al., 2017)</li>
+</ul>
+<p><strong>Courses:</strong></p>
+<ul>
+<li>Full Stack Deep Learning (Monitoring module)</li>
+<li>MLOps Specialization (Coursera)</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="42" data-class="lead" lang="en-IN" class="lead" style="--class:lead;">
 <h1 id="questions">Questions?</h1>
 </section>
 <script>!function(){"use strict";const t={h1:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"1"},style:"display: block; font-size: 2em; margin-block-start: 0.67em; margin-block-end: 0.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h2:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"2"},style:"display: block; font-size: 1.5em; margin-block-start: 0.83em; margin-block-end: 0.83em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h3:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"3"},style:"display: block; font-size: 1.17em; margin-block-start: 1em; margin-block-end: 1em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h4:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"4"},style:"display: block; margin-block-start: 1.33em; margin-block-end: 1.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h5:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"5"},style:"display: block; font-size: 0.83em; margin-block-start: 1.67em; margin-block-end: 1.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h6:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"6"},style:"display: block; font-size: 0.67em; margin-block-start: 2.33em; margin-block-end: 2.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},span:{proto:()=>HTMLSpanElement},pre:{proto:()=>HTMLElement,style:"display: block; font-family: monospace; white-space: pre; margin: 1em 0; --marp-auto-scaling-white-space: pre;"}},e="data-marp-auto-scaling-wrapper",i="data-marp-auto-scaling-svg",n="data-marp-auto-scaling-container";class s extends HTMLElement{container;containerSize;containerObserver;svg;svgComputedStyle;svgPreserveAspectRatio="xMinYMid meet";wrapper;wrapperSize;wrapperObserver;constructor(){super();const t=t=>([e])=>{const{width:i,height:n}=e.contentRect;this[t]={width:i,height:n},this.updateSVGRect()};this.attachShadow({mode:"open"}),this.containerObserver=new ResizeObserver(t("containerSize")),this.wrapperObserver=new ResizeObserver((...e)=>{t("wrapperSize")(...e),this.flushSvgDisplay()})}static get observedAttributes(){return["data-downscale-only"]}connectedCallback(){this.shadowRoot.innerHTML=`\n<style>\n  svg[${i}] { display: block; width: 100%; height: auto; vertical-align: top; }\n  span[${n}] { display: table; white-space: var(--marp-auto-scaling-white-space, nowrap); width: max-content; }\n</style>\n<div ${e}>\n  <svg part="svg" ${i}>\n    <foreignObject><span ${n}><slot></slot></span></foreignObject>\n  </svg>\n</div>\n    `.split(/\n\s*/).join(""),this.wrapper=this.shadowRoot.querySelector(`div[${e}]`)??void 0;const t=this.svg;this.svg=this.wrapper?.querySelector(`svg[${i}]`)??void 0,this.svg!==t&&(this.svgComputedStyle=this.svg?window.getComputedStyle(this.svg):void 0),this.container=this.svg?.querySelector(`span[${n}]`)??void 0,this.observe()}disconnectedCallback(){this.svg=void 0,this.svgComputedStyle=void 0,this.wrapper=void 0,this.container=void 0,this.observe()}attributeChangedCallback(){this.observe()}flushSvgDisplay(){const{svg:t}=this;t&&(t.style.display="inline",requestAnimationFrame(()=>{t.style.display=""}))}observe(){this.containerObserver.disconnect(),this.wrapperObserver.disconnect(),this.wrapper&&this.wrapperObserver.observe(this.wrapper),this.container&&this.containerObserver.observe(this.container),this.svgComputedStyle&&this.observeSVGStyle(this.svgComputedStyle)}observeSVGStyle(t){const e=()=>{const i=(()=>{const e=t.getPropertyValue("--preserve-aspect-ratio");if(e)return e.trim();return`x${(({textAlign:t,direction:e})=>{if(t.endsWith("left"))return"Min";if(t.endsWith("right"))return"Max";if("start"===t||"end"===t){let i="rtl"===e;return"end"===t&&(i=!i),i?"Max":"Min"}return"Mid"})(t)}YMid meet`})();i!==this.svgPreserveAspectRatio&&(this.svgPreserveAspectRatio=i,this.updateSVGRect()),t===this.svgComputedStyle&&requestAnimationFrame(e)};e()}updateSVGRect(){let t=Math.ceil(this.containerSize?.width??0);const e=Math.ceil(this.containerSize?.height??0);void 0!==this.dataset.downscaleOnly&&(t=Math.max(t,this.wrapperSize?.width??0));const i=this.svg?.querySelector(":scope > foreignObject");if(i?.setAttribute("width",`${t}`),i?.setAttribute("height",`${e}`),this.svg&&(this.svg.setAttribute("viewBox",`0 0 ${t} ${e}`),this.svg.setAttribute("preserveAspectRatio",this.svgPreserveAspectRatio),this.svg.style.height=t<=0||e<=0?"0":""),this.container){const t=this.svgPreserveAspectRatio.toLowerCase();this.container.style.marginLeft=t.startsWith("xmid")||t.startsWith("xmax")?"auto":"0",this.container.style.marginRight=t.startsWith("xmi")?"auto":"0"}}}const r=(t,{attrs:e={},style:i})=>class extends t{constructor(...t){super(...t);for(const[t,i]of Object.entries(e))this.hasAttribute(t)||this.setAttribute(t,i);this._shadow()}static get observedAttributes(){return["data-auto-scaling"]}connectedCallback(){this._update()}attributeChangedCallback(){this._update()}_shadow(){if(!this.shadowRoot)try{this.attachShadow({mode:"open"})}catch(t){if(!(t instanceof Error&&"NotSupportedError"===t.name))throw t}return this.shadowRoot}_update(){const t=this._shadow();if(t){const e=i?`<style>:host { ${i} }</style>`:"";let n="<slot></slot>";const{autoScaling:s}=this.dataset;if(void 0!==s){n=`<marp-auto-scaling exportparts="svg:auto-scaling" ${"downscale-only"===s?"data-downscale-only":""}>${n}</marp-auto-scaling>`}t.innerHTML=e+n}}};let o;const a=Symbol(),l=()=>o??(o=!!document.createElement("div",{is:"marp-auto-scaling"}).outerHTML.startsWith("<div is"),o);let c;const d="marpitSVGPolyfill:setZoomFactor,",h=Symbol(),g=Symbol();const p=()=>{const t="Apple Computer, Inc."===navigator.vendor,e=t?[v]:[],i={then:e=>(t?(async()=>{if(void 0===c){const t=document.createElement("canvas");t.width=10,t.height=10;const e=t.getContext("2d"),i=new Image(10,10),n=new Promise(t=>{i.addEventListener("load",()=>t())});i.crossOrigin="anonymous",i.src="data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%20viewBox%3D%220%200%201%201%22%3E%3CforeignObject%20width%3D%221%22%20height%3D%221%22%20requiredExtensions%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%3E%3Cdiv%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%20style%3D%22width%3A%201px%3B%20height%3A%201px%3B%20background%3A%20red%3B%20position%3A%20relative%22%3E%3C%2Fdiv%3E%3C%2FforeignObject%3E%3C%2Fsvg%3E",await n,e.drawImage(i,0,0),c=e.getImageData(5,5,1,1).data[3]<128}return c})().then(t=>{null==e||e(t?[v]:[])}):null==e||e([]),i)};return Object.assign(e,i)};let m,u;function v(t){const e="object"==typeof t&&t.target||document,i="object"==typeof t?t.zoom:t;window[g]||(Object.defineProperty(window,g,{configurable:!0,value:!0}),document.body.style.zoom=1.0001,document.body.offsetHeight,document.body.style.zoom=1,window.addEventListener("message",({data:t,origin:e})=>{if(e===window.origin)try{if(t&&"string"==typeof t&&t.startsWith(d)){const[,e]=t.split(","),i=Number.parseFloat(e);Number.isNaN(i)||(u=i)}}catch(t){console.error(t)}}));let n=!1;Array.from(e.querySelectorAll("svg[data-marpit-svg]"),t=>{var e,s,r,o;t.style.transform||(t.style.transform="translateZ(0)");const a=i||u||t.currentScale||1;m!==a&&(m=a,n=a);const l=t.getBoundingClientRect(),{length:c}=t.children;for(let i=0;i<c;i+=1){const n=t.children[i];if(n.getScreenCTM){const t=n.getScreenCTM();if(t){const i=null!==(s=null===(e=n.x)||void 0===e?void 0:e.baseVal.value)&&void 0!==s?s:0,c=null!==(o=null===(r=n.y)||void 0===r?void 0:r.baseVal.value)&&void 0!==o?o:0,d=n.children.length;for(let e=0;e<d;e+=1){const s=n.children[e];if("SECTION"===s.tagName){const{style:e}=s;e.transformOrigin||(e.transformOrigin=`${-i}px ${-c}px`),e.transform=`scale(${a}) matrix(${t.a}, ${t.b}, ${t.c}, ${t.d}, ${t.e-l.left}, ${t.f-l.top}) translateZ(0.0001px)`;break}}}}}}),!1!==n&&Array.from(e.querySelectorAll("iframe"),({contentWindow:t})=>{null==t||t.postMessage(`${d}${n}`,"null"===window.origin?"*":window.origin)})}function w({once:t=!1,target:e=document}={}){const i=function(t=document){if(t[h])return t[h];let e=!0;const i=()=>{e=!1,delete t[h]};Object.defineProperty(t,h,{configurable:!0,value:i});let n=[],s=!1;(async()=>{try{n=await p()}finally{s=!0}})();const r=()=>{for(const e of n)e({target:t});s&&0===n.length||e&&window.requestAnimationFrame(r)};return r(),i}(e);return t?(i(),()=>{}):i}m=1,u=void 0;const b=Symbol(),y=(e=document)=>{if("undefined"==typeof window)throw new Error("Marp Core's browser script is valid only in browser context.");if(((e=document)=>{const i=window[a];i||customElements.define("marp-auto-scaling",s);for(const n of Object.keys(t)){const s=`marp-${n}`,o=t[n].proto();l()&&o!==HTMLElement?i||customElements.define(s,r(o,{style:t[n].style}),{extends:n}):(i||customElements.define(s,r(HTMLElement,t[n])),e.querySelectorAll(`${n}[is="${s}"]`).forEach(t=>{t.outerHTML=t.outerHTML.replace(new RegExp(`^<${n}`,"i"),`<${s}`).replace(new RegExp(`</${n}>$`,"i"),`</${s}>`)}))}window[a]=!0})(e),e[b])return e[b];const i=w({target:e}),n=()=>{i(),delete e[b]},o=Object.assign(n,{cleanup:n,update:()=>y(e)});return Object.defineProperty(e,b,{configurable:!0,value:o}),o},f=document.currentScript;y(f?f.getRootNode():document)}();
